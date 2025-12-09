@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fabrika Dashboard - Gündoğdu Tekstil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0c1222;
+      --bg-card: #151d30;
+      --border-color: #2a3a5c;
+      --accent: #4a90d9;
+      --accent-light: #6ba5e7;
+      --accent-glow: rgba(74, 144, 217, 0.3);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      color: var(--text-primary);
+    }
+
+    .header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-icon {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .header-title h1 {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .header-title p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-info {
+      text-align: right;
+    }
+
+    .user-info .name {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .user-info .role {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .logout-btn {
+      padding: 10px 20px;
+      background: transparent;
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      color: var(--danger);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: var(--danger);
+      color: white;
+    }
+
+    .main-content {
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .welcome-section {
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 30px;
+      color: white;
+    }
+
+    .welcome-section h2 {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .action-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .action-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-5px);
+    }
+
+    .action-icon {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+    }
+
+    .action-card h3 {
+      font-size: 1rem;
+      margin-bottom: 5px;
+    }
+
+    .action-card p {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .info-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 30px;
+    }
+
+    .info-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+    }
+
+    .placeholder-text {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    .placeholder-text span {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 15px;
+    }
+
+    /* Analytics Card */
+    .analytics-card {
+      padding: 30px;
+    }
+
+    .analytics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .analytics-subtitle {
+      color: var(--text-secondary);
+      margin-top: 6px;
+      font-size: 0.9rem;
+    }
+
+    .top-materials-chart-wrapper {
+      margin-top: 30px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .chart-subtitle {
+      font-size: 1rem;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .chart-description {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+    }
+
+    #topMaterialsChart {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .monthly-bars {
+      margin-top: 24px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .monthly-bar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .monthly-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .monthly-chart {
+      width: 100%;
+      height: 300px;
+      max-height: 360px;
+    }
+
+    .chart-note {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .dashboard-footer {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 20px;
+      }
+      .main-content {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon">🏭</div>
+      <div class="header-title">
+        <h1>Fabrika</h1>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="user-info">
+        <div class="name">Fabrika Yönetim Paneli</div>
+      </div>
+      <button class="logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <section class="quick-actions">
+      <div class="action-card" onclick="window.location.href='factory-hammadde-siparisleri.html'">
+        <div class="action-icon">📋</div>
+        <h3>Hammadde Siparişleri</h3>
+        <p>Gelen hammadde siparişlerini görüntüle</p>
+      </div>
+      <div class="action-card" onclick="window.location.href='/fabrika/hammadde-stok-takibi'">
+        <div class="action-icon">🏷️</div>
+        <h3>Hammadde Stok Takibi</h3>
+        <p>Depodaki hammadde stok düzeylerini görüntüleyin ve yönetin.</p>
+      </div>
+    </section>
+
+    <section class="info-card analytics-card">
+      <div class="analytics-header">
+        <div>
+          <h3>Gündoğdu'nun Hammadde Siparişleri</h3>
+          <p class="analytics-subtitle">Gündoğdu Tekstil'in sizden aldığı hammaddelerin miktarlarını analiz edin.</p>
+        </div>
+      </div>
+
+      <div class="monthly-bars">
+        <h3 class="chart-subtitle">Aylık Hammadde Siparişleri (Ekim, Kasım, Aralık 2025)</h3>
+        <p class="chart-description">Her ay için hammadde bazlı sipariş miktarlarını inceleyin.</p>
+        <div class="monthly-bar-grid">
+          <div class="monthly-card">
+            <h4 class="chart-subtitle">Ekim 2025</h4>
+            <p class="chart-description" style="margin-bottom:10px;">Ekim ayında hangi hammaddeden ne kadar sipariş verildiğini görüntüleyin.</p>
+            <canvas id="ekimChart" class="monthly-chart"></canvas>
+            <p id="ekimNoData" class="chart-note" style="display:none;">Bu ay için hammadde sipariş verisi bulunmamaktadır.</p>
+          </div>
+          <div class="monthly-card">
+            <h4 class="chart-subtitle">Kasım 2025</h4>
+            <p class="chart-description" style="margin-bottom:10px;">Kasım ayında sipariş edilen hammaddeleri inceleyin.</p>
+            <canvas id="kasimChart" class="monthly-chart"></canvas>
+            <p id="kasimNoData" class="chart-note" style="display:none;">Bu ay için hammadde sipariş verisi bulunmamaktadır.</p>
+          </div>
+          <div class="monthly-card">
+            <h4 class="chart-subtitle">Aralık 2025</h4>
+            <p class="chart-description" style="margin-bottom:10px;">Aralık ayındaki hammadde sipariş miktarlarını görün.</p>
+            <canvas id="aralikChart" class="monthly-chart"></canvas>
+            <p id="aralikNoData" class="chart-note" style="display:none;">Bu ay için hammadde sipariş verisi bulunmamaktadır.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="top-materials-chart-wrapper">
+        <h3 class="chart-subtitle">En Çok Satılan 5 Hammadde</h3>
+        <p class="chart-description">
+          Gündoğdu Tekstil'e en çok satılan hammaddelerin dağılımını görün.
+        </p>
+        <canvas id="topMaterialsChart"></canvas>
+        <p id="topMaterialsNoDataMessage" style="display: none; opacity: 0.7; font-size: 0.85rem; margin-top: 8px;">
+          Bu tarih aralığında en çok satılan hammadde verisi bulunmamaktadır.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="dashboard-footer">
+    <p>© 2025 Gündoğdu Tekstil. Tüm hakları saklıdır. | <a href="/" style="color: var(--accent);">Ana Sayfaya Dön</a></p>
+  </footer>
+
+  <script>
+    function logout() {
+      sessionStorage.removeItem('user');
+      window.location.href = '/';
+    }
+
+    // ============================
+    // Hammadde Analiz Grafikleri
+    // ============================
+    let topMaterialsChartInstance = null;
+    let ekimChart = null;
+    let kasimChart = null;
+    let aralikChart = null;
+
+    const monthCodes = ['2025-10', '2025-11', '2025-12'];
+    const monthLabels = {
+      '2025-10': 'Ekim 2025',
+      '2025-11': 'Kasım 2025',
+      '2025-12': 'Aralık 2025'
+    };
+
+    function renderTopMaterialsChart(top5) {
+      const canvas = document.getElementById('topMaterialsChart');
+      const noDataMessage = document.getElementById('topMaterialsNoDataMessage');
+      if (!canvas) return;
+
+      if (!top5 || top5.length === 0) {
+        if (topMaterialsChartInstance) {
+          topMaterialsChartInstance.destroy();
+          topMaterialsChartInstance = null;
+        }
+        if (noDataMessage) {
+          noDataMessage.style.display = 'block';
+        }
+        return;
+      }
+
+      const labels = top5.map(item => item.hammadde_adi);
+      const values = top5.map(item => item.toplam_miktar);
+
+      if (noDataMessage) {
+        noDataMessage.style.display = 'none';
+      }
+
+      if (topMaterialsChartInstance) {
+        topMaterialsChartInstance.destroy();
+      }
+
+      topMaterialsChartInstance = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data: values
+          }]
+        },
+        options: {
+          plugins: {
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: {
+                color: '#ffffff'
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const value = context.raw || 0;
+                  return `${context.dataset.label}: ${value} birim`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderMonthlyBar(monthCode, canvasId, noDataId, dataset) {
+      const canvas = document.getElementById(canvasId);
+      const noDataEl = document.getElementById(noDataId);
+      if (!canvas) return;
+
+      const chartMap = {
+        ekimChart,
+        kasimChart,
+        aralikChart
+      };
+
+      const destroyChart = (key) => {
+        if (chartMap[key]) {
+          chartMap[key].destroy();
+          chartMap[key] = null;
+        }
+      };
+
+      const chartKey = canvasId === 'ekimChart' ? 'ekimChart'
+        : canvasId === 'kasimChart' ? 'kasimChart'
+        : 'aralikChart';
+
+      const labels = dataset.map(item => item.hammadde_adi || 'Bilinmeyen');
+      const values = dataset.map(item => Number(item.toplam_miktar) || 0);
+
+      const hasData = labels.length > 0 && values.some(v => v > 0);
+
+      if (!hasData) {
+        destroyChart(chartKey);
+        if (noDataEl) noDataEl.style.display = 'block';
+        if (chartKey === 'ekimChart') ekimChart = chartMap[chartKey];
+        if (chartKey === 'kasimChart') kasimChart = chartMap[chartKey];
+        if (chartKey === 'aralikChart') aralikChart = chartMap[chartKey];
+        return;
+      } else if (noDataEl) {
+        noDataEl.style.display = 'none';
+      }
+
+      destroyChart(chartKey);
+
+      const suggestedMax = Math.max(...values, 0) * 1.2 || 1000;
+
+      const newChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: monthLabels[monthCode] || 'Toplam',
+            data: values,
+            backgroundColor: 'rgba(74, 144, 217, 0.65)',
+            borderColor: 'rgba(74, 144, 217, 0.95)',
+            borderWidth: 1,
+            borderRadius: 4,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `Toplam: ${ctx.raw} birim`
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              suggestedMax,
+              grace: '10%',
+              ticks: { color: '#ffffff' },
+              grid: { color: 'rgba(148, 163, 184, 0.15)' }
+            },
+            x: {
+              ticks: { color: '#ffffff' },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+
+      if (chartKey === 'ekimChart') ekimChart = newChart;
+      if (chartKey === 'kasimChart') kasimChart = newChart;
+      if (chartKey === 'aralikChart') aralikChart = newChart;
+    }
+
+    async function loadMonthlyBars() {
+      try {
+        const response = await fetch('/api/fabrika/aylik-hammadde-satislari');
+        if (!response.ok) throw new Error('Sunucu hatası');
+        const data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          renderMonthlyBar('2025-10', 'ekimChart', 'ekimNoData', []);
+          renderMonthlyBar('2025-11', 'kasimChart', 'kasimNoData', []);
+          renderMonthlyBar('2025-12', 'aralikChart', 'aralikNoData', []);
+          return;
+        }
+
+        const grouped = {
+          '2025-10': [],
+          '2025-11': [],
+          '2025-12': []
+        };
+
+        data.forEach(item => {
+          if (grouped[item.ay_kodu]) {
+            grouped[item.ay_kodu].push({
+              hammadde_adi: item.hammadde_adi || 'Bilinmeyen',
+              toplam_miktar: Number(item.toplam_miktar) || 0
+            });
+          }
+        });
+
+        // Sort within each month by amount desc
+        Object.keys(grouped).forEach(key => {
+          grouped[key].sort((a, b) => (Number(b.toplam_miktar) || 0) - (Number(a.toplam_miktar) || 0));
+        });
+
+        renderMonthlyBar('2025-10', 'ekimChart', 'ekimNoData', grouped['2025-10']);
+        renderMonthlyBar('2025-11', 'kasimChart', 'kasimNoData', grouped['2025-11']);
+        renderMonthlyBar('2025-12', 'aralikChart', 'aralikNoData', grouped['2025-12']);
+      } catch (error) {
+        console.error('Aylık hammadde satışları yüklenirken hata oluştu:', error);
+        renderMonthlyBar('2025-10', 'ekimChart', 'ekimNoData', []);
+        renderMonthlyBar('2025-11', 'kasimChart', 'kasimNoData', []);
+        renderMonthlyBar('2025-12', 'aralikChart', 'aralikNoData', []);
+
+        ['ekimNoData', 'kasimNoData', 'aralikNoData'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.style.display = 'block';
+            el.textContent = 'Veriler yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.';
+          }
+        });
+      }
+    }
+
+    async function loadTopMaterials() {
+      try {
+        const response = await fetch(`/api/fabrika/hammadde-siparis-analizi?customer=gundogdu`);
+
+        if (!response.ok) {
+          throw new Error('Sunucu hatası');
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          renderTopMaterialsChart([]);
+          return;
+        }
+
+        const sorted = [...data].sort((a, b) => (Number(b.toplam_miktar) || 0) - (Number(a.toplam_miktar) || 0));
+        const top5 = sorted.slice(0, 5);
+        renderTopMaterialsChart(top5);
+      } catch (error) {
+        console.error('Analiz verisi yüklenirken hata oluştu:', error);
+        renderTopMaterialsChart([]);
+
+        const noDataMessage = document.getElementById('topMaterialsNoDataMessage');
+        if (noDataMessage) {
+          noDataMessage.style.display = 'block';
+          noDataMessage.textContent = 'Veriler yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.';
+        }
+      }
+    }
+
+    // Initial load for donut chart
+    loadTopMaterials();
+    // Initial load for monthly bars (Ekim/Kasım/Aralık)
+    loadMonthlyBars();
+  </script>
+</body>
+</html>
+

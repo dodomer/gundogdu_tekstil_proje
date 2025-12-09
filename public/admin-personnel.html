@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personel Yönetimi - Gündoğdu Tekstil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c1222;
+      --bg-card: #151d30;
+      --border-color: #2a3a5c;
+      --accent: #d4a853;
+      --accent-light: #f0c970;
+      --accent-glow: rgba(212, 168, 83, 0.3);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      color: var(--text-primary);
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-icon {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .header-title h1 {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .header-title p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .back-btn {
+      padding: 10px 20px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Main Content */
+    .main-content {
+      padding: 30px 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Search Section */
+    .search-section {
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .search-input {
+      flex: 1;
+      max-width: 400px;
+      padding: 12px 18px;
+      padding-left: 45px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.1rem;
+      opacity: 0.6;
+    }
+
+    .stats-badge {
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .stats-badge strong {
+      color: var(--accent);
+    }
+
+    .btn-primary {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border: none;
+      border-radius: 8px;
+      color: var(--bg-dark);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 5px 20px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    /* Table Section */
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: rgba(212, 168, 83, 0.1);
+    }
+
+    th {
+      padding: 16px 20px;
+      text-align: left;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    tbody tr {
+      transition: background 0.2s ease;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr.warning-row {
+      background: var(--warning-bg);
+    }
+
+    tbody tr.warning-row:hover {
+      background: rgba(245, 158, 11, 0.25);
+    }
+
+    /* Status Badges */
+    .status-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-pasif {
+      background: rgba(100, 116, 139, 0.3);
+      color: #94a3b8;
+    }
+
+    .status-yuksek {
+      background: rgba(39, 174, 96, 0.2);
+      color: #27ae60;
+    }
+
+    .status-orta {
+      background: rgba(234, 179, 8, 0.2);
+      color: #eab308;
+    }
+
+    .status-dusuk {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    /* Efficiency Display */
+    .efficiency {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .efficiency-bar {
+      width: 60px;
+      height: 6px;
+      background: var(--bg-dark);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .efficiency-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .efficiency-high {
+      background: var(--success);
+    }
+
+    .efficiency-medium {
+      background: var(--warning);
+    }
+
+    .efficiency-low {
+      background: var(--danger);
+    }
+
+    /* Loading State */
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .loading-state .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state span {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 15px;
+    }
+
+    /* Footer */
+    .dashboard-footer {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .dashboard-footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .dashboard-footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px;
+      }
+
+      .main-content {
+        padding: 20px;
+      }
+
+      .search-section {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .search-input {
+        max-width: none;
+      }
+
+      th, td {
+        padding: 12px 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon">👥</div>
+      <div class="header-title">
+        <h1>Personel Yönetimi</h1>
+        <p>Çalışanları ve performanslarını görüntüleyin</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="/admin-dashboard.html" class="back-btn">
+        ← Admin Paneline Dön
+      </a>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="search-section">
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          class="search-input" 
+          id="search-input" 
+          placeholder="Personel adına göre ara..."
+        >
+      </div>
+      <div class="stats-badge">
+        Toplam: <strong id="total-count">0</strong> personel
+      </div>
+      <a href="/performans-yonetimi.html" class="btn-primary">
+        📊 Performans Yönetimi
+      </a>
+    </div>
+
+    <div class="table-card">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Personel ID</th>
+              <th>Ad Soyad</th>
+              <th>Durum</th>
+              <th>Toplam Çalışılan (dk)</th>
+              <th>Ort. Verimlilik</th>
+            </tr>
+          </thead>
+          <tbody id="personnel-table-body">
+            <tr>
+              <td colspan="5">
+                <div class="loading-state">
+                  <div class="spinner"></div>
+                  <p>Personel verileri yükleniyor...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer class="dashboard-footer">
+    <p>© 2025 Gündoğdu Tekstil. Tüm hakları saklıdır. | <a href="/admin-dashboard.html">Admin Paneli</a></p>
+  </footer>
+
+  <script>
+    let allPersonnel = [];
+
+    // Load personnel data on page load
+    async function loadPersonnel() {
+      try {
+        const response = await fetch('/api/admin/personnel');
+        const data = await response.json();
+        
+        allPersonnel = data;
+        document.getElementById('total-count').textContent = data.length;
+        renderTable(data);
+      } catch (error) {
+        console.error('Error loading personnel:', error);
+        document.getElementById('personnel-table-body').innerHTML = `
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                <span>❌</span>
+                <p>Veriler yüklenirken bir hata oluştu.</p>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Render the table with given data
+    function renderTable(data) {
+      const tbody = document.getElementById('personnel-table-body');
+      
+      if (data.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                <span>📭</span>
+                <p>Gösterilecek personel bulunamadı.</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = data.map(person => {
+        const efficiency = parseFloat(person.ort_verimlilik) || 0;
+        const isLowEfficiency = efficiency < 80;
+        const rowClass = isLowEfficiency ? 'warning-row' : '';
+        
+        // Determine efficiency color
+        let efficiencyClass = 'efficiency-high';
+        if (efficiency < 60) efficiencyClass = 'efficiency-low';
+        else if (efficiency < 80) efficiencyClass = 'efficiency-medium';
+
+        return `
+          <tr class="${rowClass}">
+            <td><strong>P${String(person.personel_id).padStart(2, '0')}</strong></td>
+            <td>${person.personel_ad_soyad || '-'}</td>
+            <td>
+              ${(() => {
+                const calisilan = Number(person.toplam_calisilan_dk);
+                const verimlilik = parseFloat(person.ort_verimlilik) || 0;
+                
+                if (calisilan === 0) {
+                  return '<span class="status-badge status-pasif">Pasif</span>';
+                } else if (verimlilik >= 80) {
+                  return '<span class="status-badge status-yuksek">Yüksek Performans</span>';
+                } else if (verimlilik >= 60) {
+                  return '<span class="status-badge status-orta">Orta Performans</span>';
+                } else {
+                  return '<span class="status-badge status-dusuk">Düşük Performans</span>';
+                }
+              })()}
+            </td>
+            <td>${Number(person.toplam_calisilan_dk).toLocaleString('tr-TR')} dk</td>
+            <td>
+              <div class="efficiency">
+                <div class="efficiency-bar">
+                  <div class="efficiency-fill ${efficiencyClass}" style="width: ${Math.min(efficiency, 100)}%"></div>
+                </div>
+                <span>${efficiency.toFixed(1)}%</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Search functionality
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase().trim();
+      
+      if (searchTerm === '') {
+        renderTable(allPersonnel);
+        document.getElementById('total-count').textContent = allPersonnel.length;
+        return;
+      }
+
+      const filtered = allPersonnel.filter(person => 
+        (person.personel_ad_soyad || '').toLowerCase().includes(searchTerm)
+      );
+      
+      renderTable(filtered);
+      document.getElementById('total-count').textContent = filtered.length;
+    });
+
+    // Initialize
+    loadPersonnel();
+  </script>
+</body>
+</html>
+

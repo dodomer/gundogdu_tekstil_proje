@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Üretim Yönetimi - Gündoğdu Tekstil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c1222;
+      --bg-card: #151d30;
+      --border-color: #2a3a5c;
+      --accent: #d4a853;
+      --accent-light: #f0c970;
+      --accent-glow: rgba(212, 168, 83, 0.3);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      color: var(--text-primary);
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-icon {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .header-title h1 {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .header-title p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .back-btn {
+      padding: 10px 20px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .add-btn {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border: none;
+      border-radius: 8px;
+      color: var(--bg-dark);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .add-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px var(--accent-glow);
+    }
+
+    /* Main Content */
+    .main-content {
+      padding: 30px 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .stat-icon {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    /* Table Card */
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .table-header {
+      padding: 20px 25px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .table-header h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .search-input {
+      padding: 10px 15px;
+      padding-left: 40px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      width: 250px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.5;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: rgba(212, 168, 83, 0.1);
+    }
+
+    th {
+      padding: 14px 18px;
+      text-align: left;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 18px;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    tbody tr {
+      transition: background 0.2s ease;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Status Badges */
+    .status-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-beklemede {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+
+    .status-onaylandi {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--info);
+    }
+
+    .status-hazirlaniyor {
+      background: rgba(139, 92, 246, 0.2);
+      color: #8b5cf6;
+    }
+
+    .status-teslimedildi {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--success);
+    }
+
+    /* Loading & Empty States */
+    .loading-state, .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 25px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .modal-close:hover {
+      color: var(--text-primary);
+    }
+
+    .modal-body {
+      padding: 25px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 15px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 20px 25px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .btn-cancel {
+      padding: 10px 20px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .btn-cancel:hover {
+      border-color: var(--text-secondary);
+    }
+
+    .btn-save {
+      padding: 10px 25px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border: none;
+      border-radius: 8px;
+      color: var(--bg-dark);
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-save:hover {
+      box-shadow: 0 5px 20px var(--accent-glow);
+    }
+
+    /* Footer */
+    .dashboard-footer {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .dashboard-footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px;
+      }
+
+      .main-content {
+        padding: 20px;
+      }
+
+      .table-header {
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .search-input {
+        width: 100%;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon">⚙️</div>
+      <div class="header-title">
+        <h1>Üretim Yönetimi</h1>
+        <p>Hammadde Siparişleri ve Üretim Takibi</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="/admin-dashboard.html" class="back-btn">
+        ← Admin Paneline Dön
+      </a>
+      <button class="add-btn" onclick="openModal()">
+        + Yeni Hammadde Siparişi
+      </button>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- Stats -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value" id="totalOrders">--</div>
+        <div class="stat-label">Toplam Sipariş</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-value" id="pendingOrders">--</div>
+        <div class="stat-label">Bekleyen</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔄</div>
+        <div class="stat-value" id="inProductionOrders">--</div>
+        <div class="stat-label">Üretimde</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" id="deliveredOrders">--</div>
+        <div class="stat-label">Teslim Edildi</div>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <div class="table-card">
+      <div class="table-header">
+        <h2>📋 Hammadde Siparişleri</h2>
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="searchInput" placeholder="Malzeme ara...">
+        </div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Malzeme Adı</th>
+              <th>Miktar</th>
+              <th>Birim</th>
+              <th>Sipariş Tarihi</th>
+              <th>Durum</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody">
+            <tr>
+              <td colspan="6">
+                <div class="loading-state">
+                  <div class="loading-spinner"></div>
+                  <p>Siparişler yükleniyor...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer class="dashboard-footer">
+    <p>© 2025 Gündoğdu Tekstil. Tüm hakları saklıdır. | <a href="/admin-dashboard.html">Admin Paneli</a></p>
+  </footer>
+
+  <!-- Modal -->
+  <div class="modal" id="orderModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Yeni Hammadde Siparişi</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <form id="orderForm">
+        <div class="modal-body">
+          <input type="hidden" id="orderId">
+          
+          <div class="form-group">
+            <label for="hammadde_id">Hammadde *</label>
+            <select id="hammadde_id" required>
+              <option value="">Hammadde Seçiniz...</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="miktar">Miktar *</label>
+            <input type="number" id="miktar" required placeholder="100" min="0" step="0.01">
+          </div>
+          
+          <div class="form-group">
+            <label>Sipariş Tarihi</label>
+            <input type="text" id="siparis_tarihi_display" readonly style="background: var(--bg-dark); opacity: 0.7; cursor: not-allowed;">
+            <small style="color: var(--text-muted); font-size: 0.75rem;">Otomatik olarak bugünün tarihi atanır</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="closeModal()">İptal</button>
+          <button type="submit" class="btn-save">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let allOrders = [];
+    let allMaterials = [];
+
+    // Load available materials for dropdown
+    async function loadMaterials() {
+      try {
+        const response = await fetch('/api/raw-materials');
+        if (response.ok) {
+          allMaterials = await response.json();
+          const select = document.getElementById('hammadde_id');
+          select.innerHTML = '<option value="">Hammadde Seçiniz...</option>';
+          allMaterials.forEach(m => {
+            const option = document.createElement('option');
+            option.value = m.hammadde_id;
+            option.textContent = `${m.hammadde_adi} (${m.birim})`;
+            select.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading materials:', error);
+      }
+    }
+
+    // Load orders on page load
+    async function loadOrders() {
+      try {
+        const response = await fetch('/api/raw-material-orders');
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Sunucu hatası');
+        }
+        
+        const data = await response.json();
+        
+        if (Array.isArray(data)) {
+          allOrders = data;
+          renderTable(data);
+          updateStats(data);
+        } else {
+          allOrders = [];
+          renderTable([]);
+          updateStats([]);
+        }
+      } catch (error) {
+        console.error('Error loading orders:', error);
+        document.getElementById('ordersTableBody').innerHTML = `
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <p>⚠️ Siparişler yüklenirken bir hata oluştu.</p>
+                <p style="font-size: 0.8rem; margin-top: 10px; color: #ef4444;">${error.message}</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        document.getElementById('totalOrders').textContent = '0';
+        document.getElementById('pendingOrders').textContent = '0';
+        document.getElementById('inProductionOrders').textContent = '0';
+        document.getElementById('deliveredOrders').textContent = '0';
+      }
+    }
+
+    // Update stats cards
+    function updateStats(orders) {
+      document.getElementById('totalOrders').textContent = orders.length;
+      document.getElementById('pendingOrders').textContent = orders.filter(o => o.durum === 'BEKLEMEDE').length;
+      document.getElementById('inProductionOrders').textContent = orders.filter(o => o.durum === 'ONAYLANDI' || o.durum === 'HAZIRLANIYOR').length;
+      document.getElementById('deliveredOrders').textContent = orders.filter(o => o.durum === 'TESLIMEDILDI').length;
+    }
+
+    // Render table
+    function renderTable(orders) {
+      const tbody = document.getElementById('ordersTableBody');
+      
+      if (orders.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <p>📭 Henüz hammadde siparişi bulunmuyor.</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = orders.map(order => {
+        const siparisTarihi = order.siparis_tarihi ? new Date(order.siparis_tarihi).toLocaleDateString('tr-TR') : '-';
+        const statusClass = (order.durum || '').toLowerCase();
+        const statusText = getStatusText(order.durum);
+
+        return `
+          <tr>
+            <td><strong>#${order.id}</strong></td>
+            <td>${order.malzeme_adi || '-'}</td>
+            <td>${order.miktar || 0}</td>
+            <td>${order.birim || '-'}</td>
+            <td>${siparisTarihi}</td>
+            <td><span class="status-badge status-${statusClass}">${statusText}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Get status display text
+    function getStatusText(status) {
+      const statusMap = {
+        'BEKLEMEDE': 'Beklemede',
+        'ONAYLANDI': 'Onaylandı',
+        'HAZIRLANIYOR': 'Hazırlanıyor',
+        'TESLIMEDILDI': 'Teslim Edildi'
+      };
+      return statusMap[status] || status || '-';
+    }
+
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase().trim();
+      
+      if (term === '') {
+        renderTable(allOrders);
+        return;
+      }
+
+      const filtered = allOrders.filter(order => 
+        (order.malzeme_adi || '').toLowerCase().includes(term)
+      );
+      renderTable(filtered);
+    });
+
+    // Open modal for new order
+    function openModal() {
+      document.getElementById('modalTitle').textContent = 'Yeni Hammadde Siparişi';
+      document.getElementById('orderForm').reset();
+      // Show today's date as read-only display
+      document.getElementById('siparis_tarihi_display').value = new Date().toLocaleDateString('tr-TR');
+      document.getElementById('orderModal').classList.add('active');
+    }
+
+    // Close modal
+    function closeModal() {
+      document.getElementById('orderModal').classList.remove('active');
+    }
+
+    // Form submit
+    document.getElementById('orderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Only send hammadde_id and miktar
+      // siparis_tarihi and durum are set by the server
+      const data = {
+        hammadde_id: parseInt(document.getElementById('hammadde_id').value),
+        miktar: parseFloat(document.getElementById('miktar').value)
+      };
+
+      try {
+        const response = await fetch('/api/raw-material-orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          closeModal();
+          loadOrders();
+        } else {
+          const err = await response.json();
+          alert('Hata: ' + (err.error || 'İşlem başarısız'));
+        }
+      } catch (error) {
+        console.error('Save error:', error);
+        alert('Bir hata oluştu.');
+      }
+    });
+
+    // Initialize
+    loadMaterials();
+    loadOrders();
+  </script>
+</body>
+</html>
+

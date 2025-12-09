@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personel Girişi - Gündoğdu Tekstil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c1222;
+      --bg-card: #151d30;
+      --border-color: #2a3a5c;
+      --accent: #45b088;
+      --accent-light: #5fc9a0;
+      --accent-glow: rgba(69, 176, 136, 0.3);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 30% 20%, var(--accent-glow) 0%, transparent 50%),
+        radial-gradient(circle at 70% 80%, rgba(69, 176, 136, 0.1) 0%, transparent 40%);
+      z-index: 0;
+    }
+
+    .login-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin-bottom: 25px;
+      transition: color 0.3s ease;
+    }
+
+    .back-link:hover {
+      color: var(--accent);
+    }
+
+    .back-link svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .login-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 35px;
+    }
+
+    .login-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      box-shadow: 0 10px 30px var(--accent-glow);
+    }
+
+    .login-header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .login-header p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .info-box {
+      background: rgba(69, 176, 136, 0.1);
+      border-radius: 10px;
+      padding: 12px 15px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .info-box span {
+      font-size: 1.2rem;
+    }
+
+    .info-box p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px 18px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-group input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border: none;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 10px;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px var(--accent-glow);
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .error-message {
+      margin-top: 20px;
+      padding: 12px 15px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      border-radius: 10px;
+      color: var(--danger);
+      font-size: 0.9rem;
+      text-align: center;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+      animation: shake 0.5s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
+    }
+
+    .success-message {
+      margin-top: 20px;
+      padding: 12px 15px;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid var(--success);
+      border-radius: 10px;
+      color: var(--success);
+      font-size: 0.9rem;
+      text-align: center;
+      display: none;
+    }
+
+    .success-message.show {
+      display: block;
+    }
+
+    .footer-text {
+      text-align: center;
+      margin-top: 25px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .footer-text a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .footer-text a:hover {
+      text-decoration: underline;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid transparent;
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <a href="/" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+      Ana Sayfaya Dön
+    </a>
+
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-icon">👷</div>
+        <h1>Personel Girişi</h1>
+        <p>Çalışan self-servis portalı</p>
+      </div>
+
+      <div class="info-box">
+        <span>ℹ️</span>
+        <p>Personel kodunuz: P + Sicil numaranız (Örn: P1, P12)</p>
+      </div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="code">Personel Kodu</label>
+          <input type="text" id="code" name="code" placeholder="Örn: P01, P07, P12" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label for="password">Şifre</label>
+          <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" class="login-btn" id="login-btn">Giriş Yap</button>
+      </form>
+
+      <div class="error-message" id="error-message"></div>
+      <div class="success-message" id="success-message"></div>
+
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('login-form');
+    const loginBtn = document.getElementById('login-btn');
+    const errorMessage = document.getElementById('error-message');
+    const successMessage = document.getElementById('success-message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      errorMessage.classList.remove('show');
+      successMessage.classList.remove('show');
+      
+      const code = document.getElementById('code').value.trim().toUpperCase();
+      const password = document.getElementById('password').value;
+      
+      // Validate code format
+      if (!code.startsWith('P') || !/\d/.test(code)) {
+        errorMessage.textContent = 'Personel kodu P ile başlamalı ve bir numara içermelidir (Örn: P1, P12)';
+        errorMessage.classList.add('show');
+        return;
+      }
+      
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<span class="loading"></span>Giriş yapılıyor...';
+      
+      try {
+        const response = await fetch('/api/login/personnel', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ code, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          successMessage.textContent = `✓ Hoş geldiniz, ${data.userName}! Yönlendiriliyorsunuz...`;
+          successMessage.classList.add('show');
+          
+          sessionStorage.setItem('user', JSON.stringify({
+            role: data.role,
+            id: data.id,
+            userName: data.userName,
+            loggedIn: true
+          }));
+          
+          // Store userName in localStorage
+          localStorage.setItem("loggedUserName", data.userName);
+          
+          window.location.href = data.redirect;
+        } else {
+          errorMessage.textContent = data.message || 'Giriş başarısız';
+          errorMessage.classList.add('show');
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Giriş Yap';
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        errorMessage.textContent = 'Bağlantı hatası. Lütfen tekrar deneyin.';
+        errorMessage.classList.add('show');
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Giriş Yap';
+      }
+    });
+  </script>
+</body>
+</html>

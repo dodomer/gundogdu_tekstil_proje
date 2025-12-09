@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Müşteri Dashboard - Gündoğdu Tekstil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c1222;
+      --bg-card: #151d30;
+      --border-color: #2a3a5c;
+      --accent: #8b5cf6;
+      --accent-light: #a78bfa;
+      --accent-glow: rgba(139, 92, 246, 0.3);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      color: var(--text-primary);
+    }
+
+    .user-inline-name {
+      margin-top: 4px;
+      font-size: 14px;
+      color: #f5f5f5;
+      opacity: 0.9;
+    }
+    .user-inline-name span {
+      font-weight: 600;
+    }
+
+    .header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-icon {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .header-title h1 {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .header-title p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-info {
+      text-align: right;
+    }
+
+    .user-info .name {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .user-info .role {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .logout-btn {
+      padding: 10px 20px;
+      background: transparent;
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      color: var(--danger);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: var(--danger);
+      color: white;
+    }
+
+    .main-content {
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .welcome-section {
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 30px;
+      color: white;
+    }
+
+    .welcome-section h2 {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+    }
+
+    .stat-icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .action-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .action-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-5px);
+    }
+
+    .action-icon {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+    }
+
+    .action-card h3 {
+      font-size: 1rem;
+      margin-bottom: 5px;
+    }
+
+    .action-card p {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    /* Orders Table Placeholder */
+    .orders-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+
+    .orders-section h3 {
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      background: var(--bg-dark);
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .order-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .order-info h4 {
+      font-size: 0.95rem;
+      margin-bottom: 5px;
+    }
+
+    .order-info p {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .order-status {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* Order Status Badges */
+    .order-status.planlandi {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+
+    .order-status.uretimde {
+      background: rgba(139, 92, 246, 0.2);
+      color: var(--accent);
+    }
+
+    .order-status.tamamlandi {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--success);
+    }
+
+    .order-status.sevk_edildi {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+    }
+
+    .order-status.iptal {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+    }
+
+    /* Order Cards */
+    .order-card {
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .order-card:hover {
+      border-color: var(--accent);
+    }
+
+    .order-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .order-id {
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--text-primary);
+    }
+
+    .order-body {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .order-body div {
+      display: flex;
+      gap: 5px;
+    }
+
+    .loading-orders {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    .loading-spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .info-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 30px;
+    }
+
+    .info-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+    }
+
+    .placeholder-text {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    .placeholder-text span {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 15px;
+    }
+
+    .dashboard-footer {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 20px;
+      }
+      .main-content {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon">🛒</div>
+      <div class="header-title">
+        <h1>Müşteri Dashboard</h1>
+        <p>Sipariş Takip Portalı</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="user-info">
+        <div class="name" id="user-name">Müşteri</div>
+        <div class="role">Müşteri ID: <span id="user-id">-</span></div>
+        <div class="user-inline-name">Müşteri: <span id="user-inline-name"></span></div>
+      </div>
+      <button class="logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <section class="welcome-section">
+      <h2>👋 Hoş Geldiniz!</h2>
+      <p>Müşteri panelinize başarıyla giriş yaptınız. Buradan siparişlerinizi takip edebilir ve hesap bilgilerinizi görüntüleyebilirsiniz.</p>
+    </section>
+
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value" id="totalOrdersValue">--</div>
+        <div class="stat-label">Toplam Sipariş</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔄</div>
+        <div class="stat-value" id="activeOrdersValue">--</div>
+        <div class="stat-label">Aktif Sipariş</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" id="completedOrdersValue">--</div>
+        <div class="stat-label">Tamamlanan</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value" id="totalAmountValue">--</div>
+        <div class="stat-label">Toplam Tutar</div>
+      </div>
+    </section>
+
+    <section class="orders-section">
+      <h3>📋 Son Siparişler</h3>
+      <div id="recent-orders-list">
+        <div class="loading-orders">
+          <div class="loading-spinner"></div>
+          <p>Siparişler yükleniyor...</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="quick-actions">
+      <div class="action-card">
+        <div class="action-icon">📦</div>
+        <h3>Tüm Siparişler</h3>
+        <p>Sipariş geçmişinizi görüntüleyin</p>
+      </div>
+      <div class="action-card">
+        <div class="action-icon">📄</div>
+        <h3>Faturalarım</h3>
+        <p>Fatura ve ödeme bilgileri</p>
+      </div>
+      <div class="action-card">
+        <div class="action-icon">📞</div>
+        <h3>Destek</h3>
+        <p>Bizimle iletişime geçin</p>
+      </div>
+    </section>
+
+    <section class="info-card">
+      <h3>🚧 Geliştirme Aşamasında</h3>
+      <div class="placeholder-text">
+        <span>🔧</span>
+        <p>Bu sayfa daha sonra geliştirilecektir.</p>
+        <p>Müşterilerin siparişlerini takip edebileceği, faturalarını görüntüleyebileceği bir panel olacaktır.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="dashboard-footer">
+    <p>© 2025 Gündoğdu Tekstil. Tüm hakları saklıdır. | <a href="/" style="color: var(--accent);">Ana Sayfaya Dön</a></p>
+  </footer>
+
+  <script>
+    // Get customer data from localStorage
+    const customerId = localStorage.getItem("loggedCustomerId");
+    const customerName = localStorage.getItem("loggedUserName");
+    
+    // Display customer name
+    if (customerName) {
+      const nameEl = document.getElementById("user-inline-name");
+      if (nameEl) nameEl.textContent = customerName;
+      document.getElementById('user-name').textContent = customerName;
+    }
+    
+    // Display customer ID
+    if (customerId) {
+      document.getElementById('user-id').textContent = customerId;
+    }
+    
+    // Redirect to login if no customer ID
+    if (!customerId) {
+      window.location.href = "customer-login.html";
+    }
+
+    function logout() {
+      sessionStorage.removeItem('user');
+      localStorage.removeItem('loggedUserName');
+      localStorage.removeItem('loggedCustomerId');
+      window.location.href = '/';
+    }
+
+    // Load KPI summary data
+    fetch(`/api/customer/orders/summary?musteriId=${customerId}`)
+      .then(res => res.json())
+      .then(summary => {
+        document.getElementById("totalOrdersValue").textContent = summary.toplam_siparis || 0;
+        document.getElementById("activeOrdersValue").textContent = summary.aktif_siparis || 0;
+        document.getElementById("completedOrdersValue").textContent = summary.tamamlanan_siparis || 0;
+        
+        const tutar = Number(summary.toplam_tutar) || 0;
+        document.getElementById("totalAmountValue").textContent = tutar.toLocaleString('tr-TR', { 
+          minimumFractionDigits: 2, 
+          maximumFractionDigits: 2 
+        }) + " ₺";
+      })
+      .catch(err => {
+        console.error('Summary error:', err);
+      });
+
+    // Load recent orders
+    fetch(`/api/customer/orders?musteriId=${customerId}`)
+      .then(res => res.json())
+      .then(orders => {
+        const container = document.getElementById("recent-orders-list");
+        container.innerHTML = "";
+
+        if (!orders || orders.length === 0) {
+          container.innerHTML = `
+            <div class="loading-orders">
+              <p>Henüz sipariş bulunmuyor.</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Show the last 5 orders
+        orders.slice(0, 5).forEach(order => {
+          const item = document.createElement("div");
+          item.className = "order-card";
+
+          // Format dates
+          const siparisTarihi = order.siparis_tarihi ? new Date(order.siparis_tarihi).toLocaleDateString('tr-TR') : '-';
+          const teslimPlan = order.teslim_plan ? new Date(order.teslim_plan).toLocaleDateString('tr-TR') : '-';
+          const tutar = Number(order.toplam_tutar) || 0;
+          const statusClass = (order.durumu || '').toLowerCase();
+
+          item.innerHTML = `
+            <div class="order-header">
+              <span class="order-id">Sipariş #${order.siparis_id}</span>
+              <span class="order-status ${statusClass}">${order.durumu || '-'}</span>
+            </div>
+            <div class="order-body">
+              <div>📅 Sipariş: ${siparisTarihi}</div>
+              <div>🎯 Teslim: ${teslimPlan}</div>
+              <div>📦 Adet: ${order.toplam_adet}</div>
+              <div>💰 Tutar: ${tutar.toLocaleString('tr-TR')} ₺</div>
+            </div>
+          `;
+          container.appendChild(item);
+        });
+      })
+      .catch(err => {
+        console.error('Orders error:', err);
+        document.getElementById("recent-orders-list").innerHTML = `
+          <div class="loading-orders">
+            <p>Siparişler yüklenirken hata oluştu.</p>
+          </div>
+        `;
+      });
+  </script>
+</body>
+</html>
+

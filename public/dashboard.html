@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gündoğdu Tekstil - Yönetim Paneli</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon">🏭</div>
+        <div class="logo-text">
+          <span class="logo-title">Gündoğdu</span>
+          <span class="logo-subtitle">Tekstil</span>
+        </div>
+      </div>
+      
+      <nav class="nav-menu">
+        <a href="#" class="nav-item active" data-section="dashboard">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" data-section="tables">
+          <span class="nav-icon">📋</span>
+          <span>Tablolar</span>
+        </a>
+        <a href="#" class="nav-item" data-section="query">
+          <span class="nav-icon">🔍</span>
+          <span>SQL Sorgu</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span id="db-status">Bağlanıyor...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="header">
+        <h1 id="page-title">Dashboard</h1>
+        <div class="header-actions">
+          <button class="btn btn-refresh" onclick="refreshData()">
+            🔄 Yenile
+          </button>
+        </div>
+      </header>
+
+      <!-- Dashboard Section -->
+      <section id="section-dashboard" class="section active">
+        <div class="stats-grid" id="stats-container">
+          <div class="stat-card loading">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-info">
+              <span class="stat-value">...</span>
+              <span class="stat-label">Yükleniyor</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>📋 Veritabanı Tabloları</h3>
+          <div id="tables-list" class="tables-list">
+            <p class="loading-text">Yükleniyor...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tables Section -->
+      <section id="section-tables" class="section">
+        <div class="table-selector">
+          <label for="table-select">Tablo Seçin:</label>
+          <select id="table-select" onchange="loadTableData()">
+            <option value="">-- Tablo Seçin --</option>
+          </select>
+          <button class="btn btn-primary" onclick="showAddModal()">+ Yeni Kayıt</button>
+        </div>
+
+        <div class="card">
+          <div class="table-info" id="table-info"></div>
+          <div class="table-container">
+            <table id="data-table">
+              <thead id="table-head"></thead>
+              <tbody id="table-body"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </section>
+
+      <!-- Query Section -->
+      <section id="section-query" class="section">
+        <div class="card">
+          <h3>🔍 SQL Sorgu Çalıştır</h3>
+          <p class="query-note">⚠️ Güvenlik nedeniyle sadece SELECT sorguları çalıştırılabilir.</p>
+          <textarea id="sql-input" placeholder="SELECT * FROM tablo_adi LIMIT 10"></textarea>
+          <button class="btn btn-primary" onclick="runQuery()">▶️ Sorguyu Çalıştır</button>
+        </div>
+
+        <div class="card" id="query-result-card" style="display: none;">
+          <h3>📊 Sonuç</h3>
+          <div class="table-container">
+            <table id="query-result-table">
+              <thead id="query-result-head"></thead>
+              <tbody id="query-result-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal for Add/Edit -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Yeni Kayıt</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <form id="record-form">
+        <div id="form-fields"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">İptal</button>
+          <button type="submit" class="btn btn-primary">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
+

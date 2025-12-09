@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gündoğdu Tekstil - Giriş Portalı</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c1222;
+      --bg-card: #151d30;
+      --bg-card-hover: #1a2540;
+      --border-color: #2a3a5c;
+      --accent-gold: #d4a853;
+      --accent-gold-light: #f0c970;
+      --accent-blue: #4a90d9;
+      --accent-green: #45b088;
+      --accent-purple: #8b5cf6;
+      --accent-orange: #f59e0b;
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Animated Background */
+    .bg-pattern {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .bg-pattern::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(212, 168, 83, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(74, 144, 217, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
+      animation: bgFloat 20s ease-in-out infinite;
+    }
+
+    @keyframes bgFloat {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(2%, 2%) rotate(1deg); }
+      66% { transform: translate(-1%, 1%) rotate(-1deg); }
+    }
+
+    /* Floating Shapes */
+    .floating-shape {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.1;
+      animation: float 15s ease-in-out infinite;
+    }
+
+    .shape-1 {
+      width: 300px;
+      height: 300px;
+      background: linear-gradient(135deg, var(--accent-gold), var(--accent-orange));
+      top: 10%;
+      left: 10%;
+      animation-delay: 0s;
+    }
+
+    .shape-2 {
+      width: 200px;
+      height: 200px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      bottom: 20%;
+      right: 15%;
+      animation-delay: -5s;
+    }
+
+    .shape-3 {
+      width: 150px;
+      height: 150px;
+      background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+      top: 60%;
+      left: 5%;
+      animation-delay: -10s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-30px) rotate(10deg); }
+    }
+
+    /* Header */
+    .header {
+      position: relative;
+      z-index: 10;
+      padding: 30px 50px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-icon {
+      width: 55px;
+      height: 55px;
+      background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-light));
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      box-shadow: 0 8px 30px rgba(212, 168, 83, 0.3);
+    }
+
+    .logo-text h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: 0.5px;
+    }
+
+    .logo-text span {
+      font-size: 0.85rem;
+      color: var(--accent-gold);
+      font-weight: 500;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 40px 60px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .welcome-text {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    .welcome-text h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .welcome-text h2 span {
+      background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .welcome-text p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 500px;
+    }
+
+    /* Login Cards Grid */
+    .login-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 25px;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .login-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 35px 25px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--card-accent), var(--card-accent-light));
+      transform: scaleX(0);
+      transition: transform 0.4s ease;
+    }
+
+    .login-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .login-card:hover {
+      transform: translateY(-10px);
+      background: var(--bg-card-hover);
+      border-color: var(--card-accent);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 40px var(--card-glow);
+    }
+
+    /* Card Variants */
+    .login-card.factory {
+      --card-accent: #4a90d9;
+      --card-accent-light: #6ba5e7;
+      --card-glow: rgba(74, 144, 217, 0.15);
+    }
+
+    .login-card.admin {
+      --card-accent: #d4a853;
+      --card-accent-light: #f0c970;
+      --card-glow: rgba(212, 168, 83, 0.15);
+    }
+
+    .login-card.personnel {
+      --card-accent: #45b088;
+      --card-accent-light: #5fc9a0;
+      --card-glow: rgba(69, 176, 136, 0.15);
+    }
+
+    .login-card.customer {
+      --card-accent: #8b5cf6;
+      --card-accent-light: #a78bfa;
+      --card-glow: rgba(139, 92, 246, 0.15);
+    }
+
+    .card-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, var(--card-accent), var(--card-accent-light));
+      box-shadow: 0 10px 30px var(--card-glow);
+      transition: all 0.4s ease;
+    }
+
+    .login-card:hover .card-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+
+    .card-desc {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 25px;
+      min-height: 45px;
+    }
+
+    .card-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      background: transparent;
+      border: 2px solid var(--card-accent);
+      border-radius: 10px;
+      color: var(--card-accent);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .card-btn:hover {
+      background: var(--card-accent);
+      color: var(--bg-dark);
+      transform: scale(1.05);
+    }
+
+    .card-btn svg {
+      width: 18px;
+      height: 18px;
+      transition: transform 0.3s ease;
+    }
+
+    .login-card:hover .card-btn svg {
+      transform: translateX(4px);
+    }
+
+    /* Footer */
+    .footer {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 25px;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .footer a {
+      color: var(--accent-gold);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1100px) {
+      .login-grid {
+        grid-template-columns: repeat(2, 1fr);
+        max-width: 700px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .header {
+        padding: 20px;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .welcome-text h2 {
+        font-size: 1.8rem;
+      }
+
+      .login-grid {
+        grid-template-columns: 1fr;
+        max-width: 350px;
+        gap: 20px;
+      }
+
+      .main-content {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-pattern">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+  </div>
+
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">🏭</div>
+      <div class="logo-text">
+        <h1>Gündoğdu Tekstil</h1>
+        <span>Yönetim Sistemi</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="welcome-text">
+      <h2>Hoş Geldiniz, <span>Giriş Yapın</span></h2>
+      <p>Sisteme erişmek için lütfen hesap türünüzü seçin</p>
+    </div>
+
+    <div class="login-grid">
+      <!-- Factory Login -->
+      <div class="login-card factory" onclick="location.href='/factory-login.html'">
+        <div class="card-icon">🏭</div>
+        <h3 class="card-title">Fabrika Girişi</h3>
+        <button class="card-btn">
+          Giriş Yap
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Admin Login -->
+      <div class="login-card admin" onclick="location.href='/admin-login.html'">
+        <div class="card-icon">👔</div>
+        <h3 class="card-title">Gündoğdu Tekstil</h3>
+        <button class="card-btn">
+          Giriş Yap
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Personnel Login -->
+      <div class="login-card personnel" onclick="location.href='/personnel-login.html'">
+        <div class="card-icon">👷</div>
+        <h3 class="card-title">Personel Girişi</h3>
+        <button class="card-btn">
+          Giriş Yap
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Customer Login -->
+      <div class="login-card customer" onclick="location.href='/customer-login.html'">
+        <div class="card-icon">🛒</div>
+        <h3 class="card-title">Müşteri Girişi</h3>
+        <button class="card-btn">
+          Giriş Yap
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>© 2025 Gündoğdu Tekstil. Tüm hakları saklıdır. | <a href="/dashboard.html">Yönetim Paneli</a></p>
+  </footer>
+
+</body>
+</html>
+
