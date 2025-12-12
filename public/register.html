@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Müşteri Kayıt - Gündoğdu Tekstil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c1222;
+      --bg-card: #151d30;
+      --border-color: #2a3a5c;
+      --accent: #8b5cf6;
+      --accent-light: #a78bfa;
+      --accent-glow: rgba(139, 92, 246, 0.3);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --success: #22c55e;
+      --danger: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: var(--text-primary);
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 25% 25%, var(--accent-glow) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.12) 0%, transparent 45%);
+      z-index: 0;
+    }
+
+    .page-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .register-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 44px 40px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 26px;
+    }
+
+    .register-icon {
+      width: 86px;
+      height: 86px;
+      margin: 0 auto 18px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.4rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      box-shadow: 0 12px 32px var(--accent-glow);
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+    }
+
+    p.subtitle {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    form {
+      margin-top: 16px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group label {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px 16px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-group input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .helper {
+      margin-top: 6px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .register-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border: none;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 28px rgba(139, 92, 246, 0.35);
+    }
+
+    .register-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(139, 92, 246, 0.45);
+    }
+
+    .register-btn:active {
+      transform: translateY(0);
+    }
+
+    .register-btn:disabled {
+      opacity: 0.75;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .secondary-btn,
+    .ghost-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .secondary-btn {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.18), rgba(167, 139, 250, 0.22));
+      border: 1px solid rgba(167, 139, 250, 0.6);
+      color: #ffffff;
+      backdrop-filter: blur(4px);
+    }
+
+    .secondary-btn:hover {
+      box-shadow: 0 8px 22px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    .ghost-btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    .ghost-btn:hover {
+      border-color: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 8px 22px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    .status {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .status.success {
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.5);
+      color: #b7f4cc;
+    }
+
+    .status.error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.6);
+      color: #fecdd3;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .code-label {
+      font-weight: 600;
+      color: #c7d2fe;
+      margin-bottom: 6px;
+    }
+
+    .code-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid transparent;
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="register-card">
+      <div class="header">
+        <div class="register-icon">📝</div>
+        <h1>Müşteri Kayıt</h1>
+        <p class="subtitle">Bilgilerinizi girin, müşteri kodunuz otomatik oluşsun.</p>
+      </div>
+
+      <form id="register-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">Ad</label>
+            <input type="text" id="firstName" name="firstName" placeholder="Örn: Ayşe" required>
+          </div>
+          <div class="form-group">
+            <label for="lastName">Soyad</label>
+            <input type="text" id="lastName" name="lastName" placeholder="Örn: Yılmaz" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="city">Şehir</label>
+          <input type="text" id="city" name="city" placeholder="Örn: İstanbul" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="password">Şifre Oluştur</label>
+            <input type="password" id="password" name="password" placeholder="En az 6 karakter" required minlength="6" autocomplete="new-password">
+            <div class="helper">Şifre en az 6 karakter olmalıdır.</div>
+          </div>
+          <div class="form-group">
+            <label for="confirmPassword">Şifre Tekrar</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Şifrenizi tekrar yazın" required minlength="6" autocomplete="new-password">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="register-btn" id="register-btn">Kayıt Ol</button>
+          <button type="button" class="ghost-btn" id="back-btn">Geri Dön</button>
+        </div>
+      </form>
+
+      <div id="error-box" class="status error hidden"></div>
+
+      <div id="success-box" class="status success hidden">
+        <div class="code-label">Müşteri Kodunuz:</div>
+        <div class="code-value" id="success-code">M-</div>
+        <p>Bu kod ve şifreniz ile giriş yapabilirsiniz.</p>
+        <div class="actions" style="margin-top: 12px;">
+          <button type="button" class="secondary-btn" id="go-login-btn">Giriş Sayfasına Git</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('register-form');
+    const registerBtn = document.getElementById('register-btn');
+    const backBtn = document.getElementById('back-btn');
+    const goLoginBtn = document.getElementById('go-login-btn');
+    const errorBox = document.getElementById('error-box');
+    const successBox = document.getElementById('success-box');
+    const successCode = document.getElementById('success-code');
+
+    const setLoading = (loading) => {
+      if (loading) {
+        registerBtn.disabled = true;
+        registerBtn.innerHTML = '<span class="loading"></span>Kayıt yapılıyor...';
+      } else {
+        registerBtn.disabled = false;
+        registerBtn.textContent = 'Kayıt Ol';
+      }
+    };
+
+    const showError = (message) => {
+      errorBox.textContent = message;
+      errorBox.classList.remove('hidden');
+      successBox.classList.add('hidden');
+    };
+
+    const showSuccess = (code) => {
+      successCode.textContent = code;
+      successBox.classList.remove('hidden');
+      errorBox.classList.add('hidden');
+    };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.classList.add('hidden');
+      successBox.classList.add('hidden');
+
+      const firstName = document.getElementById('firstName').value.trim();
+      const lastName = document.getElementById('lastName').value.trim();
+      const city = document.getElementById('city').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (!firstName || !lastName || !city || !password || !confirmPassword) {
+        showError('Lütfen tüm alanları doldurun.');
+        return;
+      }
+
+      if (!city) {
+        showError('Şehir alanı boş bırakılamaz.');
+        return;
+      }
+
+      if (password.length < 6) {
+        showError('Şifre en az 6 karakter olmalıdır.');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        showError('Şifreler eşleşmiyor.');
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const response = await fetch('/api/customers/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ firstName, lastName, city, sehir: city, password, confirmPassword })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          console.log('Register response (error):', data);
+          throw new Error(data.message || 'Kayıt başarısız.');
+        }
+
+        const code = data.musteriKodu || data.customerCode || (data.customerId ? `M${String(data.customerId).padStart(2, '0')}` : null);
+        if (!code) {
+          throw new Error('Müşteri kodu oluşturulamadı.');
+        }
+        showSuccess(code);
+        form.reset();
+        goLoginBtn.focus();
+      } catch (error) {
+        console.error('Register error:', error);
+        showError(error.message || 'Kayıt sırasında bir hata oluştu.');
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    backBtn.addEventListener('click', () => {
+      window.location.href = 'customer-login.html';
+    });
+
+    goLoginBtn.addEventListener('click', () => {
+      window.location.href = 'customer-login.html';
+    });
+  </script>
+</body>
+</html>
+

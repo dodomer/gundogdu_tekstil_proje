@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const bcrypt = require('bcrypt');
 
 // Routes
 const apiRoutes = require('./routes/api');
@@ -17,6 +18,140 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Helpers
+const parseCustomerId = (customerCode = '') => {
+  if (!customerCode) return null;
+  const digits = String(customerCode).replace(/\D/g, '');
+  const id = parseInt(digits, 10);
+  return Number.isNaN(id) ? null : id;
+};
+
+const buildCustomerName = (row = {}) => {
+  return (row.musteri_bilgisi || '').trim();
+};
+
+const ensureCustomerColumns = async () => {
+  try {
+    const [cols] = await pool.query(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'musteriler'
+    `);
+    const existing = new Set(cols.map(c => c.COLUMN_NAME.toLowerCase()));
+    const alters = [];
+    if (!existing.has('password_hash')) {
+      alters.push("ALTER TABLE musteriler ADD COLUMN password_hash VARCHAR(255) NULL AFTER sehir");
+    }
+    if (!existing.has('created_at')) {
+      alters.push("ALTER TABLE musteriler ADD COLUMN created_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP AFTER password_hash");
+    }
+    for (const sql of alters) {
+      await pool.query(sql);
+    }
+    if (alters.length) {
+      console.log(`[musteriler] Added columns: ${alters.length}`);
+    }
+  } catch (err) {
+    console.error('[musteriler] Column check failed:', err.message);
+  }
+};
+
+const getNextUnusedCustomerId = async () => {
+  const [rows] = await pool.query('SELECT musteri_id FROM musteriler ORDER BY musteri_id ASC');
+  let expected = 1;
+  for (const row of rows) {
+    const id = row.musteri_id;
+    if (id > expected) break;
+    if (id === expected) expected += 1;
+  }
+  return expected;
+};
+
+// Run one-time column check at startup (non-blocking)
+ensureCustomerColumns();
+
+// Customer Register
+app.post('/api/customers/register', async (req, res) => {
+  try {
+    const { firstName, lastName, password, confirmPassword } = req.body;
+    const cityRaw = req.body?.city ?? req.body?.sehir ?? '';
+    const resolvedCity = String(cityRaw).trim();
+
+    if (!firstName || !lastName || !resolvedCity || !password || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ad, soyad, şehir ve şifre alanları zorunludur'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Şifre en az 6 karakter olmalıdır'
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Şifreler eşleşmiyor'
+      });
+    }
+
+    console.log('REGISTER BODY:', req.body);
+    console.log('REGISTER city resolved:', resolvedCity);
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
+    const maxAttempts = 3;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const nextId = await getNextUnusedCustomerId();
+      try {
+        await pool.query(
+          `INSERT INTO musteriler (musteri_id, musteri_bilgisi, sehir, password_hash, created_at)
+           VALUES (?, ?, ?, ?, NOW())`,
+          [nextId, displayName, resolvedCity, passwordHash]
+        );
+
+        const [verify] = await pool.query(
+          'SELECT musteri_id, musteri_bilgisi, sehir FROM musteriler WHERE musteri_id = ?',
+          [nextId]
+        );
+        console.log('REGISTER inserted row:', verify[0]);
+
+        const musteriKodu = `M${String(nextId).padStart(2, '0')}`;
+        return res.status(201).json({
+          success: true,
+          musteriId: nextId,
+          musteriKodu,
+          musteriAdi: displayName,
+          sehir: resolvedCity,
+          customerId: nextId,      // backward compatibility
+          customerCode: musteriKodu
+        });
+      } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY' && attempt < maxAttempts - 1) {
+          continue; // retry with a fresh gap
+        }
+        throw error;
+      }
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Kayıt sırasında beklenmedik bir hata oluştu'
+    });
+  } catch (error) {
+    console.error('Customer register error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Kayıt sırasında bir hata oluştu'
+    });
+  }
+});
 
 // Static files (Frontend)
 app.use(express.static(path.join(__dirname, 'public')));
@@ -132,49 +267,77 @@ app.post('/api/login/personnel', async (req, res) => {
 });
 
 // Customer Login
-app.post('/api/login/customer', async (req, res) => {
+const handleCustomerLogin = async (req, res) => {
   try {
-    const { code, password } = req.body;
-    
-    // Check password first
-    if (password !== '123') {
-      return res.status(401).json({
+    const codeInput = (req.body.musteriKodu || req.body.customerCode || req.body.code || '').trim();
+    const { password } = req.body;
+    const bodyId = req.body.musteriId || req.body.customerId || req.body.id;
+
+    if ((!codeInput && !bodyId) || !password) {
+      return res.status(400).json({
         success: false,
-        message: 'Geçersiz şifre'
+        message: 'Müşteri kodu ve şifre gereklidir'
       });
     }
-    
-    // Extract numeric ID from code (M1, M01, M12 -> 1, 1, 12)
-    const numericId = parseInt(code.replace(/\D/g, ''), 10);
-    
-    if (isNaN(numericId)) {
-      return res.status(401).json({
+
+    let numericId = parseCustomerId(codeInput);
+    if (!numericId && bodyId) {
+      const parsed = parseInt(bodyId, 10);
+      numericId = Number.isNaN(parsed) ? null : parsed;
+    }
+
+    if (!numericId) {
+      return res.status(400).json({
         success: false,
-        message: 'Geçersiz müşteri kodu formatı'
+        message: 'Geçersiz müşteri kodu formatı (örn: M12)'
       });
     }
-    
-    // Query the database
+
     const [rows] = await pool.query(
-      'SELECT * FROM musteriler WHERE Musteri_ID = ?',
+      `SELECT musteri_id, musteri_bilgisi, password_hash 
+       FROM musteriler 
+       WHERE musteri_id = ? 
+       LIMIT 1`,
       [numericId]
     );
-    
-    if (rows.length > 0) {
-      const row = rows[0];
-      const userName = row.musteri_bilgisi;
-      return res.json({
-        success: true,
-        role: 'customer',
-        id: numericId,
-        userName: userName,
-        redirect: '/customer-dashboard.html'
+
+    if (rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Müşteri bulunamadı'
       });
     }
-    
-    return res.status(401).json({
-      success: false,
-      message: 'Müşteri bulunamadı'
+
+    const customer = rows[0];
+
+    if (!customer.password_hash) {
+      return res.status(401).json({
+        success: false,
+        message: 'Bu müşteri için şifre tanımlı değil.'
+      });
+    }
+
+    const passwordOk = await bcrypt.compare(password, customer.password_hash);
+    if (!passwordOk) {
+      return res.status(401).json({
+        success: false,
+        message: 'Müşteri kodu veya şifre hatalı'
+      });
+    }
+
+    const userName = buildCustomerName(customer) || `M${customer.musteri_id}`;
+    const musteriKodu = `M${String(customer.musteri_id).padStart(2, '0')}`;
+
+    return res.json({
+      success: true,
+      role: 'customer',
+      id: customer.musteri_id,
+      musteriId: customer.musteri_id,
+      musteriKodu,
+      musteriAdi: userName,
+      customerCode: musteriKodu, // backward compatibility
+      userName,
+      redirect: '/customer-dashboard.html'
     });
   } catch (error) {
     console.error('Customer login error:', error);
@@ -183,7 +346,11 @@ app.post('/api/login/customer', async (req, res) => {
       message: 'Sunucu hatası'
     });
   }
-});
+};
+
+// New + legacy endpoints share the same handler
+app.post('/api/customers/login', handleCustomerLogin);
+app.post('/api/login/customer', handleCustomerLogin);
 
 // ============================================
 // 📊 ADMIN API ENDPOINTS
@@ -241,18 +408,7 @@ app.get('/api/raw-materials', async (req, res) => {
 // Same data source as factory endpoint - hammadde_siparisleri table
 app.get('/api/raw-material-orders', async (req, res) => {
   try {
-    const [rows] = await pool.query(`
-      SELECT 
-        hs.siparis_id      AS id,
-        h.hammadde_adi     AS malzeme_adi,
-        hs.miktar          AS miktar,
-        h.birim            AS birim,
-        hs.siparis_tarihi  AS siparis_tarihi,
-        hs.durum           AS durum
-      FROM hammadde_siparisleri hs
-      LEFT JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
-      ORDER BY hs.siparis_tarihi DESC
-    `);
+    const rows = await listRawMaterialOrders();
     res.json(rows || []);
   } catch (error) {
     console.error('Raw material orders error:', error);
@@ -260,38 +416,77 @@ app.get('/api/raw-material-orders', async (req, res) => {
   }
 });
 
-// Create new raw material order (Gündoğdu -> Fabrika)
-app.post('/api/raw-material-orders', async (req, res) => {
-  try {
-    const { hammadde_id, miktar, fabrika_id = null } = req.body;
+const listRawMaterialOrders = async () => {
+  const [rows] = await pool.query(`
+    SELECT 
+      hs.siparis_id      AS id,
+      hs.hammadde_id     AS hammadde_id,
+      h.hammadde_adi     AS malzeme_adi,
+      h.birim            AS birim,
+      hs.miktar          AS miktar,
+      hs.siparis_tarihi  AS siparis_tarihi,
+      hs.durum           AS durum
+    FROM hammadde_siparisleri hs
+    JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
+    ORDER BY hs.siparis_id DESC
+    LIMIT 500
+  `);
+  console.log('GET hammadde_siparisleri rows:', rows.length, 'latestId:', rows[0]?.id);
+  return rows || [];
+};
 
-    if (!hammadde_id || !miktar) {
-      return res.status(400).json({ error: 'hammadde_id ve miktar gereklidir' });
+const createRawMaterialOrder = async (req, res) => {
+  try {
+    const { hammadde_id, miktar, hammaddeId, miktarKg, siparisTarihi } = req.body || {};
+    console.log('RAW ORDER BODY:', req.body);
+
+    const hammaddeIdFinal = hammadde_id || hammaddeId;
+    const miktarFinal = miktar || miktarKg;
+
+    if (!hammaddeIdFinal || !miktarFinal) {
+      return res.status(400).json({ success: false, message: 'hammadde_id ve miktar gereklidir' });
     }
 
-    // siparis_tarihi: CURDATE(), durum: BEKLEMEDE
-    const [result] = await pool.query(`
+    const today = (siparisTarihi || new Date().toISOString().slice(0, 10));
+
+    const insertSql = `
       INSERT INTO hammadde_siparisleri 
-        (hammadde_id, miktar, siparis_tarihi, durum, fabrika_id)
-      VALUES (?, ?, CURDATE(), 'BEKLEMEDE', ?)
-    `, [hammadde_id, miktar, fabrika_id]);
+        (hammadde_id, miktar, siparis_tarihi, durum)
+      VALUES (?, ?, ?, 'BEKLEMEDE')
+    `;
+    const insertParams = [
+      hammaddeIdFinal,
+      miktarFinal,
+      today
+    ];
+
+    console.log('RAW ORDER INSERT params:', insertParams);
+
+    const [result] = await pool.query(insertSql, insertParams);
+    console.log('RAW ORDER result:', { affectedRows: result.affectedRows, insertId: result.insertId });
+
+    if (result.affectedRows !== 1) {
+      return res.status(500).json({ success: false, message: 'Sipariş kaydedilemedi' });
+    }
 
     const insertedId = result.insertId;
 
     const [createdRows] = await pool.query(`
       SELECT 
-        hs.siparis_id AS id,
-        hs.hammadde_id,
-        hs.miktar,
-        hs.siparis_tarihi,
-        hs.durum,
-        hs.fabrika_id,
-        h.hammadde_adi AS malzeme_adi,
-        h.birim
+        hs.siparis_id      AS id,
+        hs.hammadde_id     AS hammadde_id,
+        h.hammadde_adi     AS malzeme_adi,
+        h.birim            AS birim,
+        hs.miktar          AS miktar,
+        hs.siparis_tarihi  AS siparis_tarihi,
+        hs.durum           AS durum
       FROM hammadde_siparisleri hs
-      LEFT JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
+      JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
       WHERE hs.siparis_id = ?
+      LIMIT 1
     `, [insertedId]);
+
+    console.log('RAW ORDER inserted row:', createdRows && createdRows[0]);
 
     res.status(201).json({ 
       success: true, 
@@ -299,8 +494,38 @@ app.post('/api/raw-material-orders', async (req, res) => {
       order: createdRows && createdRows[0] ? createdRows[0] : { id: insertedId }
     });
   } catch (error) {
-    console.error('Create raw material order error:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Create raw material order error (full):', error);
+    const msg = error?.sqlMessage || error?.message || 'Sipariş oluşturulamadı';
+    return res.status(500).json({ success: false, message: msg });
+  }
+};
+
+// Create new raw material order (Gündoğdu panel)
+app.post('/api/raw-material-orders', createRawMaterialOrder);
+// Unified creation endpoint
+app.post('/api/hammadde-siparisleri', createRawMaterialOrder);
+
+// Debug endpoint - latest 5 raw material orders
+app.get('/api/hammadde-siparisleri/debug/latest', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        hs.siparis_id AS id,
+        hs.hammadde_id,
+        h.hammadde_adi AS malzeme_adi,
+        hs.miktar,
+        h.birim,
+        hs.siparis_tarihi,
+        hs.durum
+      FROM hammadde_siparisleri hs
+      LEFT JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
+      ORDER BY hs.siparis_id DESC
+      LIMIT 5
+    `);
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Debug raw material orders error:', error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -518,30 +743,14 @@ function addBusinessDays(date, days) {
 // Uses the same hammadde_siparisleri table as the admin panel
 app.get('/api/factory/raw-material-orders', async (req, res) => {
   try {
-    const [rows] = await pool.query(`
-      SELECT 
-        hs.siparis_id AS id,
-        h.hammadde_adi AS malzeme_adi,
-        hs.miktar,
-        h.birim,
-        hs.siparis_tarihi,
-        hs.durum
-      FROM hammadde_siparisleri hs
-      LEFT JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
-      ORDER BY hs.siparis_tarihi DESC
-    `);
-    
-    // Calculate tahmini_teslim_tarihi (7 business days after siparis_tarihi)
+    const rows = await listRawMaterialOrders();
     const processedRows = rows.map(row => {
       if (row.siparis_tarihi) {
         const estimatedDate = addBusinessDays(row.siparis_tarihi, 7);
-        row.tahmini_teslim_tarihi = estimatedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-      } else {
-        row.tahmini_teslim_tarihi = null;
+        return { ...row, tahmini_teslim_tarihi: estimatedDate.toISOString().split('T')[0] };
       }
-      return row;
+      return { ...row, tahmini_teslim_tarihi: null };
     });
-    
     res.json(processedRows || []);
   } catch (error) {
     console.error('Factory raw material orders error:', error);
@@ -563,29 +772,23 @@ function formatDateTR(date) {
 // Unified endpoint - lists all hammadde siparisleri (no factory filter)
 app.get('/api/hammadde-siparisleri', async (req, res) => {
   try {
-    const [rows] = await pool.query(`
-      SELECT 
-        hs.siparis_id,
-        hs.hammadde_id,
-        h.hammadde_adi,
-        hs.miktar,
-        h.birim,
-        hs.siparis_tarihi,
-        hs.durum
-      FROM hammadde_siparisleri hs
-      JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
-      ORDER BY hs.siparis_tarihi DESC
-    `);
+    const rows = await listRawMaterialOrders();
 
     const mapped = rows.map(r => {
       const tahmini = r.siparis_tarihi ? addBusinessDays(r.siparis_tarihi, 7) : null;
+      const isoDate = r.siparis_tarihi ? new Date(r.siparis_tarihi).toISOString() : null;
       return {
-        siparisId: r.siparis_id,
+        id: r.id,
+        siparis_id: r.id,
+        siparisId: r.id,
+        hammadde_id: r.hammadde_id,
         hammaddeId: r.hammadde_id,
-        malzemeAdi: r.hammadde_adi,
+        malzeme_adi: r.malzeme_adi,
+        malzemeAdi: r.malzeme_adi,
         miktar: r.miktar,
         birim: r.birim,
-        siparisTarihi: formatDateTR(r.siparis_tarihi),
+        siparis_tarihi: r.siparis_tarihi,
+        siparisTarihi: formatDateTR(r.siparis_tarihi) || isoDate,
         tahminiTeslimTarihi: formatDateTR(tahmini),
         durum: r.durum
       };
@@ -630,6 +833,105 @@ app.get('/api/customer/orders', async (req, res) => {
     res.json(rows);
   } catch (error) {
     console.error('Customer orders error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all customer orders (no status filter) - newest first
+app.get('/api/customer/orders/all', async (req, res) => {
+  try {
+    const musteriId = req.query.musteriId;
+    
+    if (!musteriId) {
+      return res.status(400).json({ error: 'musteriId parametresi gerekli' });
+    }
+    
+    const [rows] = await pool.query(`
+      SELECT
+        s.siparis_id,
+        s.siparis_tarihi,
+        s.teslim_plan,
+        s.teslim_gercek,
+        s.durumu,
+        COALESCE(SUM(d.adet), 0) AS toplam_adet,
+        COALESCE(SUM(d.toplam_tutar), 0) AS toplam_tutar
+      FROM siparisler s
+      LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
+      WHERE s.musteri_id = ?
+      GROUP BY s.siparis_id, s.siparis_tarihi, s.teslim_plan, s.teslim_gercek, s.durumu
+      ORDER BY s.siparis_id DESC
+      LIMIT 500
+    `, [musteriId]);
+    
+    res.json({ success: true, orders: rows });
+  } catch (error) {
+    console.error('Customer orders (all) error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Order status distribution (all orders)
+app.get('/api/reports/order-status-distribution', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT durumu AS status, COUNT(*) AS count
+      FROM siparisler
+      GROUP BY durumu
+    `);
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Order status distribution error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// KPIs for admin dashboard
+app.get('/api/reports/kpis', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT
+        COUNT(*) AS totalOrders,
+        SUM(CASE WHEN UPPER(TRIM(s.durumu)) NOT IN ('TAMAMLANDI','TESLIM_EDILDI') THEN 1 ELSE 0 END) AS activeOrders,
+        SUM(CASE WHEN UPPER(TRIM(s.durumu)) = 'IPTAL' THEN 1 ELSE 0 END) AS canceledOrders,
+        COALESCE(SUM(CASE WHEN UPPER(TRIM(s.durumu)) <> 'IPTAL' THEN d.toplam_tutar END), 0) AS totalRevenue
+      FROM siparisler s
+      LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
+    `);
+
+    const row = rows[0] || {};
+    const total = Number(row.totalOrders) || 0;
+    const canceled = Number(row.canceledOrders) || 0;
+    const cancelRate = total > 0 ? (canceled / total) * 100 : 0;
+
+    res.json({
+      success: true,
+      totalOrders: Number(row.totalOrders) || 0,
+      activeOrders: Number(row.activeOrders) || 0,
+      totalRevenue: Number(row.totalRevenue) || 0,
+      cancelRate: Number(cancelRate)
+    });
+  } catch (error) {
+    console.error('KPIs error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Monthly sales for bar chart
+app.get('/api/reports/monthly-sales', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        DATE_FORMAT(s.siparis_tarihi, '%Y-%m') AS month,
+        COALESCE(SUM(d.toplam_tutar), 0) AS total
+      FROM siparisler s
+      LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
+      WHERE UPPER(TRIM(s.durumu)) <> 'IPTAL'
+      GROUP BY DATE_FORMAT(s.siparis_tarihi, '%Y-%m')
+      ORDER BY month ASC
+    `);
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Monthly sales error:', error);
     return res.status(500).json({ error: error.message });
   }
 });
@@ -716,15 +1018,131 @@ app.get('/api/customers', async (req, res) => {
 app.get('/api/products', async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT urun_id, urun_adi, birim_fiyat, aktif_mi
-      FROM urunler
-      WHERE aktif_mi = 1
-      ORDER BY urun_adi
+      SELECT 
+        arac_model_id AS id,
+        model_adi AS name
+      FROM arac_modelleri
+      WHERE model_adi IS NOT NULL AND TRIM(model_adi) <> ''
+      ORDER BY model_adi ASC
     `);
-    res.json(rows);
+    console.log('api/products rows:', rows.length);
+    if (rows.length === 0) {
+      const [countRows] = await pool.query(`SELECT COUNT(*) AS c FROM arac_modelleri`);
+      console.log('api/products arac_modelleri count:', countRows[0]?.c);
+    }
+    const mapped = rows.map(r => ({
+      id: r.id,
+      name: r.name
+    }));
+    res.json(mapped);
   } catch (error) {
     console.error('Products error:', error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+// Get price for a given vehicle model
+app.get('/api/products/:aracModelId/price', async (req, res) => {
+  try {
+    const { aracModelId } = req.params;
+    const modelId = parseInt(aracModelId, 10);
+    if (!modelId) {
+      return res.status(400).json({ success: false, message: 'Geçersiz model' });
+    }
+    const [rows] = await pool.query(
+      `SELECT birim_fiyat FROM urunler WHERE arac_model_id = ? LIMIT 1`,
+      [modelId]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Bu model için fiyat bulunamadı.' });
+    }
+    return res.json({ success: true, birim_fiyat: Number(rows[0].birim_fiyat) || 0 });
+  } catch (error) {
+    console.error('Product price error:', error);
+    return res.status(500).json({ success: false, message: 'Fiyat alınamadı' });
+  }
+});
+
+const resolveCustomerId = (req) => {
+  if (req.session?.customerId) return req.session.customerId;
+  if (req.session?.user?.id && req.session?.user?.role === 'customer') return req.session.user.id;
+  const headerId = req.headers['x-customer-id'];
+  if (headerId) {
+    const parsed = parseInt(headerId, 10);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  if (req.query?.musteriId) {
+    const parsed = parseInt(req.query.musteriId, 10);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return null;
+};
+
+// Create order for logged-in customer
+app.post('/api/orders', async (req, res) => {
+  try {
+    const { aracModelId, quantity } = req.body || {};
+    const musteriId = resolveCustomerId(req);
+
+    if (!musteriId) {
+      return res.status(401).json({ success: false, message: 'Oturum bulunamadı' });
+    }
+
+    const parsedQty = parseInt(quantity, 10);
+    const parsedModelId = parseInt(aracModelId, 10);
+
+    if (!parsedModelId || Number.isNaN(parsedQty) || parsedQty < 1) {
+      return res.status(400).json({ success: false, message: 'Geçersiz model veya adet' });
+    }
+
+    const [products] = await pool.query(
+      `SELECT urun_id AS urun_id, birim_fiyat 
+       FROM urunler 
+       WHERE arac_model_id = ?
+       LIMIT 1`,
+      [parsedModelId]
+    );
+
+    if (products.length === 0) {
+      return res.status(400).json({ success: false, message: 'Bu model için ürün bulunamadı' });
+    }
+
+    const product = products[0];
+    const unitPrice = Number(product.birim_fiyat) || 0;
+    const totalAmount = unitPrice * parsedQty;
+    console.log('ORDER:', {
+      arac_model_id: parsedModelId,
+      urun_id: product.urun_id,
+      birim_fiyat: unitPrice,
+      adet: parsedQty,
+      total: totalAmount
+    });
+
+    const [orderResult] = await pool.query(
+      `INSERT INTO siparisler (musteri_id, siparis_tarihi, teslim_plan, durumu)
+       VALUES (?, NOW(), NULL, 'AKTIF')`,
+      [musteriId]
+    );
+
+    const siparisId = orderResult.insertId;
+
+    await pool.query(
+      `INSERT INTO siparis_detay (siparis_id, urun_id, adet, toplam_tutar)
+       VALUES (?, ?, ?, ?)`,
+      [siparisId, product.urun_id, parsedQty, totalAmount]
+    );
+
+    return res.status(201).json({
+      success: true,
+      urunId: product.urun_id,
+      orderId: siparisId,
+      totalAmount,
+      createdAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Create order error (full):', error);
+    const msg = error?.sqlMessage || error?.message || 'Sipariş oluşturulamadı';
+    return res.status(500).json({ success: false, message: msg });
   }
 });
 

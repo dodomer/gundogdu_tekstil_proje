@@ -133,6 +133,50 @@
       opacity: 0.9;
     }
 
+    /* Stats area */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 22px;
+      display: grid;
+      gap: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+
+    .stat-card .label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .stat-card .value {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* Charts row */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 3fr;
+      gap: 16px;
+      margin: 0 auto 24px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 960px) {
+      .charts-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
     /* Quick Actions */
     .quick-actions {
       display: grid;
@@ -303,27 +347,47 @@
       </a>
     </section>
 
-    <section class="info-card">
-      <h3>ℹ️ Sistem Durumu</h3>
-      <ul class="info-list">
-        <li>
-          Veritabanı Bağlantısı
-          <span class="badge badge-success">Aktif</span>
-        </li>
-        <li>
-          Son Giriş
-          <span id="login-time">-</span>
-        </li>
-        <li>
-          Rol
-          <span>Administrator</span>
-        </li>
-        <li>
-          Bu sayfa daha sonra geliştirilecektir
-          <span>🚧</span>
-        </li>
-      </ul>
+    <!-- KPI Cards -->
+    <section class="stats-grid" id="kpi-grid">
+      <div class="stat-card">
+        <div class="label">Toplam Sipariş</div>
+        <div class="value" id="kpi-total-orders">Yükleniyor...</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Aktif Sipariş</div>
+        <div class="value" id="kpi-active-orders">Yükleniyor...</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Toplam Ciro</div>
+        <div class="value" id="kpi-total-revenue">Yükleniyor...</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">İptal Oranı</div>
+        <div class="value" id="kpi-cancel-rate">Yükleniyor...</div>
+      </div>
     </section>
+
+    <section class="charts-row" style="margin-top: -4px;">
+      <div class="info-card" id="order-status-card" style="margin: 0 auto; width:100%; max-width: 100%;">
+        <h3 style="display:flex;align-items:center;gap:8px;">📊 Sipariş Durum Dağılımı</h3>
+        <div style="display:flex; gap:18px; align-items:center; justify-content:center; flex-wrap:wrap;">
+          <div style="flex:0 1 220px; max-width:320px; min-width:200px; position:relative;">
+            <canvas id="order-status-chart" height="160" width="160" style="max-width:100%;"></canvas>
+            <div id="order-status-empty" style="display:none; padding:16px; text-align:center; color: var(--text-secondary);">Sipariş verisi bulunamadı</div>
+          </div>
+          <div id="order-status-legend" style="flex:0 1 200px; min-width:180px; display:grid; gap:8px;"></div>
+        </div>
+      </div>
+
+      <div class="info-card" id="monthly-sales-card" style="width:100%; max-width: 100%;">
+        <h3 style="display:flex;align-items:center;gap:8px;">📈 Aylık Satış Grafiği</h3>
+        <div style="position:relative; min-height:240px;">
+          <canvas id="monthly-sales-chart" height="200"></canvas>
+          <div id="monthly-sales-empty" style="display:none; padding:16px; text-align:center; color: var(--text-secondary);">Sipariş verisi bulunamadı</div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <footer class="dashboard-footer">
@@ -331,6 +395,17 @@
   </footer>
 
   <script>
+    const statusLabels = {
+      PLANLANDI: "Planlandı",
+      BEKLEMEDE: "Beklemede",
+      ONAYLANDI: "Onaylandı",
+      URETIMDE: "Üretimde",
+      SEVK_EDILDI: "Sevk Edildi",
+      TAMAMLANDI: "Tamamlandı",
+      TESLIM_EDILDI: "Teslim Edildi",
+      IPTAL: "İptal"
+    };
+
     // Check if user is logged in
     const user = JSON.parse(sessionStorage.getItem('user') || '{}');
     
@@ -339,14 +414,228 @@
       // window.location.href = '/admin-login.html';
     }
 
-    // Display login time
-    document.getElementById('login-time').textContent = new Date().toLocaleString('tr-TR');
-
     function logout() {
       sessionStorage.removeItem('user');
       window.location.href = '/';
     }
+
+    async function loadOrderStatusChart() {
+      const card = document.getElementById('order-status-card');
+      const canvas = document.getElementById('order-status-chart');
+      const empty = document.getElementById('order-status-empty');
+      const legend = document.getElementById('order-status-legend');
+
+      if (!card || !canvas) return;
+
+      try {
+        const res = await fetch('/api/reports/order-status-distribution');
+        if (!res.ok) throw new Error('Veri alınamadı');
+        const data = await res.json();
+
+        const orderStatuses = [
+          'PLANLANDI',
+          'BEKLEMEDE',
+          'ONAYLANDI',
+          'URETIMDE',
+          'SEVK_EDILDI',
+          'TAMAMLANDI',
+          'TESLIM_EDILDI',
+          'IPTAL'
+        ];
+
+        const counts = orderStatuses.map(k => {
+          const row = data.find(r => (r.status || '').toUpperCase() === k);
+          return row ? Number(row.count) || 0 : 0;
+        });
+
+        const total = counts.reduce((a, b) => a + b, 0);
+        if (!total) {
+          empty.style.display = 'block';
+          canvas.style.display = 'none';
+          legend.innerHTML = '';
+          return;
+        } else {
+          empty.style.display = 'none';
+          canvas.style.display = 'block';
+        }
+
+        const colors = [
+          '#d4a853',
+          '#8b5cf6',
+          '#10b981',
+          '#f97316',
+          '#3b82f6',
+          '#22c55e',
+          '#0ea5e9',
+          '#ef4444'
+        ];
+
+        new Chart(canvas.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: orderStatuses.map(k => statusLabels[k] || k),
+            datasets: [{
+              data: counts,
+              backgroundColor: colors,
+              borderWidth: 1,
+              borderColor: '#0c1222'
+            }]
+          },
+          options: {
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: ctx => {
+                    const value = ctx.parsed;
+                    const pct = total ? ((value / total) * 100).toFixed(1) : 0;
+                    return `${ctx.label}: ${value} (${pct}%)`;
+                  }
+                }
+              }
+            },
+            cutout: '65%',
+            animation: { duration: 400 }
+          }
+        });
+
+        legend.innerHTML = orderStatuses.map((k, idx) => {
+          const val = counts[idx] || 0;
+          if (!val) return '';
+          return `
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#cbd5e1;">
+              <span style="width:12px;height:12px;border-radius:999px;display:inline-block;background:${colors[idx]}"></span>
+              <span>${statusLabels[k] || k} - ${val}</span>
+            </div>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error('Order status chart error:', err);
+        const empty = document.getElementById('order-status-empty');
+        if (empty) {
+          empty.textContent = 'Veri yüklenemedi.';
+          empty.style.display = 'block';
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadOrderStatusChart();
+      loadKpis();
+      loadMonthlySales();
+    });
+
+    async function loadKpis() {
+      const totalEl = document.getElementById('kpi-total-orders');
+      const activeEl = document.getElementById('kpi-active-orders');
+      const revenueEl = document.getElementById('kpi-total-revenue');
+      const cancelEl = document.getElementById('kpi-cancel-rate');
+
+      const setError = (msg) => {
+        totalEl.textContent = msg;
+        activeEl.textContent = msg;
+        revenueEl.textContent = msg;
+        cancelEl.textContent = msg;
+      };
+
+      try {
+        const res = await fetch('/api/reports/kpis');
+        const data = await res.json();
+        if (!res.ok || data.success === false) throw new Error(data.message || 'KPI verisi alınamadı');
+
+        const fmtMoney = (v) => {
+          const n = Number(v) || 0;
+          return n.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' ₺';
+        };
+        const fmtPct = (v) => `${(Number(v) || 0).toFixed(1)}%`;
+
+        totalEl.textContent = Number(data.totalOrders || 0).toLocaleString('tr-TR');
+        activeEl.textContent = Number(data.activeOrders || 0).toLocaleString('tr-TR');
+        revenueEl.textContent = fmtMoney(data.totalRevenue);
+        cancelEl.textContent = fmtPct(data.cancelRate);
+      } catch (err) {
+        console.error('KPIs load error:', err);
+        setError('Hata');
+      }
+    }
+
+    async function loadMonthlySales() {
+      const canvas = document.getElementById('monthly-sales-chart');
+      const empty = document.getElementById('monthly-sales-empty');
+      if (!canvas) return;
+      try {
+        const res = await fetch('/api/reports/monthly-sales');
+        if (!res.ok) throw new Error('Veri alınamadı');
+        const data = await res.json();
+
+        if (!Array.isArray(data) || !data.length) {
+          empty.style.display = 'block';
+          canvas.style.display = 'none';
+          return;
+        } else {
+          empty.style.display = 'none';
+          canvas.style.display = 'block';
+        }
+
+        const monthNames = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+        const labels = data.map(d => {
+          const parts = (d.month || '').split('-'); // YYYY-MM
+          const m = Number(parts[1]) || 0;
+          return monthNames[m-1] || d.month || '';
+        });
+        const values = data.map(d => Number(d.total) || 0);
+
+        new Chart(canvas.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Satış',
+              data: values,
+              backgroundColor: 'rgba(139, 92, 246, 0.6)',
+              borderColor: 'rgba(139, 92, 246, 1)',
+              borderWidth: 1,
+              borderRadius: 6
+            }]
+          },
+          options: {
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: ctx => {
+                    const v = ctx.parsed.y || 0;
+                    return `₺${v.toLocaleString('tr-TR')}`;
+                  }
+                }
+              }
+            },
+            responsive: true,
+            scales: {
+              y: {
+                ticks: {
+                  callback: (v) => `₺${Number(v).toLocaleString('tr-TR')}`,
+                  color: '#cbd5e1'
+                },
+                grid: { color: 'rgba(255,255,255,0.05)' }
+              },
+              x: {
+                ticks: { color: '#cbd5e1' },
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Monthly sales chart error:', err);
+        empty.textContent = 'Veri yüklenemedi';
+        empty.style.display = 'block';
+        canvas.style.display = 'none';
+      }
+    }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>
 

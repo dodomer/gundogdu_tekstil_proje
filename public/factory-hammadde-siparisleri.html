@@ -453,10 +453,13 @@
   <script>
     let allOrders = [];
 
+    const ORDERS_URL = 'http://localhost:3000/api/hammadde-siparisleri';
+
     // Load orders on page load
     async function loadOrders() {
       try {
-        const response = await fetch('/api/hammadde-siparisleri');
+        console.log('RAW ORDERS URL:', ORDERS_URL);
+        const response = await fetch(ORDERS_URL);
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -464,6 +467,10 @@
         }
         
         const data = await response.json();
+        console.log('RAW ORDERS DATA:', Array.isArray(data) ? data.slice(0,3) : data);
+        if (Array.isArray(data) && data.length) {
+          console.log('RAW ORDERS FIRST ROW:', data[0]);
+        }
         
         if (Array.isArray(data)) {
           allOrders = data;
@@ -525,14 +532,14 @@
 
         return `
           <tr>
-            <td><strong>#${order.siparisId || order.id || order.siparis_id || '-'}</strong></td>
-            <td>${order.malzemeAdi || order.malzeme_adi || '-'}</td>
+            <td><strong>#${order.id || '-'}</strong></td>
+            <td>${order.malzeme_adi || '-'}</td>
             <td>${order.miktar || 0}</td>
             <td>${order.birim || '-'}</td>
             <td>${siparisTarihi}</td>
             <td>${tahminiTeslimTarihi}</td>
             <td>
-              <select class="status-select ${statusClass}" onchange="updateStatus(${order.siparisId || order.id || order.siparis_id}, this.value, this)">
+              <select class="status-select ${statusClass}" onchange="updateStatus(${order.id}, this.value, this)">
                 <option value="BEKLEMEDE" ${order.durum === 'BEKLEMEDE' ? 'selected' : ''}>Beklemede</option>
                 <option value="ONAYLANDI" ${order.durum === 'ONAYLANDI' ? 'selected' : ''}>Onaylandı</option>
                 <option value="HAZIRLANIYOR" ${order.durum === 'HAZIRLANIYOR' ? 'selected' : ''}>Hazırlanıyor</option>

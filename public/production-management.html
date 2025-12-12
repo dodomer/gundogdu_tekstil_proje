@@ -623,10 +623,13 @@
       }
     }
 
+    const ORDERS_URL = 'http://localhost:3000/api/hammadde-siparisleri';
+
     // Load orders on page load
     async function loadOrders() {
       try {
-        const response = await fetch('/api/raw-material-orders');
+        console.log('RAW ORDERS URL:', ORDERS_URL);
+        const response = await fetch(ORDERS_URL);
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -634,6 +637,10 @@
         }
         
         const data = await response.json();
+        console.log('RAW ORDERS DATA:', Array.isArray(data) ? data.slice(0,3) : data);
+        if (Array.isArray(data) && data.length) {
+          console.log('RAW ORDERS FIRST ROW:', data[0]);
+        }
         
         if (Array.isArray(data)) {
           allOrders = data;
@@ -695,7 +702,7 @@
 
         return `
           <tr>
-            <td><strong>#${order.id}</strong></td>
+            <td><strong>#${order.id || order.siparis_id || '-'}</strong></td>
             <td>${order.malzeme_adi || '-'}</td>
             <td>${order.miktar || 0}</td>
             <td>${order.birim || '-'}</td>
@@ -758,7 +765,7 @@
       };
 
       try {
-        const response = await fetch('/api/raw-material-orders', {
+        const response = await fetch(ORDERS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
@@ -766,6 +773,7 @@
 
         if (response.ok) {
           closeModal();
+          console.log('POST success -> reloading list');
           loadOrders();
         } else {
           const err = await response.json();

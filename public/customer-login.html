@@ -116,28 +116,6 @@
       font-size: 0.95rem;
     }
 
-    .feature-list {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      margin-bottom: 25px;
-    }
-
-    .feature-item {
-      text-align: center;
-    }
-
-    .feature-item span {
-      display: block;
-      font-size: 1.5rem;
-      margin-bottom: 5px;
-    }
-
-    .feature-item p {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
     .info-box {
       background: rgba(139, 92, 246, 0.1);
       border-radius: 10px;
@@ -187,6 +165,12 @@
       box-shadow: 0 0 0 3px var(--accent-glow);
     }
 
+    .helper-text {
+      margin-top: 6px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
     .form-group input::placeholder {
       color: var(--text-muted);
     }
@@ -219,6 +203,33 @@
       opacity: 0.7;
       cursor: not-allowed;
       transform: none;
+    }
+
+    .register-btn {
+      width: 100%;
+      padding: 14px;
+      margin-top: 12px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(167, 139, 250, 0.08));
+      border: 1px solid rgba(167, 139, 250, 0.6);
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--accent-light);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(4px);
+    }
+
+    .register-btn:hover {
+      background: rgba(139, 92, 246, 0.14);
+      box-shadow: 0 8px 20px var(--accent-glow);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .register-btn:active {
+      transform: translateY(0);
     }
 
     .error-message {
@@ -309,21 +320,6 @@
         <p>Sipariş takip ve hesap yönetimi</p>
       </div>
 
-      <div class="feature-list">
-        <div class="feature-item">
-          <span>📦</span>
-          <p>Sipariş Takip</p>
-        </div>
-        <div class="feature-item">
-          <span>📊</span>
-          <p>Hesap Özeti</p>
-        </div>
-        <div class="feature-item">
-          <span>📄</span>
-          <p>Faturalar</p>
-        </div>
-      </div>
-
       <div class="info-box">
         <span>ℹ️</span>
         <p>Müşteri kodunuz: M + Müşteri numaranız (Örn: M1, M10)</p>
@@ -333,6 +329,7 @@
         <div class="form-group">
           <label for="code">Müşteri Kodu</label>
           <input type="text" id="code" name="code" placeholder="Örn: M01, M07, M12" required autocomplete="username">
+          <div class="helper-text">Kodu büyük/küçük fark etmez. Örn: M12</div>
         </div>
 
         <div class="form-group">
@@ -341,6 +338,7 @@
         </div>
 
         <button type="submit" class="login-btn" id="login-btn">Giriş Yap</button>
+        <button type="button" class="register-btn" id="register-btn">Kayıt Ol</button>
       </form>
 
       <div class="error-message" id="error-message"></div>
@@ -352,8 +350,13 @@
   <script>
     const form = document.getElementById('login-form');
     const loginBtn = document.getElementById('login-btn');
+    const registerBtn = document.getElementById('register-btn');
     const errorMessage = document.getElementById('error-message');
     const successMessage = document.getElementById('success-message');
+
+    registerBtn.addEventListener('click', () => {
+      window.location.href = 'register.html';
+    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -375,12 +378,12 @@
       loginBtn.innerHTML = '<span class="loading"></span>Giriş yapılıyor...';
       
       try {
-        const response = await fetch('/api/login/customer', {
+        const response = await fetch('/api/customers/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ code, password })
+          body: JSON.stringify({ musteriKodu: code, customerCode: code, password })
         });
         
         const data = await response.json();
@@ -402,7 +405,7 @@
           
           window.location.href = data.redirect;
         } else {
-          errorMessage.textContent = data.message || 'Giriş başarısız';
+          errorMessage.textContent = data.message || 'Müşteri kodu veya şifre hatalı.';
           errorMessage.classList.add('show');
           loginBtn.disabled = false;
           loginBtn.textContent = 'Giriş Yap';
