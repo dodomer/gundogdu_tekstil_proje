@@ -1388,25 +1388,25 @@
       const loadingEl = document.getElementById('evalLoading');
       
       try {
-        const response = await fetch('/api/evaluations/comments');
+        const response = await fetch('/api/personel-degerlendirme');
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const comments = await response.json();
-        console.log('[Evaluations] Received', comments.length, 'comments');
+        const evaluations = await response.json();
+        console.log('[Evaluations] Received', evaluations.length, 'evaluations');
         
         // Update stats
-        const uniqueTargets = new Set(comments.map(c => c.targetEmployeeId));
-        const uniqueCategories = new Set(comments.map(c => c.category));
+        const uniqueTargets = new Set(evaluations.map(e => e.hedef_adsoyad));
+        const uniqueCategories = new Set(evaluations.map(e => e.kategori));
         
-        document.getElementById('totalComments').textContent = comments.length;
+        document.getElementById('totalComments').textContent = evaluations.length;
         document.getElementById('totalEvaluated').textContent = uniqueTargets.size;
         document.getElementById('totalCategories').textContent = uniqueCategories.size;
         
         // Check if empty
-        if (!comments || comments.length === 0) {
+        if (!evaluations || evaluations.length === 0) {
           container.innerHTML = `
             <div class="evaluations-empty">
               <div style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;">📭</div>
@@ -1417,9 +1417,17 @@
         }
         
         // Render comments
-        container.innerHTML = comments.map(comment => {
-          const initials = getInitials(comment.targetEmployeeName);
-          const dateStr = formatDate(comment.createdAt);
+        container.innerHTML = evaluations.map(eval => {
+          const initials = getInitials(eval.hedef_adsoyad);
+          const dateStr = formatDate(eval.olusturma_tarihi);
+          const puan = parseInt(eval.puan, 10) || 0;
+          
+          // Generate star rating display
+          const stars = [];
+          for (let i = 1; i <= 5; i++) {
+            stars.push(i <= puan ? '★' : '☆');
+          }
+          const starDisplay = stars.join('');
           
           return `
             <div class="evaluation-card">
@@ -1427,23 +1435,26 @@
                 <div class="evaluation-target">
                   <div class="evaluation-avatar">${initials}</div>
                   <div class="evaluation-target-info">
-                    <h4>${comment.targetEmployeeName}</h4>
-                    <span class="evaluation-category">${comment.category}</span>
+                    <h4>${eval.hedef_adsoyad}</h4>
+                    <span class="evaluation-category">${eval.kategori}</span>
                   </div>
                 </div>
                 <span class="evaluation-date">${dateStr}</span>
               </div>
+              <div class="evaluation-rating" style="margin: 8px 0; font-size: 1.2rem; color: #fbbf24;">
+                ${starDisplay}
+              </div>
               <div class="evaluation-comment">
-                "${comment.comment}"
+                "${eval.yorum}"
               </div>
               <div class="evaluation-author">
-                ✍️ Yazan: <span>${comment.authorEmployeeName}</span>
+                ✍️ Yazan: <span>${eval.yazar_adsoyad}</span>
               </div>
             </div>
           `;
         }).join('');
         
-        console.log('[Evaluations] Rendered', comments.length, 'comment cards');
+        console.log('[Evaluations] Rendered', evaluations.length, 'evaluation cards');
         
       } catch (error) {
         console.error('[Evaluations] Error:', error);

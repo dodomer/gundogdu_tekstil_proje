@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>İzin Talepleri - Gündoğdu Tekstil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c1222;
+      --bg-card: #151d30;
+      --border-color: #2a3a5c;
+      --accent: #d4a853;
+      --accent-light: #f0c970;
+      --accent-glow: rgba(212, 168, 83, 0.3);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      color: var(--text-primary);
+    }
+
+    .header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-icon {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .header-title h1 {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .header-title p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .back-btn {
+      padding: 10px 20px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .main-content {
+      padding: 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .filters-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .filter-label {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .filter-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .filter-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-color: var(--accent);
+      color: var(--bg-dark);
+      font-weight: 600;
+    }
+
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: rgba(212, 168, 83, 0.1);
+    }
+
+    th {
+      padding: 16px 20px;
+      text-align: left;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    tbody tr {
+      transition: background 0.2s ease;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .status-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .status-beklemede {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
+
+    .status-onaylandi {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+
+    .status-reddedildi {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .action-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-action {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-approve {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-approve:hover {
+      background: rgba(34, 197, 94, 0.3);
+      border-color: #22c55e;
+    }
+
+    .btn-reject {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-reject:hover {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: #ef4444;
+    }
+
+    .btn-action:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .sebep-cell {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sebep-full {
+      max-width: none;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .loading-state .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state span {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 15px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 16px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      display: none;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.show {
+      display: block;
+    }
+
+    .toast.success {
+      border-color: var(--success);
+      background: rgba(34, 197, 94, 0.1);
+    }
+
+    .toast.error {
+      border-color: var(--danger);
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .dashboard-footer {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .dashboard-footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .dashboard-footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px;
+      }
+
+      .main-content {
+        padding: 20px;
+      }
+
+      .filters-section {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .table-container {
+        overflow-x: scroll;
+      }
+
+      th, td {
+        padding: 12px 15px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon">🗓️</div>
+      <div class="header-title">
+        <h1>İzin Talepleri</h1>
+        <p>Personel izin taleplerini görüntüleyin ve yönetin</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="/admin-personnel.html" class="back-btn">← Personel Yönetimine Dön</a>
+      <a href="/admin-dashboard.html" class="back-btn">🏠 Admin Paneli</a>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="filters-section">
+      <span class="filter-label">Durum Filtresi:</span>
+      <button class="filter-btn active" data-filter="">Tümü</button>
+      <button class="filter-btn" data-filter="Beklemede">Beklemede</button>
+      <button class="filter-btn" data-filter="Onaylandı">Onaylandı</button>
+      <button class="filter-btn" data-filter="Reddedildi">Reddedildi</button>
+    </div>
+
+    <div class="table-card">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Talep ID</th>
+              <th>Personel</th>
+              <th>Tarih Aralığı</th>
+              <th>Hafta içi Gün</th>
+              <th>Sebep</th>
+              <th>Durum</th>
+              <th>Oluşturma Tarihi</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody id="leave-requests-body">
+            <tr>
+              <td colspan="8">
+                <div class="loading-state">
+                  <div class="spinner"></div>
+                  <p>İzin talepleri yükleniyor...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer class="dashboard-footer">
+    <p>© 2025 Gündoğdu Tekstil. Tüm hakları saklıdır. | <a href="/admin-dashboard.html">Admin Paneli</a></p>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let allRequests = [];
+    let currentFilter = '';
+
+    // Format date to Turkish format
+    function formatDateTR(dateStr) {
+      if (!dateStr) return '-';
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleDateString('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    }
+
+    // Format datetime to Turkish format
+    function formatDateTimeTR(dateStr) {
+      if (!dateStr) return '-';
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleDateString('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    // Show toast message
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // Load leave requests
+    async function loadLeaveRequests(filter = '') {
+      const tbody = document.getElementById('leave-requests-body');
+      
+      try {
+        const url = filter ? `/api/izin-talepleri?durum=${encodeURIComponent(filter)}` : '/api/izin-talepleri';
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'İzin talepleri alınamadı');
+        }
+        
+        allRequests = result.data || [];
+        renderTable(allRequests);
+      } catch (error) {
+        console.error('Load leave requests error:', error);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <span>❌</span>
+                <p>İzin talepleri yüklenirken hata oluştu.</p>
+                <p style="font-size: 0.85rem; margin-top: 10px; color: var(--danger);">${error.message}</p>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Render table
+    function renderTable(requests) {
+      const tbody = document.getElementById('leave-requests-body');
+      
+      if (requests.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <span>📭</span>
+                <p>Gösterilecek izin talebi bulunamadı.</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = requests.map(req => {
+        const statusClass = `status-${req.durum.toLowerCase()}`;
+        const statusText = req.durum;
+        const personelName = req.personel_ad_soyad || `Personel #${req.personel_id}`;
+        const dateRange = `${formatDateTR(req.baslangic_tarihi)} - ${formatDateTR(req.bitis_tarihi)}`;
+        const sebepShort = req.sebep && req.sebep.length > 50 
+          ? req.sebep.substring(0, 50) + '...' 
+          : req.sebep || '-';
+        
+        const canApprove = req.durum === 'Beklemede';
+        const canReject = req.durum === 'Beklemede';
+        
+        return `
+          <tr>
+            <td><strong>#${req.id}</strong></td>
+            <td>${personelName}</td>
+            <td>${dateRange}</td>
+            <td><strong>${req.izin_gunu}</strong> gün</td>
+            <td class="sebep-cell" title="${req.sebep || ''}">${sebepShort}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td>${formatDateTimeTR(req.olusturma_tarihi)}</td>
+            <td>
+              <div class="action-btns">
+                ${canApprove ? `
+                  <button class="btn-action btn-approve" onclick="approveRequest(${req.id})" title="Onayla">
+                    ✓ Onayla
+                  </button>
+                ` : ''}
+                ${canReject ? `
+                  <button class="btn-action btn-reject" onclick="rejectRequest(${req.id})" title="Reddet">
+                    ✕ Reddet
+                  </button>
+                ` : ''}
+                ${!canApprove && !canReject ? '<span style="color: var(--text-muted); font-size: 0.85rem;">-</span>' : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Approve request
+    async function approveRequest(id) {
+      if (!confirm('Bu izin talebini onaylamak istediğinize emin misiniz?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/izin-talepleri/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            durum: 'Onaylandı',
+            karar_veren: 'Admin'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'İzin talebi onaylanamadı');
+        }
+        
+        showToast('İzin talebi onaylandı', 'success');
+        loadLeaveRequests(currentFilter);
+      } catch (error) {
+        console.error('Approve request error:', error);
+        showToast(error.message || 'İzin talebi onaylanamadı', 'error');
+      }
+    }
+
+    // Reject request
+    async function rejectRequest(id) {
+      if (!confirm('Bu izin talebini reddetmek istediğinize emin misiniz?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/izin-talepleri/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            durum: 'Reddedildi',
+            karar_veren: 'Admin'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'İzin talebi reddedilemedi');
+        }
+        
+        showToast('İzin talebi reddedildi', 'success');
+        loadLeaveRequests(currentFilter);
+      } catch (error) {
+        console.error('Reject request error:', error);
+        showToast(error.message || 'İzin talebi reddedilemedi', 'error');
+      }
+    }
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter || '';
+        loadLeaveRequests(currentFilter);
+      });
+    });
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadLeaveRequests();
+    });
+  </script>
+</body>
+</html>

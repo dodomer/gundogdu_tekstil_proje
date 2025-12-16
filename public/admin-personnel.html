@@ -114,6 +114,7 @@
       display: flex;
       align-items: center;
       gap: 15px;
+      flex-wrap: wrap;
     }
 
     .search-input {
@@ -164,6 +165,13 @@
 
     .stats-badge strong {
       color: var(--accent);
+    }
+
+    .search-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     .btn-primary {
@@ -417,9 +425,14 @@
       <div class="stats-badge">
         Toplam: <strong id="total-count">0</strong> personel
       </div>
-      <a href="/performans-yonetimi.html" class="btn-primary">
-        📊 Performans Yönetimi
-      </a>
+      <div class="search-actions">
+        <a href="/performans-yonetimi.html" class="btn-primary">
+          📊 Performans Yönetimi
+        </a>
+        <a href="/izin-talepleri.html" class="btn-primary" id="btn-izin-talepleri">
+          🗓️ İzin Talepleri
+        </a>
+      </div>
     </div>
 
     <div class="table-card">

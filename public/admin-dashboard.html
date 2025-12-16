@@ -388,6 +388,16 @@
       </div>
     </section>
 
+    <section class="charts-row" style="margin-top: 20px;">
+      <div class="info-card" id="revenue-trend-card" style="width:100%; max-width: 100%;">
+        <h3 style="display:flex;align-items:center;gap:8px;">📊 Ciro Trendi</h3>
+        <div style="position:relative; min-height:300px;">
+          <canvas id="revenue-trend-chart" height="250"></canvas>
+          <div id="revenue-trend-empty" style="display:none; padding:16px; text-align:center; color: var(--text-secondary);">Ciro verisi bulunamadı</div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <footer class="dashboard-footer">
@@ -524,6 +534,7 @@
       loadOrderStatusChart();
       loadKpis();
       loadMonthlySales();
+      loadRevenueTrend();
     });
 
     async function loadKpis() {
@@ -629,6 +640,126 @@
         });
       } catch (err) {
         console.error('Monthly sales chart error:', err);
+        empty.textContent = 'Veri yüklenemedi';
+        empty.style.display = 'block';
+        canvas.style.display = 'none';
+      }
+    }
+
+    async function loadRevenueTrend() {
+      const canvas = document.getElementById('revenue-trend-chart');
+      const empty = document.getElementById('revenue-trend-empty');
+      if (!canvas) return;
+      
+      try {
+        const res = await fetch('/api/reports/revenue-trend');
+        if (!res.ok) throw new Error('Veri alınamadı');
+        const data = await res.json();
+
+        if (!Array.isArray(data) || !data.length) {
+          empty.style.display = 'block';
+          canvas.style.display = 'none';
+          return;
+        } else {
+          empty.style.display = 'none';
+          canvas.style.display = 'block';
+        }
+
+        const monthNames = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+        
+        // Create a map for all 12 months
+        const monthData = {};
+        data.forEach(d => {
+          const monthNum = Number(d.month_num) || 0;
+          if (monthNum >= 1 && monthNum <= 12) {
+            monthData[monthNum] = Number(d.total_revenue) || 0;
+          }
+        });
+
+        // Build labels and values for all 12 months
+        const labels = monthNames;
+        const values = [];
+        for (let i = 1; i <= 12; i++) {
+          values.push(monthData[i] || 0);
+        }
+
+        new Chart(canvas.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Ciro',
+              data: values,
+              borderColor: 'rgba(139, 92, 246, 1)',
+              backgroundColor: 'rgba(139, 92, 246, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+              pointBackgroundColor: 'rgba(139, 92, 246, 1)',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: 'rgba(139, 92, 246, 1)',
+              pointHoverBorderColor: '#ffffff',
+              pointHoverBorderWidth: 2
+            }]
+          },
+          options: {
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: ctx => {
+                    const v = ctx.parsed.y || 0;
+                    return `${ctx.label}: ₺${v.toLocaleString('tr-TR')}`;
+                  }
+                },
+                backgroundColor: 'rgba(21, 29, 48, 0.95)',
+                titleColor: '#ffffff',
+                bodyColor: '#cbd5e1',
+                borderColor: 'rgba(139, 92, 246, 0.5)',
+                borderWidth: 1
+              }
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: (v) => `₺${Number(v).toLocaleString('tr-TR')}`,
+                  color: '#cbd5e1',
+                  font: {
+                    size: 11
+                  }
+                },
+                grid: { 
+                  color: 'rgba(255,255,255,0.05)',
+                  drawBorder: false
+                }
+              },
+              x: {
+                ticks: { 
+                  color: '#cbd5e1',
+                  font: {
+                    size: 11
+                  }
+                },
+                grid: { 
+                  display: false,
+                  drawBorder: false
+                }
+              }
+            },
+            interaction: {
+              intersect: false,
+              mode: 'index'
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Revenue trend chart error:', err);
         empty.textContent = 'Veri yüklenemedi';
         empty.style.display = 'block';
         canvas.style.display = 'none';

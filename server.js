@@ -157,6 +157,29 @@ app.post('/api/customers/register', async (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ============================================
+// 🧮 HELPER: BUSINESS DAY COUNT (Hafta içi gün sayısı)
+// ============================================
+
+function countBusinessDays(startDate, endDate) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+    return 0;
+  }
+
+  let count = 0;
+  const current = new Date(start);
+  while (current <= end) {
+    const day = current.getDay(); // 0 = Pazar, 6 = Cumartesi
+    if (day !== 0 && day !== 6) {
+      count++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return count;
+}
+
+// ============================================
 // 🔐 LOGIN API ENDPOINTS
 // ============================================
 
@@ -936,6 +959,27 @@ app.get('/api/reports/monthly-sales', async (req, res) => {
   }
 });
 
+// GET /api/reports/revenue-trend
+app.get('/api/reports/revenue-trend', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        MONTH(s.siparis_tarihi) AS month_num,
+        COALESCE(SUM(d.toplam_tutar), 0) AS total_revenue
+      FROM siparisler s
+      LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
+      WHERE UPPER(TRIM(s.durumu)) <> 'IPTAL'
+        AND s.siparis_tarihi IS NOT NULL
+      GROUP BY MONTH(s.siparis_tarihi)
+      ORDER BY month_num ASC
+    `);
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Revenue trend error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // Get customer orders summary (for KPI cards)
 app.get('/api/customer/orders/summary', async (req, res) => {
   try {
@@ -1588,6 +1632,567 @@ app.get('/api/evaluations/comments', async (req, res) => {
   } catch (error) {
     console.error('[Evaluations API] Error:', error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// 📋 PERSONNEL EVALUATION API ENDPOINTS
+// ============================================
+
+// GET /api/personel/aktif - List active personnel
+app.get('/api/personel/aktif', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT personel_id, personel_ad_soyad
+      FROM personel
+      WHERE aktif_mi = 1
+      ORDER BY personel_ad_soyad ASC
+    `);
+    
+    return res.json(rows || []);
+  } catch (error) {
+    console.error('Aktif personel listesi hata:', error);
+    return res.status(500).json({ error: 'Aktif personel listesi alınamadı', message: error.message });
+  }
+});
+
+// POST /api/personel-degerlendirme - Create evaluation
+app.post('/api/personel-degerlendirme', async (req, res) => {
+  try {
+    const { yazar_personel_id, hedef_personel_id, kategori, yorum, puan } = req.body || {};
+
+    const yazarId = parseInt(yazar_personel_id, 10);
+    const hedefId = parseInt(hedef_personel_id, 10);
+
+    if (!yazarId || Number.isNaN(yazarId)) {
+      return res.status(400).json({ message: 'Geçersiz yazar_personel_id' });
+    }
+
+    if (!hedefId || Number.isNaN(hedefId)) {
+      return res.status(400).json({ message: 'Geçersiz hedef_personel_id' });
+    }
+
+    // Prevent self-review
+    if (yazarId === hedefId) {
+      return res.status(400).json({ message: 'Kendiniz hakkında değerlendirme yapamazsınız' });
+    }
+
+    // Validate puan (required, 1-5)
+    const puanInt = parseInt(puan, 10);
+    if (!puan || Number.isNaN(puanInt) || puanInt < 1 || puanInt > 5) {
+      return res.status(400).json({ message: 'Puan zorunludur ve 1 ile 5 arasında olmalıdır' });
+    }
+
+    const kategoriTrimmed = (kategori || 'Genel').toString().trim();
+    const yorumTrimmed = (yorum || '').toString().trim();
+
+    if (!yorumTrimmed || yorumTrimmed.length < 5) {
+      return res.status(400).json({ message: 'Yorum en az 5 karakter olmalıdır' });
+    }
+
+    // Verify both personnel exist and are active
+    const [personnelCheck] = await pool.query(
+      `SELECT personel_id FROM personel WHERE personel_id IN (?, ?) AND aktif_mi = 1`,
+      [yazarId, hedefId]
+    );
+
+    if (personnelCheck.length !== 2) {
+      return res.status(400).json({ message: 'Geçersiz personel ID veya personel aktif değil' });
+    }
+
+    // Insert evaluation
+    const [result] = await pool.query(
+      `
+      INSERT INTO personel_degerlendirme
+        (hedef_personel_id, yazar_personel_id, kategori, puan, yorum, olusturma_tarihi)
+      VALUES (?, ?, ?, ?, ?, NOW())
+      `,
+      [hedefId, yazarId, kategoriTrimmed, puanInt, yorumTrimmed]
+    );
+
+    if (result.affectedRows !== 1) {
+      return res.status(500).json({ message: 'Değerlendirme kaydedilemedi' });
+    }
+
+    return res.status(201).json({
+      success: true,
+      id: result.insertId,
+      message: 'Değerlendirme başarıyla gönderildi',
+    });
+  } catch (error) {
+    console.error('Personel değerlendirme oluşturma hata:', error);
+    return res.status(500).json({ message: error.message || 'Değerlendirme oluşturulamadı' });
+  }
+});
+
+// GET /api/personel-degerlendirme - List all evaluations (for admin)
+app.get('/api/personel-degerlendirme', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT
+        d.id,
+        d.kategori,
+        d.puan,
+        d.yorum,
+        d.olusturma_tarihi,
+        y.personel_ad_soyad AS yazar_adsoyad,
+        h.personel_ad_soyad AS hedef_adsoyad
+      FROM personel_degerlendirme d
+      JOIN personel y ON y.personel_id = d.yazar_personel_id
+      JOIN personel h ON h.personel_id = d.hedef_personel_id
+      ORDER BY d.olusturma_tarihi DESC
+    `);
+
+    return res.json(rows || []);
+  } catch (error) {
+    console.error('Personel değerlendirme listesi hata:', error);
+    return res.status(500).json({ error: 'Değerlendirme listesi alınamadı', message: error.message });
+  }
+});
+
+// ============================================
+// 🧾 PERSONNEL LEAVE (İZİN) API ENDPOINTS
+// ============================================
+
+// GET /api/personel/:personelId/izin-ozet?year=2025
+app.get('/api/personel/:personelId/izin-ozet', async (req, res) => {
+  try {
+    const personelId = parseInt(req.params.personelId, 10);
+    const year = parseInt(req.query.year, 10) || new Date().getFullYear();
+    const YILLIK_TOPLAM = 24;
+
+    if (!personelId) {
+      return res.status(400).json({ error: 'Geçersiz personelId' });
+    }
+
+    const [rows] = await pool.query(
+      `
+      SELECT 
+        SUM(CASE WHEN durum = 'Onaylandı' THEN izin_gunu ELSE 0 END) AS kullanilan,
+        SUM(CASE WHEN durum = 'Beklemede' THEN izin_gunu ELSE 0 END) AS bekleyen
+      FROM izin_talepleri
+      WHERE personel_id = ?
+        AND YEAR(baslangic_tarihi) = ?
+      `,
+      [personelId, year]
+    );
+
+    const kullanilan = Number(rows[0]?.kullanilan) || 0;
+    const bekleyen = Number(rows[0]?.bekleyen) || 0;
+    const kalan = Math.max(YILLIK_TOPLAM - kullanilan - bekleyen, 0);
+
+    return res.json({
+      yillik_toplam: YILLIK_TOPLAM,
+      kullanilan,
+      bekleyen,
+      kalan,
+    });
+  } catch (error) {
+    console.error('İzin özet hata:', error);
+    return res.status(500).json({ error: 'İzin özeti alınamadı', message: error.message });
+  }
+});
+
+// GET /api/personel/:personel_id/calisma-ozet
+app.get('/api/personel/:personel_id/calisma-ozet', async (req, res) => {
+  try {
+    const personelId = parseInt(req.params.personel_id, 10);
+
+    if (!personelId || Number.isNaN(personelId)) {
+      return res.status(400).json({ error: 'Geçersiz personel_id' });
+    }
+
+    // Get total minutes worked (same calculation as admin panel)
+    const [minutesRows] = await pool.query(
+      `
+      SELECT COALESCE(SUM(v.calisilan_dk), 0) AS toplam_dakika
+      FROM personel p
+      LEFT JOIN vardiya_kayit v ON v.personel_id = p.personel_id
+      WHERE p.personel_id = ?
+      `,
+      [personelId]
+    );
+
+    const toplam_dakika = Number(minutesRows[0]?.toplam_dakika) || 0;
+
+    // Check if personnel has any approved leave
+    const [leaveRows] = await pool.query(
+      `
+      SELECT COUNT(*) AS approved_count
+      FROM izin_talepleri
+      WHERE personel_id = ? AND durum = 'Onaylandı'
+      `,
+      [personelId]
+    );
+
+    const approved_count = Number(leaveRows[0]?.approved_count) || 0;
+    const multiplier = approved_count > 0 ? 18 : 20;
+    const hesaplanan = toplam_dakika * multiplier;
+
+    return res.json({
+      toplam_dakika,
+      multiplier,
+      hesaplanan,
+    });
+  } catch (error) {
+    console.error('Çalışma özet hata:', error);
+    return res.status(500).json({ error: 'Çalışma özeti alınamadı', message: error.message });
+  }
+});
+
+// GET /api/personel/:personel_id/performans-puani
+app.get('/api/personel/:personel_id/performans-puani', async (req, res) => {
+  try {
+    const personelId = parseInt(req.params.personel_id, 10);
+
+    if (!personelId || Number.isNaN(personelId)) {
+      return res.status(400).json({ error: 'Geçersiz personel_id' });
+    }
+
+    const [rows] = await pool.query(
+      `
+      SELECT
+        ROUND(COALESCE(AVG(puan), 0), 1) AS avg_puan,
+        COALESCE(COUNT(*), 0) AS puanlayan_sayisi
+      FROM personel_degerlendirme
+      WHERE hedef_personel_id = ?
+      `,
+      [personelId]
+    );
+
+    const avg_puan = Number(rows[0]?.avg_puan) || 0;
+    const puanlayan_sayisi = Number(rows[0]?.puanlayan_sayisi) || 0;
+
+    return res.json({
+      avg_puan,
+      puanlayan_sayisi,
+    });
+  } catch (error) {
+    console.error('Performans puanı hata:', error);
+    return res.status(500).json({ error: 'Performans puanı alınamadı', message: error.message });
+  }
+});
+
+// GET /api/personel/:personel_id/kategori-puanlari
+app.get('/api/personel/:personel_id/kategori-puanlari', async (req, res) => {
+  try {
+    const personelId = parseInt(req.params.personel_id, 10);
+
+    if (!personelId || Number.isNaN(personelId)) {
+      return res.status(400).json({ error: 'Geçersiz personel_id' });
+    }
+
+    const [rows] = await pool.query(
+      `
+      SELECT
+        kategori,
+        ROUND(AVG(puan), 1) AS ort_puan,
+        COUNT(*) AS adet
+      FROM personel_degerlendirme
+      WHERE hedef_personel_id = ?
+      GROUP BY kategori
+      `,
+      [personelId]
+    );
+
+    // Define the 4 fixed categories in order
+    const fixedCategories = [
+      'Genel',
+      'Takım Çalışması',
+      'İletişim',
+      'Disiplin'
+    ];
+
+    // Create a map from SQL results
+    const resultMap = {};
+    rows.forEach(row => {
+      resultMap[row.kategori] = {
+        kategori: row.kategori,
+        ort_puan: Number(row.ort_puan) || 0,
+        adet: Number(row.adet) || 0
+      };
+    });
+
+    // Build response with all 4 categories, filling missing with 0
+    const categories = fixedCategories.map(kategori => {
+      if (resultMap[kategori]) {
+        return resultMap[kategori];
+      }
+      return {
+        kategori,
+        ort_puan: 0,
+        adet: 0
+      };
+    });
+
+    return res.json({ categories });
+  } catch (error) {
+    console.error('Kategori puanları hata:', error);
+    return res.status(500).json({ error: 'Kategori puanları alınamadı', message: error.message });
+  }
+});
+
+// GET /api/personel/:personel_id/izinlerim
+app.get('/api/personel/:personel_id/izinlerim', async (req, res) => {
+  try {
+    const personelId = parseInt(req.params.personel_id, 10);
+    const YILLIK_TOPLAM = 24;
+
+    if (!personelId || Number.isNaN(personelId)) {
+      return res.status(400).json({ error: 'Geçersiz personel_id' });
+    }
+
+    // Get approved_used
+    const [approvedRows] = await pool.query(
+      `
+      SELECT COALESCE(SUM(izin_gunu), 0) AS approved_used
+      FROM izin_talepleri
+      WHERE personel_id = ? AND durum = 'Onaylandı'
+      `,
+      [personelId]
+    );
+
+    const approved_used = Number(approvedRows[0]?.approved_used) || 0;
+    const remaining = Math.max(YILLIK_TOPLAM - approved_used, 0);
+
+    // Get all requests
+    const [requestRows] = await pool.query(
+      `
+      SELECT 
+        id, 
+        baslangic_tarihi, 
+        bitis_tarihi, 
+        izin_gunu, 
+        sebep, 
+        durum, 
+        olusturma_tarihi, 
+        karar_tarihi, 
+        karar_veren
+      FROM izin_talepleri
+      WHERE personel_id = ?
+      ORDER BY olusturma_tarihi DESC
+      `,
+      [personelId]
+    );
+
+    return res.json({
+      yearly_total: YILLIK_TOPLAM,
+      approved_used,
+      remaining,
+      requests: requestRows || [],
+    });
+  } catch (error) {
+    console.error('İzinlerim listesi hata:', error);
+    return res.status(500).json({ error: 'İzinlerim listesi alınamadı', message: error.message });
+  }
+});
+
+// Helper: insert leave request into izin_talepleri table
+async function insertLeaveRequest(personelId, baslangic_tarihi, bitis_tarihi, sebep, yearHint) {
+  if (!personelId) {
+    throw new Error('Geçersiz personel_id');
+  }
+
+  if (!baslangic_tarihi || !bitis_tarihi) {
+    const err = new Error('Başlangıç ve bitiş tarihleri zorunludur');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const sebepTrimmed = (sebep || '').toString().trim();
+  if (!sebepTrimmed || sebepTrimmed.length < 5) {
+    const err = new Error('İzin sebebi en az 5 karakter olmalıdır');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const start = new Date(baslangic_tarihi);
+  const end = new Date(bitis_tarihi);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+    const err = new Error('Geçerli bir tarih aralığı seçiniz');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const izinGunuServer = countBusinessDays(start, end);
+  if (!izinGunuServer || izinGunuServer <= 0) {
+    const err = new Error('Sadece hafta içi günleri içeren bir aralık seçiniz');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const requestYear = parseInt(yearHint, 10) || start.getFullYear();
+  const YILLIK_TOPLAM = 24;
+
+  // Kalan izin hesabı (onaylı + bekleyen)
+  const [rows] = await pool.query(
+    `
+      SELECT 
+        SUM(CASE WHEN durum = 'Onaylandı' THEN izin_gunu ELSE 0 END) AS kullanilan,
+        SUM(CASE WHEN durum = 'Beklemede' THEN izin_gunu ELSE 0 END) AS bekleyen
+      FROM izin_talepleri
+      WHERE personel_id = ?
+        AND YEAR(baslangic_tarihi) = ?
+    `,
+    [personelId, requestYear]
+  );
+
+  const kullanilan = Number(rows[0]?.kullanilan) || 0;
+  const bekleyen = Number(rows[0]?.bekleyen) || 0;
+  const kalan = Math.max(YILLIK_TOPLAM - kullanilan - bekleyen, 0);
+
+  if (izinGunuServer > kalan) {
+    const err = new Error('Yetersiz kalan izin günü');
+    err.statusCode = 400;
+    err.details = { talep_edilen: izinGunuServer, kalan };
+    throw err;
+  }
+
+  const [result] = await pool.query(
+    `
+      INSERT INTO izin_talepleri
+        (personel_id, baslangic_tarihi, bitis_tarihi, izin_gunu, sebep, durum, olusturma_tarihi)
+      VALUES (?, ?, ?, ?, ?, 'Beklemede', NOW())
+    `,
+    [personelId, baslangic_tarihi, bitis_tarihi, izinGunuServer, sebepTrimmed]
+  );
+
+  if (result.affectedRows !== 1) {
+    const err = new Error('İzin talebi kaydedilemedi');
+    err.statusCode = 500;
+    throw err;
+  }
+
+  return {
+    id: result.insertId,
+    izin_gunu: izinGunuServer,
+  };
+}
+
+// POST /api/personel/:personelId/izin-talebi (legacy, uses same logic as /api/izin-talepleri)
+app.post('/api/personel/:personelId/izin-talebi', async (req, res) => {
+  try {
+    const personelId = parseInt(req.params.personelId, 10);
+    const { baslangic_tarihi, bitis_tarihi, sebep, year } = req.body || {};
+
+    const created = await insertLeaveRequest(personelId, baslangic_tarihi, bitis_tarihi, sebep, year);
+
+    return res.status(201).json({
+      success: true,
+      message: 'İzin talebiniz gönderildi. Durum: Beklemede.',
+      izin_talebi_id: created.id,
+      izin_gunu: created.izin_gunu,
+    });
+  } catch (error) {
+    console.error('İzin talebi hata:', error);
+    const status = error.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      error: error.message || 'İzin talebi oluşturulamadı',
+      detay: error.details || undefined,
+    });
+  }
+});
+
+// POST /api/izin-talepleri
+app.post('/api/izin-talepleri', async (req, res) => {
+  try {
+    const { personel_id, baslangic_tarihi, bitis_tarihi, sebep, izin_gunu, year } = req.body || {};
+    const personelId = parseInt(personel_id, 10);
+
+    const created = await insertLeaveRequest(personelId, baslangic_tarihi, bitis_tarihi, sebep, year);
+
+    return res.status(201).json({
+      success: true,
+      id: created.id,
+      izin_gunu: created.izin_gunu,
+      message: 'İzin talebi oluşturuldu.',
+    });
+  } catch (error) {
+    console.error('İzin talebi (POST /api/izin-talepleri) hata:', error);
+    const status = error.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      error: error.message || 'İzin talebi oluşturulamadı',
+      detay: error.details || undefined,
+    });
+  }
+});
+
+// GET /api/izin-talepleri?durum=Beklemede
+app.get('/api/izin-talepleri', async (req, res) => {
+  try {
+    const { durum } = req.query;
+    const params = [];
+    let sql = `
+      SELECT 
+        it.id, 
+        it.personel_id, 
+        p.personel_ad_soyad AS personel_ad_soyad,
+        it.baslangic_tarihi, 
+        it.bitis_tarihi, 
+        it.izin_gunu, 
+        it.sebep, 
+        it.durum, 
+        it.olusturma_tarihi,
+        it.karar_tarihi,
+        it.karar_veren
+      FROM izin_talepleri it
+      JOIN personel p ON p.personel_id = it.personel_id
+    `;
+    
+    if (durum) {
+      sql += ' WHERE durum = ?';
+      params.push(durum);
+    }
+    
+    sql += ' ORDER BY olusturma_tarihi DESC';
+    
+    const [rows] = await pool.query(sql, params);
+    
+    return res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('İzin talepleri listesi hata:', error);
+    return res.status(500).json({ success: false, error: 'İzin talepleri alınamadı', message: error.message });
+  }
+});
+
+// PATCH /api/izin-talepleri/:id
+app.patch('/api/izin-talepleri/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { durum, karar_veren } = req.body;
+    
+    if (!durum || !['Onaylandı', 'Reddedildi', 'Beklemede'].includes(durum)) {
+      return res.status(400).json({ success: false, error: 'Geçerli bir durum gerekli (Onaylandı, Reddedildi, Beklemede)' });
+    }
+    
+    const updateFields = ['durum = ?'];
+    const params = [durum];
+    
+    if (durum === 'Onaylandı' || durum === 'Reddedildi') {
+      updateFields.push('karar_tarihi = NOW()');
+      if (karar_veren) {
+        updateFields.push('karar_veren = ?');
+        params.push(karar_veren);
+      }
+    }
+    
+    params.push(id);
+    
+    const [result] = await pool.query(
+      `UPDATE izin_talepleri SET ${updateFields.join(', ')} WHERE id = ?`,
+      params
+    );
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, error: 'İzin talebi bulunamadı' });
+    }
+    
+    return res.json({ success: true, message: `İzin talebi ${durum} olarak güncellendi` });
+  } catch (error) {
+    console.error('İzin talebi güncelleme hata:', error);
+    return res.status(500).json({ success: false, error: 'İzin talebi güncellenemedi', message: error.message });
   }
 });
 

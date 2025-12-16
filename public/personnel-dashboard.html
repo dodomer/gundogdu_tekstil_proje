@@ -217,6 +217,90 @@
       margin-bottom: 20px;
     }
 
+    .chart-header {
+      margin-bottom: 24px;
+    }
+
+    .chart-header h3 {
+      font-size: 1.2rem;
+      margin-bottom: 4px;
+      color: var(--text-primary);
+    }
+
+    .chart-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .category-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .chart-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chart-label {
+      min-width: 140px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      text-align: right;
+    }
+
+    .chart-bar-container {
+      flex: 1;
+      position: relative;
+      height: 32px;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .chart-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
+      border-radius: 6px;
+      transition: width 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      min-width: 0;
+    }
+
+    .chart-bar-value {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #020617;
+      white-space: nowrap;
+    }
+
+    .chart-bar-empty {
+      color: var(--text-muted);
+    }
+
+    .chart-x-axis {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      padding-left: 152px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .chart-loading,
+    .chart-empty {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
     .placeholder-text {
       text-align: center;
       padding: 40px;
@@ -236,6 +320,400 @@
       font-size: 0.85rem;
     }
 
+    /* İzin Talebi Modalı */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-card);
+      border-radius: 18px;
+      border: 1px solid var(--border-color);
+      max-width: 520px;
+      width: 100%;
+      padding: 24px 26px 22px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 999px;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .modal-close:hover {
+      background: rgba(148, 163, 184, 0.15);
+      color: #ffffff;
+    }
+
+    .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .input,
+    .textarea {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: #0f172a;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .input:focus,
+    .textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+      background: #020617;
+    }
+
+    .textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .readonly-badge {
+      background: #020617;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .readonly-badge strong {
+      color: var(--accent);
+    }
+
+    .leave-summary {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .leave-chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-color);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .leave-chip span {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .btn-secondary,
+    .btn-primary {
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--text-secondary);
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      color: #020617;
+      font-weight: 600;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 22px var(--accent-glow);
+    }
+
+    .error-text {
+      margin-top: 4px;
+      font-size: 0.8rem;
+      color: var(--danger);
+    }
+
+    .success-text {
+      margin-top: 8px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      color: var(--success);
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 8px;
+    }
+
+    .leave-requests-section {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .leave-requests-section h4 {
+      font-size: 1rem;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    .leave-summary-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .leave-summary-row span {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .leave-requests-list {
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .leave-requests-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .leave-requests-list::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 3px;
+    }
+
+    .leave-requests-list::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+
+    .leave-requests-list::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
+    }
+
+    .star-rating {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 4px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .star-rating .star {
+      font-size: 2rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+      line-height: 1;
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      outline: none;
+      pointer-events: auto;
+    }
+
+    .star-rating .star:hover {
+      color: #fbbf24;
+      transform: scale(1.1);
+    }
+
+    .star-rating .star:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    .star-rating .star.active,
+    .star-rating .star.filled {
+      color: #fbbf24;
+    }
+
+    .leave-request-item {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+    }
+
+    .leave-request-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .leave-request-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+      gap: 12px;
+    }
+
+    .leave-request-dates {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .leave-request-days {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .leave-request-status {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-beklemede {
+      background: rgba(251, 191, 36, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.4);
+    }
+
+    .status-onaylandi {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--success);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+
+    .status-reddedildi {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .leave-request-reason {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .leave-request-decision {
+      margin-top: 6px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .leave-requests-empty {
+      text-align: center;
+      padding: 30px 20px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .leave-requests-error {
+      color: var(--danger);
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #022c22;
+      color: #bbf7d0;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 1100;
+    }
+
+    .toast.show {
+      display: block;
+    }
+
     @media (max-width: 768px) {
       .header {
         flex-direction: column;
@@ -246,6 +724,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
 <body>
   <header class="header">
@@ -275,50 +754,39 @@
     <section class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon">⏰</div>
-        <div class="stat-value">--</div>
+        <div class="stat-value" id="calisma-saati-value">--</div>
         <div class="stat-label">Bu Ay Çalışma Saati</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">📅</div>
-        <div class="stat-value">--</div>
-        <div class="stat-label">Kalan İzin Günü</div>
-      </div>
-      <div class="stat-card">
         <div class="stat-icon">⭐</div>
-        <div class="stat-value">--</div>
+        <div class="stat-value" id="performans-puani-value">--</div>
         <div class="stat-label">Performans Puanı</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📋</div>
-        <div class="stat-value">--</div>
-        <div class="stat-label">Tamamlanan Görev</div>
+        <div class="stat-subtext" id="performans-puani-subtext" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;"></div>
       </div>
     </section>
 
     <section class="quick-actions">
-      <div class="action-card">
-        <div class="action-icon">📆</div>
-        <h3>Vardiya Takvimi</h3>
-        <p>Haftalık vardiya programınız</p>
-      </div>
-      <div class="action-card">
-        <div class="action-icon">📊</div>
-        <h3>Performans Raporu</h3>
-        <p>Aylık performans değerlendirmesi</p>
-      </div>
-      <div class="action-card">
+      <div class="action-card" id="card-izin-talebi">
         <div class="action-icon">✈️</div>
         <h3>İzin Talebi</h3>
         <p>Yeni izin talebi oluştur</p>
       </div>
+      <div class="action-card" id="card-personel-degerlendirme">
+        <div class="action-icon">💬</div>
+        <h3>Personel Değerlendirme</h3>
+        <p>Personeller hakkında yorum yaz</p>
+      </div>
     </section>
 
     <section class="info-card">
-      <h3>🚧 Geliştirme Aşamasında</h3>
-      <div class="placeholder-text">
-        <span>🔧</span>
-        <p>Bu sayfa daha sonra geliştirilecektir.</p>
-        <p>Personelin vardiya, performans, çalışma saatleri ve izin bilgilerini görebileceği bir panel olacaktır.</p>
+      <div class="chart-header">
+        <div>
+          <h3>Kategori Bazlı Değerlendirme</h3>
+          <p class="chart-subtitle">Aldığın yıldız puanlarının kategori ortalaması</p>
+        </div>
+      </div>
+      <div id="category-chart-container">
+        <div class="chart-loading">Yükleniyor...</div>
       </div>
     </section>
   </main>
@@ -327,6 +795,129 @@
     <p>© 2025 Gündoğdu Tekstil. Tüm hakları saklıdır. | <a href="/" style="color: var(--accent);">Ana Sayfaya Dön</a></p>
   </footer>
 
+  <!-- İzin Talebi Modalı -->
+  <div class="modal-overlay" id="leave-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🗓️</span>
+          <span>İzin Talebi Oluştur</span>
+        </div>
+        <button class="modal-close" type="button" id="leave-modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="leave-date-range">İzin Tarih Aralığı</label>
+          <input id="leave-date-range" type="text" class="input" placeholder="Başlangıç ve bitiş tarihini seçiniz">
+          <div id="leave-date-error" class="error-text" style="display:none;"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="leave-reason">İzin Sebebi</label>
+          <textarea id="leave-reason" class="textarea" placeholder="İzin sebebinizi yazınız (en az 5 karakter)"></textarea>
+          <div id="leave-reason-error" class="error-text" style="display:none;"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">İzin Günü (Hafta içi)</label>
+          <div class="readonly-badge">
+            <span>Toplam izin günü</span>
+            <strong id="leave-days">0</strong>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Yıllık İzin Durumu</label>
+          <div class="leave-summary">
+            <div class="leave-chip">
+              Yıllık Toplam İzin: <span id="leave-annual-total">24</span> gün
+            </div>
+            <div class="leave-chip">
+              Kalan İzin: <span id="leave-remaining">--</span> gün
+            </div>
+          </div>
+        </div>
+
+        <!-- İzinlerim Section -->
+        <div class="leave-requests-section">
+          <h4>İzinlerim</h4>
+          <div id="leave-requests-error" class="leave-requests-error" style="display:none;"></div>
+          <div class="leave-requests-list" id="leave-requests-list">
+            <div class="leave-requests-empty">Yükleniyor...</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" type="button" id="leave-cancel-btn">İptal</button>
+        <button class="btn-primary" type="button" id="leaveSubmitBtn">Talep Gönder</button>
+      </div>
+      <div id="leave-global-error" class="error-text" style="display:none; margin-top:8px;"></div>
+      <div id="leave-success-msg" style="display:none; margin-top:8px;"></div>
+      <div id="leaveMsg" class="error-text" style="display:none; margin-top:8px;" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="leave-toast"></div>
+
+  <!-- Personel Değerlendirme Modalı -->
+  <div class="modal-overlay" id="evaluation-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>💬</span>
+          <span>Personel Değerlendirme</span>
+        </div>
+        <button class="modal-close" type="button" id="evaluation-modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="evaluation-target">Kimi değerlendirmek istiyorsun?</label>
+          <select id="evaluation-target" class="input">
+            <option value="">Seçiniz...</option>
+          </select>
+          <div id="evaluation-target-error" class="error-text" style="display:none;"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="evaluation-category">Kategori</label>
+          <select id="evaluation-category" class="input">
+            <option value="Genel">Genel</option>
+            <option value="Takım Çalışması">Takım Çalışması</option>
+            <option value="Disiplin">Disiplin</option>
+            <option value="İletişim">İletişim</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Puan</label>
+          <div class="star-rating" id="star-rating" role="group" aria-label="Puan seçin">
+            <button type="button" class="star" data-rating="1" aria-label="1 yıldız">☆</button>
+            <button type="button" class="star" data-rating="2" aria-label="2 yıldız">☆</button>
+            <button type="button" class="star" data-rating="3" aria-label="3 yıldız">☆</button>
+            <button type="button" class="star" data-rating="4" aria-label="4 yıldız">☆</button>
+            <button type="button" class="star" data-rating="5" aria-label="5 yıldız">☆</button>
+          </div>
+          <div id="evaluation-rating-error" class="error-text" style="display:none;"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="evaluation-comment">Yorum</label>
+          <textarea id="evaluation-comment" class="textarea" placeholder="Yorumunuzu yazınız (en az 5 karakter)" rows="5"></textarea>
+          <div id="evaluation-comment-error" class="error-text" style="display:none;"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" type="button" id="evaluation-cancel-btn">İptal</button>
+        <button class="btn-primary" type="button" id="evaluation-submit-btn">Gönder</button>
+      </div>
+      <div id="evaluation-global-error" class="error-text" style="display:none; margin-top:8px;"></div>
+      <div id="evaluation-success-msg" style="display:none; margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="evaluation-toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
     // Load user data from session
     const user = JSON.parse(sessionStorage.getItem('user') || '{}');
@@ -351,6 +942,1001 @@
     if (el && name) {
       el.textContent = name;
     }
+  </script>
+
+  <script>
+    const ENTITLEMENT_DAYS = 24;
+
+    function showToast(message) {
+      const toast = document.getElementById('leave-toast');
+      if (!toast) return;
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function countBusinessDaysJS(start, end) {
+      if (!start || !end) return 0;
+      const s = new Date(start);
+      const e = new Date(end);
+      if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()) || e < s) return 0;
+      let count = 0;
+      const cur = new Date(s);
+      while (cur <= e) {
+        const day = cur.getDay();
+        if (day !== 0 && day !== 6) {
+          count++;
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+      return count;
+    }
+
+    async function fetchLeaveSummary(personnelId, year) {
+      try {
+        const res = await fetch(`/api/personel/${personnelId}/izin-ozet?year=${year}`);
+        if (!res.ok) {
+          throw new Error('İzin özeti alınamadı');
+        }
+        return await res.json();
+      } catch (err) {
+        console.error('İzin özeti hata:', err);
+        return null;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+      const personnelId = user?.id;
+      const currentYear = new Date().getFullYear();
+
+      const cardIzin = document.getElementById('card-izin-talebi');
+      const modal = document.getElementById('leave-modal');
+      const closeBtn = document.getElementById('leave-modal-close');
+      const cancelBtn = document.getElementById('leave-cancel-btn');
+      let submitBtn = document.getElementById('leaveSubmitBtn') || document.getElementById('leave-submit-btn');
+      const dateInput = document.getElementById('leave-date-range');
+      const reasonInput = document.getElementById('leave-reason');
+      const daysEl = document.getElementById('leave-days');
+      const annualTotalEl = document.getElementById('leave-annual-total');
+      const remainingEl = document.getElementById('leave-remaining');
+      const dateErrorEl = document.getElementById('leave-date-error');
+      const reasonErrorEl = document.getElementById('leave-reason-error');
+      const globalErrorEl = document.getElementById('leave-global-error');
+      const leaveMsgEl = document.getElementById('leaveMsg');
+
+      let remainingDays = null;
+      let selectedStart = null;
+      let selectedEnd = null;
+
+      annualTotalEl.textContent = ENTITLEMENT_DAYS;
+
+      // Load work hours summary
+      async function loadWorkHoursSummary() {
+        const calismaSaatiEl = document.getElementById('calisma-saati-value');
+        
+        if (!personnelId) {
+          if (calismaSaatiEl) {
+            calismaSaatiEl.textContent = '--';
+          }
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/personel/${personnelId}/calisma-ozet`);
+          const data = await res.json();
+
+          if (!res.ok || !data) {
+            throw new Error(data?.error || 'Çalışma özeti alınamadı');
+          }
+
+          const { hesaplanan } = data;
+          
+          if (calismaSaatiEl) {
+            if (hesaplanan) {
+              const saat = hesaplanan / 60;
+              calismaSaatiEl.textContent = `${saat.toFixed(1)} saat`;
+            } else {
+              calismaSaatiEl.textContent = '--';
+            }
+          }
+        } catch (err) {
+          console.error('Çalışma özeti yükleme hatası:', err);
+          const calismaSaatiEl = document.getElementById('calisma-saati-value');
+          if (calismaSaatiEl) {
+            calismaSaatiEl.textContent = '--';
+          }
+        }
+      }
+
+      if (personnelId) {
+        const summary = await fetchLeaveSummary(personnelId, currentYear);
+        if (summary) {
+          remainingDays = summary.kalan;
+          remainingEl.textContent = summary.kalan;
+        } else {
+          remainingEl.textContent = '--';
+        }
+        
+        // Load work hours summary
+        await loadWorkHoursSummary();
+        
+        // Load performance score
+        await loadPerformanceScore();
+        
+        // Load category ratings chart
+        await loadCategoryRatingsChart();
+      } else {
+        remainingEl.textContent = '--';
+      }
+
+      // Load category ratings chart
+      async function loadCategoryRatingsChart() {
+        const chartContainer = document.getElementById('category-chart-container');
+        
+        if (!personnelId || !chartContainer) {
+          if (chartContainer) {
+            chartContainer.innerHTML = '<div class="chart-empty">Personel oturumu bulunamadı.</div>';
+          }
+          return;
+        }
+
+        try {
+          chartContainer.innerHTML = '<div class="chart-loading">Yükleniyor...</div>';
+
+          const res = await fetch(`/api/personel/${personnelId}/kategori-puanlari`);
+          const data = await res.json();
+
+          if (!res.ok || !data) {
+            throw new Error(data?.error || 'Kategori puanları alınamadı');
+          }
+
+          const { categories } = data;
+          
+          // Check if all categories have 0 adet
+          const allEmpty = categories.every(cat => cat.adet === 0);
+          
+          if (allEmpty) {
+            chartContainer.innerHTML = '<div class="chart-empty">Henüz kategori bazlı puan yok.</div>';
+            return;
+          }
+
+          // Build chart HTML
+          let chartHTML = '<div class="category-chart">';
+          
+          categories.forEach(category => {
+            const { kategori, ort_puan, adet } = category;
+            const widthPercent = (ort_puan / 5) * 100;
+            
+            // Generate star display
+            const fullStars = Math.floor(ort_puan);
+            const emptyStars = 5 - fullStars;
+            let starDisplay = '';
+            for (let i = 0; i < fullStars; i++) {
+              starDisplay += '★';
+            }
+            for (let i = 0; i < emptyStars; i++) {
+              starDisplay += '☆';
+            }
+            
+            const valueText = ort_puan > 0 
+              ? `${ort_puan} ${starDisplay}${adet > 0 ? ` (${adet} kişi)` : ''}`
+              : '';
+            
+            chartHTML += `
+              <div class="chart-bar-row">
+                <div class="chart-label">${kategori}</div>
+                <div class="chart-bar-container">
+                  <div class="chart-bar ${ort_puan === 0 ? 'chart-bar-empty' : ''}" style="width: ${widthPercent}%;">
+                    ${ort_puan > 0 ? `<span class="chart-bar-value">${valueText}</span>` : '<span class="chart-bar-value" style="color: var(--text-muted);">—</span>'}
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          
+          // Add X-axis
+          chartHTML += `
+            <div class="chart-x-axis">
+              <span>0</span>
+              <span>1</span>
+              <span>2</span>
+              <span>3</span>
+              <span>4</span>
+              <span>5</span>
+            </div>
+          `;
+          
+          chartHTML += '</div>';
+          chartContainer.innerHTML = chartHTML;
+          
+        } catch (err) {
+          console.error('Kategori puanları yükleme hatası:', err);
+          if (chartContainer) {
+            chartContainer.innerHTML = '<div class="chart-empty">Kategori puanları yüklenirken hata oluştu.</div>';
+          }
+        }
+      }
+
+      // Load performance score
+      async function loadPerformanceScore() {
+        const performansPuaniEl = document.getElementById('performans-puani-value');
+        const performansPuaniSubtextEl = document.getElementById('performans-puani-subtext');
+        
+        if (!personnelId) {
+          if (performansPuaniEl) {
+            performansPuaniEl.textContent = '--';
+          }
+          if (performansPuaniSubtextEl) {
+            performansPuaniSubtextEl.textContent = '';
+          }
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/personel/${personnelId}/performans-puani`);
+          const data = await res.json();
+
+          if (!res.ok || !data) {
+            throw new Error(data?.error || 'Performans puanı alınamadı');
+          }
+
+          const { avg_puan, puanlayan_sayisi } = data;
+          
+          if (performansPuaniEl) {
+            if (puanlayan_sayisi === 0) {
+              performansPuaniEl.textContent = '--';
+              if (performansPuaniSubtextEl) {
+                performansPuaniSubtextEl.textContent = 'Henüz puan yok';
+              }
+            } else {
+              // Display average rating
+              performansPuaniEl.innerHTML = '';
+              const numberSpan = document.createElement('span');
+              numberSpan.textContent = `${avg_puan}`;
+              performansPuaniEl.appendChild(numberSpan);
+              
+              // Generate star display (e.g., 4.5 -> ★★★★☆)
+              const fullStars = Math.floor(avg_puan);
+              const emptyStars = 5 - fullStars;
+              
+              let starDisplay = '';
+              for (let i = 0; i < fullStars; i++) {
+                starDisplay += '★';
+              }
+              for (let i = 0; i < emptyStars; i++) {
+                starDisplay += '☆';
+              }
+              
+              // Add stars next to the number
+              const starSpan = document.createElement('span');
+              starSpan.style.marginLeft = '8px';
+              starSpan.style.fontSize = '1.2rem';
+              starSpan.style.color = '#fbbf24';
+              starSpan.textContent = starDisplay;
+              performansPuaniEl.appendChild(starSpan);
+              
+              if (performansPuaniSubtextEl) {
+                performansPuaniSubtextEl.textContent = `(${puanlayan_sayisi} kişi)`;
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Performans puanı yükleme hatası:', err);
+          const performansPuaniEl = document.getElementById('performans-puani-value');
+          const performansPuaniSubtextEl = document.getElementById('performans-puani-subtext');
+          if (performansPuaniEl) {
+            performansPuaniEl.textContent = '--';
+          }
+          if (performansPuaniSubtextEl) {
+            performansPuaniSubtextEl.textContent = '';
+          }
+        }
+      }
+
+      async function loadLeaveRequests() {
+        const listEl = document.getElementById('leave-requests-list');
+        const errorEl = document.getElementById('leave-requests-error');
+
+        if (!personnelId) {
+          if (listEl) {
+            listEl.innerHTML = '<div class="leave-requests-empty">Personel oturumu bulunamadı.</div>';
+          }
+          return;
+        }
+
+        try {
+          if (errorEl) {
+            errorEl.style.display = 'none';
+            errorEl.textContent = '';
+          }
+          if (listEl) {
+            listEl.innerHTML = '<div class="leave-requests-empty">Yükleniyor...</div>';
+          }
+
+          const res = await fetch(`/api/personel/${personnelId}/izinlerim`);
+          const data = await res.json();
+
+          if (!res.ok || !data) {
+            throw new Error(data?.error || 'İzinlerim listesi alınamadı');
+          }
+
+          const { yearly_total, approved_used, remaining, requests } = data;
+
+          // Render requests list
+          if (listEl) {
+            if (!requests || requests.length === 0) {
+              listEl.innerHTML = '<div class="leave-requests-empty">Henüz izin talebiniz bulunmuyor.</div>';
+            } else {
+              listEl.innerHTML = requests.map(req => {
+                const startDate = new Date(req.baslangic_tarihi).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                const endDate = new Date(req.bitis_tarihi).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                const createdDate = new Date(req.olusturma_tarihi).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                
+                let statusClass = 'status-beklemede';
+                let statusText = 'Beklemede';
+                if (req.durum === 'Onaylandı') {
+                  statusClass = 'status-onaylandi';
+                  statusText = 'Onaylandı';
+                } else if (req.durum === 'Reddedildi') {
+                  statusClass = 'status-reddedildi';
+                  statusText = 'Reddedildi';
+                }
+
+                let decisionInfo = '';
+                if (req.karar_veren || req.karar_tarihi) {
+                  const decisionDate = req.karar_tarihi 
+                    ? new Date(req.karar_tarihi).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                    : '';
+                  decisionInfo = `<div class="leave-request-decision">${req.karar_veren ? `Karar veren: ${req.karar_veren}` : ''}${req.karar_veren && decisionDate ? ' • ' : ''}${decisionDate ? `Karar tarihi: ${decisionDate}` : ''}</div>`;
+                }
+
+                const reasonText = (req.sebep || '').length > 60 
+                  ? (req.sebep || '').substring(0, 60) + '...' 
+                  : (req.sebep || '');
+
+                return `
+                  <div class="leave-request-item">
+                    <div class="leave-request-header">
+                      <div>
+                        <div class="leave-request-dates">${startDate} → ${endDate}</div>
+                        <div class="leave-request-days">${req.izin_gunu} gün</div>
+                      </div>
+                      <span class="leave-request-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="leave-request-reason">${reasonText}</div>
+                    ${decisionInfo}
+                  </div>
+                `;
+              }).join('');
+            }
+          }
+        } catch (err) {
+          console.error('İzinlerim yükleme hatası:', err);
+          if (errorEl) {
+            errorEl.textContent = 'İzinlerim yüklenemedi.';
+            errorEl.style.display = 'block';
+          }
+          if (listEl) {
+            listEl.innerHTML = '<div class="leave-requests-empty">İzinlerim yüklenemedi.</div>';
+          }
+        }
+      }
+
+      function openModal() {
+        if (modal) {
+          modal.classList.add('active');
+          // Load leave requests when modal opens
+          loadLeaveRequests();
+        }
+      }
+
+      function closeModal() {
+        if (modal) {
+          modal.classList.remove('active');
+        }
+        if (dateErrorEl) dateErrorEl.style.display = 'none';
+        if (reasonErrorEl) reasonErrorEl.style.display = 'none';
+        if (globalErrorEl) globalErrorEl.style.display = 'none';
+        const successMsgEl = document.getElementById('leave-success-msg');
+        if (successMsgEl) successMsgEl.style.display = 'none';
+        if (reasonInput) reasonInput.value = '';
+        if (dateInput) dateInput.value = '';
+        selectedStart = null;
+        selectedEnd = null;
+        if (daysEl) daysEl.textContent = '0';
+      }
+
+      if (cardIzin) {
+        cardIzin.addEventListener('click', () => {
+          openModal();
+        });
+      }
+
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
+      if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeModal();
+          }
+        });
+      }
+
+      if (dateInput && window.flatpickr) {
+        flatpickr(dateInput, {
+          mode: 'range',
+          dateFormat: 'Y-m-d',
+          disable: [
+            function (date) {
+              // 0 = Pazar, 6 = Cumartesi
+              return date.getDay() === 0 || date.getDay() === 6;
+            },
+          ],
+          onChange: function (selectedDates) {
+            if (globalErrorEl) globalErrorEl.style.display = 'none';
+            if (dateErrorEl) dateErrorEl.style.display = 'none';
+            if (selectedDates.length === 2) {
+              selectedStart = selectedDates[0];
+              selectedEnd = selectedDates[1];
+              const days = countBusinessDaysJS(selectedStart, selectedEnd);
+              if (daysEl) daysEl.textContent = days;
+
+              if (remainingDays != null && days > remainingDays && dateErrorEl) {
+                dateErrorEl.textContent = `Talep edilen gün sayısı ( ${days} ) kalan izin gününüzü (${remainingDays}) aşamaz.`;
+                dateErrorEl.style.display = 'block';
+              }
+            } else {
+              selectedStart = null;
+              selectedEnd = null;
+              if (daysEl) daysEl.textContent = '0';
+            }
+          },
+        });
+      }
+
+      // Ensure only ONE click handler exists on submit button
+      if (submitBtn) {
+        const newBtn = submitBtn.cloneNode(true);
+        newBtn.id = 'leaveSubmitBtn';
+        submitBtn.parentNode.replaceChild(newBtn, submitBtn);
+        submitBtn = newBtn;
+      }
+
+      if (submitBtn) {
+        submitBtn.addEventListener('click', async (event) => {
+          // Prevent any default form submission or navigation (capture this event fully)
+          if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof event.stopImmediatePropagation === 'function') {
+              event.stopImmediatePropagation();
+            }
+          }
+          
+          if (!personnelId) {
+            if (leaveMsgEl) {
+              leaveMsgEl.className = 'error-text';
+              leaveMsgEl.textContent = 'Personel oturumu bulunamadı.';
+              leaveMsgEl.style.display = 'block';
+            } else if (globalErrorEl) {
+              globalErrorEl.textContent = 'Personel oturumu bulunamadı.';
+              globalErrorEl.style.display = 'block';
+            }
+            return false;
+          }
+
+          if (dateErrorEl) dateErrorEl.style.display = 'none';
+          if (reasonErrorEl) reasonErrorEl.style.display = 'none';
+          if (globalErrorEl) {
+            globalErrorEl.style.display = 'none';
+            globalErrorEl.textContent = '';
+          }
+          if (leaveMsgEl) {
+            leaveMsgEl.style.display = 'none';
+            leaveMsgEl.textContent = '';
+          }
+
+          const reason = (reasonInput?.value || '').trim();
+
+          if (!selectedStart || !selectedEnd) {
+            if (dateErrorEl) {
+              dateErrorEl.textContent = 'Lütfen geçerli bir tarih aralığı seçiniz.';
+              dateErrorEl.style.display = 'block';
+            }
+            return false;
+          }
+
+          const dayCount = countBusinessDaysJS(selectedStart, selectedEnd);
+          if (!dayCount || dayCount <= 0) {
+            if (dateErrorEl) {
+              dateErrorEl.textContent = 'Tarih aralığı yalnızca hafta içi günleri içermelidir.';
+              dateErrorEl.style.display = 'block';
+            }
+            return false;
+          }
+
+          if (remainingDays != null && dayCount > remainingDays) {
+            if (dateErrorEl) {
+              dateErrorEl.textContent = `Talep edilen gün sayısı ( ${dayCount} ) kalan izin gününüzü (${remainingDays}) aşamaz.`;
+              dateErrorEl.style.display = 'block';
+            }
+            return false;
+          }
+
+          if (!reason || reason.length < 5) {
+            if (reasonErrorEl) {
+              reasonErrorEl.textContent = 'İzin sebebi en az 5 karakter olmalıdır.';
+              reasonErrorEl.style.display = 'block';
+            }
+            return false;
+          }
+
+          const startStr = selectedStart.toISOString().slice(0, 10);
+          const endStr = selectedEnd.toISOString().slice(0, 10);
+          
+          try {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Gönderiliyor...';
+            
+            // Clear any previous messages
+            if (globalErrorEl) {
+              globalErrorEl.style.display = 'none';
+              globalErrorEl.textContent = '';
+            }
+            if (leaveMsgEl) {
+              leaveMsgEl.style.display = 'none';
+              leaveMsgEl.textContent = '';
+            }
+
+            const res = await fetch('/api/izin-talepleri', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                personel_id: personnelId,
+                baslangic_tarihi: startStr,
+                bitis_tarihi: endStr,
+                izin_gunu: dayCount,
+                sebep: reason,
+                year: selectedStart.getFullYear(),
+              }),
+            });
+
+            let data;
+            try {
+              data = await res.json();
+            } catch (parseErr) {
+              // If response is not JSON, it might be HTML (404 page)
+              if (res.status === 404) {
+                throw new Error('API endpoint bulunamadı: POST /api/izin-talepleri. Lütfen yöneticiye bildirin.');
+              }
+              throw new Error('Sunucu yanıtı beklenmeyen formatta. Lütfen tekrar deneyin.');
+            }
+
+            if (!res.ok) {
+              const msg = data?.error || data?.message || `İzin talebi gönderilemedi (${res.status}).`;
+              if (res.status === 404) {
+                const debugMsg = `API endpoint bulunamadı: POST /api/izin-talepleri. ${msg}`;
+                if (leaveMsgEl) {
+                  leaveMsgEl.className = 'error-text';
+                  leaveMsgEl.textContent = debugMsg;
+                  leaveMsgEl.style.display = 'block';
+                } else if (globalErrorEl) {
+                  globalErrorEl.textContent = debugMsg;
+                  globalErrorEl.style.display = 'block';
+                }
+              } else {
+                if (leaveMsgEl) {
+                  leaveMsgEl.className = 'error-text';
+                  leaveMsgEl.textContent = msg;
+                  leaveMsgEl.style.display = 'block';
+                } else if (globalErrorEl) {
+                  globalErrorEl.textContent = msg;
+                  globalErrorEl.style.display = 'block';
+                }
+              }
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Talep Gönder';
+              return;
+            }
+
+            if (data?.error || !data?.success) {
+              const msg = data?.error || data?.message || 'İzin talebi gönderilemedi.';
+              if (leaveMsgEl) {
+                leaveMsgEl.className = 'error-text';
+                leaveMsgEl.textContent = msg;
+                leaveMsgEl.style.display = 'block';
+              } else if (globalErrorEl) {
+                globalErrorEl.textContent = msg;
+                globalErrorEl.style.display = 'block';
+              }
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Talep Gönder';
+              return;
+            }
+
+            // Success - show message in modal first
+            if (globalErrorEl) {
+              globalErrorEl.style.display = 'none';
+            }
+            if (leaveMsgEl) {
+              leaveMsgEl.className = 'success-text';
+              leaveMsgEl.textContent = 'İzin talebiniz gönderildi. Durum: Beklemede.';
+              leaveMsgEl.style.display = 'block';
+            }
+
+            // Update leave summary
+            try {
+              const summary = await fetchLeaveSummary(personnelId, selectedStart.getFullYear());
+              if (summary && remainingEl) {
+                remainingDays = summary.kalan;
+                remainingEl.textContent = summary.kalan;
+              }
+            } catch (summaryErr) {
+              console.warn('İzin özeti güncellenemedi:', summaryErr);
+            }
+
+            // Refresh İzinlerim list to show the new request
+            await loadLeaveRequests();
+
+            // Show toast
+            showToast('İzin talebiniz gönderildi. Durum: Beklemede.');
+
+            // Clear form
+            if (reasonInput) reasonInput.value = '';
+            if (dateInput) dateInput.value = '';
+            selectedStart = null;
+            selectedEnd = null;
+            if (daysEl) daysEl.textContent = '0';
+
+            // Keep modal open to show the new request in İzinlerim list
+            // User can close manually or it will auto-close after 3 seconds
+            setTimeout(() => {
+              closeModal();
+            }, 3000);
+
+          } catch (err) {
+            console.error('İzin talebi gönderim hatası:', err);
+            const errorMsg = err.message || 'İzin talebi gönderilirken bir hata oluştu. Lütfen tekrar deneyin.';
+            if (leaveMsgEl) {
+              leaveMsgEl.className = 'error-text';
+              leaveMsgEl.textContent = errorMsg;
+              leaveMsgEl.style.display = 'block';
+            } else if (globalErrorEl) {
+              globalErrorEl.textContent = errorMsg;
+              globalErrorEl.style.display = 'block';
+            }
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Talep Gönder';
+          }
+        }, true);
+      }
+
+      // Personel Değerlendirme Modal
+      const cardEvaluation = document.getElementById('card-personel-degerlendirme');
+      const evaluationModal = document.getElementById('evaluation-modal');
+      const evaluationCloseBtn = document.getElementById('evaluation-modal-close');
+      const evaluationCancelBtn = document.getElementById('evaluation-cancel-btn');
+      const evaluationSubmitBtn = document.getElementById('evaluation-submit-btn');
+      const evaluationTargetSelect = document.getElementById('evaluation-target');
+      const evaluationCategorySelect = document.getElementById('evaluation-category');
+      const evaluationCommentTextarea = document.getElementById('evaluation-comment');
+      const evaluationTargetErrorEl = document.getElementById('evaluation-target-error');
+      const evaluationCommentErrorEl = document.getElementById('evaluation-comment-error');
+      const evaluationRatingErrorEl = document.getElementById('evaluation-rating-error');
+      const evaluationGlobalErrorEl = document.getElementById('evaluation-global-error');
+      const evaluationSuccessMsgEl = document.getElementById('evaluation-success-msg');
+      let selectedPuan = 5; // Default to 5 stars
+
+      // Initialize star rating
+      function initStarRating() {
+        const container = document.getElementById('star-rating');
+        if (!container) return;
+        
+        // Remove any extra stars beyond 5
+        const allStars = container.querySelectorAll('.star');
+        if (allStars.length > 5) {
+          for (let i = 5; i < allStars.length; i++) {
+            allStars[i].remove();
+          }
+        }
+        
+        // Get exactly 5 stars
+        const stars = container.querySelectorAll('.star');
+        if (stars.length !== 5) {
+          console.warn('Expected 5 stars, found:', stars.length);
+          return;
+        }
+        
+        // Set default to 5 stars
+        selectedPuan = 5;
+        updateStarDisplay(5);
+        
+        // Attach event listeners to each star
+        stars.forEach((star, index) => {
+          const rating = index + 1;
+          
+          // Remove any existing listeners by cloning the star
+          const newStar = star.cloneNode(true);
+          star.parentNode.replaceChild(newStar, star);
+          
+          // Click handler
+          newStar.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            selectedPuan = rating;
+            updateStarDisplay(rating);
+            console.log('Rating selected:', selectedPuan);
+          });
+          
+          // Keyboard handler
+          newStar.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              selectedPuan = rating;
+              updateStarDisplay(rating);
+              console.log('Rating selected (keyboard):', selectedPuan);
+            }
+          });
+          
+          // Hover preview
+          newStar.addEventListener('mouseenter', () => {
+            previewStarRating(rating);
+          });
+        });
+        
+        // Handle mouseleave on container (use event delegation)
+        container.addEventListener('mouseleave', () => {
+          updateStarDisplay(selectedPuan);
+        });
+      }
+
+      function updateStarDisplay(rating) {
+        const container = document.getElementById('star-rating');
+        if (!container) return;
+        
+        const stars = container.querySelectorAll('.star');
+        // Only process exactly 5 stars
+        for (let i = 0; i < Math.min(5, stars.length); i++) {
+          const star = stars[i];
+          const starRating = i + 1;
+          if (starRating <= rating) {
+            star.classList.add('filled');
+            star.classList.remove('active');
+            star.textContent = '★';
+          } else {
+            star.classList.remove('filled', 'active');
+            star.textContent = '☆';
+          }
+        }
+      }
+
+      function previewStarRating(rating) {
+        const container = document.getElementById('star-rating');
+        if (!container) return;
+        
+        const stars = container.querySelectorAll('.star');
+        // Only process exactly 5 stars
+        for (let i = 0; i < Math.min(5, stars.length); i++) {
+          const star = stars[i];
+          const starRating = i + 1;
+          if (starRating <= rating) {
+            star.classList.add('active');
+            star.textContent = '★';
+          } else {
+            star.classList.remove('active');
+            star.textContent = '☆';
+          }
+        }
+      }
+
+      function showEvaluationToast(message) {
+        const toast = document.getElementById('evaluation-toast');
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+      }
+
+      function openEvaluationModal() {
+        if (evaluationModal) {
+          evaluationModal.classList.add('active');
+          selectedPuan = 5; // Reset to default
+          initStarRating();
+          loadActivePersonnel();
+        }
+      }
+
+      function closeEvaluationModal() {
+        if (evaluationModal) {
+          evaluationModal.classList.remove('active');
+        }
+        if (evaluationTargetErrorEl) evaluationTargetErrorEl.style.display = 'none';
+        if (evaluationCommentErrorEl) evaluationCommentErrorEl.style.display = 'none';
+        if (evaluationRatingErrorEl) evaluationRatingErrorEl.style.display = 'none';
+        if (evaluationGlobalErrorEl) {
+          evaluationGlobalErrorEl.style.display = 'none';
+          evaluationGlobalErrorEl.textContent = '';
+        }
+        if (evaluationSuccessMsgEl) evaluationSuccessMsgEl.style.display = 'none';
+        if (evaluationTargetSelect) evaluationTargetSelect.value = '';
+        if (evaluationCategorySelect) evaluationCategorySelect.value = 'Genel';
+        if (evaluationCommentTextarea) evaluationCommentTextarea.value = '';
+        selectedPuan = 5;
+        if (starRatingContainer) {
+          updateStarDisplay(5);
+        }
+      }
+
+      async function loadActivePersonnel() {
+        if (!personnelId || !evaluationTargetSelect) return;
+
+        try {
+          const res = await fetch('/api/personel/aktif');
+          const data = await res.json();
+
+          if (!res.ok || !data) {
+            throw new Error('Aktif personel listesi alınamadı');
+          }
+
+          // Clear existing options except the first one
+          evaluationTargetSelect.innerHTML = '<option value="">Seçiniz...</option>';
+
+          // Add personnel options, excluding current logged-in personnel
+          data.forEach(person => {
+            if (person.personel_id !== personnelId) {
+              const option = document.createElement('option');
+              option.value = person.personel_id;
+              option.textContent = person.personel_ad_soyad || `Personel ${person.personel_id}`;
+              evaluationTargetSelect.appendChild(option);
+            }
+          });
+        } catch (err) {
+          console.error('Aktif personel yükleme hatası:', err);
+          if (evaluationGlobalErrorEl) {
+            evaluationGlobalErrorEl.textContent = 'Aktif personel listesi yüklenemedi.';
+            evaluationGlobalErrorEl.style.display = 'block';
+          }
+        }
+      }
+
+      if (cardEvaluation) {
+        cardEvaluation.addEventListener('click', () => {
+          openEvaluationModal();
+        });
+      }
+
+      if (evaluationCloseBtn) evaluationCloseBtn.addEventListener('click', closeEvaluationModal);
+      if (evaluationCancelBtn) evaluationCancelBtn.addEventListener('click', closeEvaluationModal);
+      if (evaluationModal) {
+        evaluationModal.addEventListener('click', (e) => {
+          if (e.target === evaluationModal) {
+            closeEvaluationModal();
+          }
+        });
+      }
+
+      if (evaluationSubmitBtn) {
+        evaluationSubmitBtn.addEventListener('click', async () => {
+          // Clear previous errors
+          if (evaluationTargetErrorEl) evaluationTargetErrorEl.style.display = 'none';
+          if (evaluationCommentErrorEl) evaluationCommentErrorEl.style.display = 'none';
+          if (evaluationRatingErrorEl) evaluationRatingErrorEl.style.display = 'none';
+          if (evaluationGlobalErrorEl) {
+            evaluationGlobalErrorEl.style.display = 'none';
+            evaluationGlobalErrorEl.textContent = '';
+          }
+          if (evaluationSuccessMsgEl) evaluationSuccessMsgEl.style.display = 'none';
+
+          if (!personnelId) {
+            if (evaluationGlobalErrorEl) {
+              evaluationGlobalErrorEl.textContent = 'Personel oturumu bulunamadı.';
+              evaluationGlobalErrorEl.style.display = 'block';
+            }
+            return;
+          }
+
+          const targetId = evaluationTargetSelect?.value;
+          const category = evaluationCategorySelect?.value || 'Genel';
+          const comment = (evaluationCommentTextarea?.value || '').trim();
+
+          // Validation
+          if (!targetId) {
+            if (evaluationTargetErrorEl) {
+              evaluationTargetErrorEl.textContent = 'Lütfen bir personel seçiniz.';
+              evaluationTargetErrorEl.style.display = 'block';
+            }
+            return;
+          }
+
+          if (parseInt(targetId, 10) === personnelId) {
+            if (evaluationTargetErrorEl) {
+              evaluationTargetErrorEl.textContent = 'Kendiniz hakkında değerlendirme yapamazsınız.';
+              evaluationTargetErrorEl.style.display = 'block';
+            }
+            return;
+          }
+
+          if (!selectedPuan || selectedPuan < 1 || selectedPuan > 5) {
+            if (evaluationRatingErrorEl) {
+              evaluationRatingErrorEl.textContent = 'Lütfen 1 ile 5 arasında bir puan seçiniz.';
+              evaluationRatingErrorEl.style.display = 'block';
+            }
+            return;
+          }
+
+          if (!comment || comment.length < 5) {
+            if (evaluationCommentErrorEl) {
+              evaluationCommentErrorEl.textContent = 'Yorum en az 5 karakter olmalıdır.';
+              evaluationCommentErrorEl.style.display = 'block';
+            }
+            return;
+          }
+
+          try {
+            evaluationSubmitBtn.disabled = true;
+            evaluationSubmitBtn.textContent = 'Gönderiliyor...';
+
+            const res = await fetch('/api/personel-degerlendirme', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                yazar_personel_id: personnelId,
+                hedef_personel_id: parseInt(targetId, 10),
+                kategori: category,
+                puan: selectedPuan,
+                yorum: comment,
+              }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok || !data?.success) {
+              const msg = data?.message || data?.error || 'Değerlendirme gönderilemedi.';
+              if (evaluationGlobalErrorEl) {
+                evaluationGlobalErrorEl.textContent = msg;
+                evaluationGlobalErrorEl.style.display = 'block';
+              }
+              evaluationSubmitBtn.disabled = false;
+              evaluationSubmitBtn.textContent = 'Gönder';
+              return;
+            }
+
+            // Success
+            if (evaluationGlobalErrorEl) {
+              evaluationGlobalErrorEl.style.display = 'none';
+            }
+            if (evaluationSuccessMsgEl) {
+              evaluationSuccessMsgEl.className = 'success-text';
+              evaluationSuccessMsgEl.textContent = 'Değerlendirme başarıyla gönderildi.';
+              evaluationSuccessMsgEl.style.display = 'block';
+            }
+
+            showEvaluationToast('Yorum gönderildi');
+
+            // Clear form and close modal after delay
+            setTimeout(() => {
+              closeEvaluationModal();
+            }, 1500);
+
+          } catch (err) {
+            console.error('Değerlendirme gönderim hatası:', err);
+            const errorMsg = err.message || 'Değerlendirme gönderilirken bir hata oluştu.';
+            if (evaluationGlobalErrorEl) {
+              evaluationGlobalErrorEl.textContent = errorMsg;
+              evaluationGlobalErrorEl.style.display = 'block';
+            }
+            evaluationSubmitBtn.disabled = false;
+            evaluationSubmitBtn.textContent = 'Gönder';
+          }
+        });
+      }
+    });
   </script>
 </body>
 </html>
