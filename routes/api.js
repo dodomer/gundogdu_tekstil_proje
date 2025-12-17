@@ -189,6 +189,122 @@ router.post('/query', async (req, res) => {
   }
 });
 
+// ============================================
+// 📦 HAMMADDE YÖNETİMİ (BOM)
+// ============================================
+
+// Ürün listesi
+router.get('/urunler/list', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT urun_id, urun_adi AS urun_ad FROM urunler ORDER BY urun_adi');
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Ürün listesi hatası:', error);
+    res.json([]);
+  }
+});
+
+// Hammadde listesi
+router.get('/hammadde/list', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT hammadde_id, hammadde_adi AS hammadde_ad FROM hammadde ORDER BY hammadde_adi');
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Hammadde listesi hatası:', error);
+    res.json([]);
+  }
+});
+
+// Ürün reçetesi (BOM) - ürüne göre hammaddeler
+router.get('/urun-recepte', async (req, res) => {
+  try {
+    const { urun_id } = req.query;
+    if (!urun_id) return res.json([]);
+
+    const [rows] = await pool.query(`
+      SELECT uh.urun_id, u.urun_adi AS urun_ad, uh.hammadde_id, h.hammadde_adi AS hammadde_ad, uh.miktar, h.birim
+      FROM urun_hammadde uh
+      JOIN urunler u ON u.urun_id = uh.urun_id
+      JOIN hammadde h ON h.hammadde_id = uh.hammadde_id
+      WHERE uh.urun_id = ?
+      ORDER BY h.hammadde_adi
+    `, [urun_id]);
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Ürün reçetesi hatası:', error);
+    res.json([]);
+  }
+});
+
+// Hammadde kullanıldığı ürünler
+router.get('/hammadde-urunler', async (req, res) => {
+  try {
+    const { hammadde_id } = req.query;
+    if (!hammadde_id) return res.json([]);
+
+    const [rows] = await pool.query(`
+      SELECT uh.hammadde_id, h.hammadde_adi AS hammadde_ad, uh.urun_id, u.urun_adi AS urun_ad, uh.miktar
+      FROM urun_hammadde uh
+      JOIN urunler u ON u.urun_id = uh.urun_id
+      JOIN hammadde h ON h.hammadde_id = uh.hammadde_id
+      WHERE uh.hammadde_id = ?
+      ORDER BY u.urun_adi
+    `, [hammadde_id]);
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Hammadde ürünleri hatası:', error);
+    res.json([]);
+  }
+});
+
+// Hammadde tüketim istatistikleri (global)
+router.get('/hammadde/consumption', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const [rows] = await pool.query(`
+      SELECT
+        uh.hammadde_id,
+        h.hammadde_adi AS hammadde_ad,
+        h.birim,
+        SUM(uh.miktar) AS toplam_miktar
+      FROM urun_hammadde uh
+      JOIN hammadde h ON h.hammadde_id = uh.hammadde_id
+      GROUP BY uh.hammadde_id, h.birim, h.hammadde_adi
+      ORDER BY toplam_miktar DESC
+      LIMIT ?
+    `, [limit]);
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Hammadde tüketim hatası:', error);
+    res.json([]);
+  }
+});
+
+// Kritik hammaddeler (global)
+router.get('/hammadde/critical', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const [rows] = await pool.query(`
+      SELECT
+        uh.hammadde_id,
+        h.hammadde_adi AS hammadde_ad,
+        h.birim,
+        COUNT(DISTINCT uh.urun_id) AS urun_sayisi,
+        SUM(uh.miktar) AS toplam_miktar,
+        (COUNT(DISTINCT uh.urun_id) * SUM(uh.miktar)) AS kritiklik_skoru
+      FROM urun_hammadde uh
+      JOIN hammadde h ON h.hammadde_id = uh.hammadde_id
+      GROUP BY uh.hammadde_id, h.birim, h.hammadde_adi
+      ORDER BY kritiklik_skoru DESC
+      LIMIT ?
+    `, [limit]);
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Kritik hammadde hatası:', error);
+    res.json([]);
+  }
+});
+
 // API Sağlık kontrolü
 router.get('/health', async (req, res) => {
   try {

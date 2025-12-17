@@ -399,7 +399,7 @@
         return;
       }
 
-      const labels = top5.map(item => item.hammadde_adi);
+      const labels = top5.map(item => item.hammadde_ad ?? item.hammadde_adi ?? item.malzeme_adi ?? 'Bilinmeyen');
       const values = top5.map(item => item.toplam_miktar);
 
       if (noDataMessage) {
@@ -429,9 +429,10 @@
             },
             tooltip: {
               callbacks: {
-                label: (context) => {
-                  const value = context.raw || 0;
-                  return `${context.dataset.label}: ${value} birim`;
+                title: (items) => items?.[0]?.label ?? 'Bilinmeyen Hammadde',
+                label: (ctx) => {
+                  const val = ctx.parsed ?? ctx.raw ?? 0;
+                  return `${Number(val).toFixed(2)} birim`;
                 }
               }
             }

@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hammadde Yönetimi - Gündoğdu Tekstil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0c1222;
+      --bg-card: #151d30;
+      --border-color: #2a3a5c;
+      --accent: #4a90d9;
+      --accent-light: #6ba5e7;
+      --accent-glow: rgba(74, 144, 217, 0.3);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    .header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 15px; }
+    .logo-icon {
+      width: 50px; height: 50px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+    }
+    .header-title h1 { font-size: 1.3rem; font-weight: 600; }
+    .header-title p { font-size: 0.85rem; color: var(--text-secondary); }
+
+    .back-btn {
+      padding: 10px 20px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .main-content {
+      padding: 30px 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .filter-group label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .filter-select, .filter-input {
+      padding: 10px 14px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      min-width: 200px;
+    }
+
+    .filter-select:focus, .filter-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .filter-input {
+      min-width: 180px;
+    }
+
+    .btn-clear {
+      padding: 10px 16px;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: auto;
+    }
+
+    .btn-clear:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Stats Cards */
+    .stats-row {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .stat-icon {
+      font-size: 1.5rem;
+    }
+
+    .stat-info h3 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .stat-info p {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    /* Charts Section */
+    .charts-section {
+      margin-bottom: 25px;
+    }
+
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .chart-card.full-width {
+      width: 100%;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .chart-header h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-header .unit-select {
+      padding: 6px 10px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.8rem;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 280px;
+    }
+
+    .chart-note {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+    }
+
+    .chart-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* Global Analytics Section */
+    .global-analytics-section {
+      margin-top: 40px;
+    }
+
+    .section-divider {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .section-divider::before,
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-color);
+    }
+
+    .section-divider::before {
+      margin-right: 15px;
+    }
+
+    .section-divider::after {
+      margin-left: 15px;
+    }
+
+    .chart-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin: -10px 0 15px 0;
+    }
+
+    /* Tooltip */
+    .tooltip-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      margin-left: 8px;
+    }
+
+    .tooltip-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--border-color);
+      color: var(--text-secondary);
+      font-size: 0.7rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: help;
+      transition: all 0.2s ease;
+    }
+
+    .tooltip-icon:hover {
+      background: var(--accent);
+      color: var(--bg-dark);
+    }
+
+    .tooltip-content {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 320px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .tooltip-content::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 8px solid transparent;
+      border-top-color: var(--border-color);
+    }
+
+    .tooltip-wrapper:hover .tooltip-content {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .tooltip-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .tooltip-body {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .tooltip-body strong {
+      color: var(--text-primary);
+    }
+
+    /* Section */
+    .section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 25px;
+    }
+
+    .section-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-header h2 {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: rgba(74, 144, 217, 0.1);
+    }
+
+    th {
+      padding: 14px 18px;
+      text-align: left;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 14px 18px;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state .icon {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    /* Second Section Filter */
+    .section-filter {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .section-filter select {
+      padding: 8px 12px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.85rem;
+      min-width: 250px;
+    }
+
+    .section-filter select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .dashboard-footer {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .dashboard-footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    @media (max-width: 900px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      .header { padding: 20px; flex-direction: column; gap: 12px; }
+      .main-content { padding: 20px; }
+      .filter-bar { flex-direction: column; }
+      .filter-select, .filter-input { min-width: 100%; }
+      .stats-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon">📦</div>
+      <div class="header-title">
+        <h1>Hammadde Yönetimi</h1>
+        <p>Ürün reçeteleri ve hammadde kullanımı</p>
+      </div>
+    </div>
+    <a class="back-btn" href="/production-management.html">← Üretim Yönetimine Dön</a>
+  </header>
+
+  <main class="main-content">
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Ürün Seç</label>
+        <select class="filter-select" id="productFilter">
+          <option value="">-- Ürün seçiniz --</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Hammadde Filtrele</label>
+        <select class="filter-select" id="materialFilter">
+          <option value="">-- Tümü --</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Ara</label>
+        <input type="text" class="filter-input" id="searchInput" placeholder="Ürün veya hammadde ara...">
+      </div>
+      <button class="btn-clear" onclick="clearFilters()">Temizle</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon">📋</div>
+        <div class="stat-info">
+          <h3 id="statCount">0</h3>
+          <p>Hammadde Kalemi</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+          <h3 id="statTotal">0</h3>
+          <p>Toplam Miktar</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Chart Section -->
+    <div class="charts-section">
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <h3>📊 Seçili Ürün – Hammadde Kullanımı</h3>
+        </div>
+        <div class="chart-container" id="productChartContainer">
+          <canvas id="chartProductMaterials"></canvas>
+        </div>
+        <div class="chart-note" id="productChartNote"></div>
+      </div>
+    </div>
+
+    <!-- Product Recipe Table -->
+    <div class="section">
+      <div class="section-header">
+        <span>📝</span>
+        <h2>Ürün Reçetesi</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Hammadde</th>
+            <th>Miktar</th>
+            <th>Birim</th>
+          </tr>
+        </thead>
+        <tbody id="recipeTable">
+          <tr>
+            <td colspan="3">
+              <div class="empty-state">
+                <div class="icon">📦</div>
+                <p>Bir ürün seçerek reçeteyi görüntüleyin</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Reverse Lookup -->
+    <div class="section">
+      <div class="section-header">
+        <span>🔍</span>
+        <h2>Bu Hammadde Hangi Ürünlerde Kullanılıyor?</h2>
+      </div>
+      <div class="section-filter">
+        <select id="reverseMaterialFilter">
+          <option value="">-- Hammadde seçiniz --</option>
+        </select>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Ürün</th>
+            <th>Miktar</th>
+          </tr>
+        </thead>
+        <tbody id="reverseTable">
+          <tr>
+            <td colspan="2">
+              <div class="empty-state">
+                <div class="icon">🔎</div>
+                <p>Bir hammadde seçerek kullanıldığı ürünleri görüntüleyin</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Global Analytics Section -->
+    <section class="global-analytics-section">
+      <div class="section-divider">
+        <span>📈 Genel Analizler</span>
+      </div>
+      <div class="charts-grid">
+        <!-- Top Consumption Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>🔥 En Çok Tüketilen Hammaddeler (Genel)</h3>
+            <select class="unit-select" id="consumptionUnitFilter">
+              <option value="">Tümü</option>
+            </select>
+          </div>
+          <p class="chart-subtitle">Tüm ürünler baz alınarak hesaplanmıştır</p>
+          <div class="chart-container">
+            <canvas id="chartTopConsumption"></canvas>
+          </div>
+        </div>
+
+        <!-- Critical Materials Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>
+              ⚠️ En Kritik Hammaddeler (Genel)
+              <span class="tooltip-wrapper">
+                <span class="tooltip-icon">?</span>
+                <div class="tooltip-content">
+                  <div class="tooltip-title">En Kritik Hammadde Nedir?</div>
+                  <div class="tooltip-body">
+                    Bu grafik, hammaddelerin üretim sürecindeki kritikliğini gösterir.<br><br>
+                    <strong>Kritiklik skoru şu şekilde hesaplanır:</strong><br>
+                    (Hammaddenin kullanıldığı ürün sayısı) × (Toplam tüketim miktarı)<br><br>
+                    Yani hem çok üründe kullanılan hem de yüksek miktarda tüketilen hammaddeler daha kritik kabul edilir.<br><br>
+                    Bu hammaddelerde yaşanacak bir tedarik problemi, üretimi ciddi şekilde aksatabilir.
+                  </div>
+                </div>
+              </span>
+            </h3>
+            <select class="unit-select" id="criticalUnitFilter">
+              <option value="">Tümü</option>
+            </select>
+          </div>
+          <p class="chart-subtitle">Tüm ürünler baz alınarak hesaplanmıştır</p>
+          <div class="chart-container">
+            <canvas id="chartCriticalMaterials"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="dashboard-footer">
+    <p>© 2025 Gündoğdu Tekstil. Tüm hakları saklıdır. | <a href="/admin-dashboard.html">Admin Paneli</a></p>
+  </footer>
+
+  <script>
+    // Data
+    let products = [];
+    let materials = [];
+    let recipeData = [];
+    let consumptionData = [];
+    let criticalData = [];
+
+    // Charts
+    let productChart = null;
+    let consumptionChart = null;
+    let criticalChart = null;
+
+    // Chart.js dark theme defaults
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = 'rgba(42, 58, 92, 0.5)';
+
+    const chartColors = [
+      '#4a90d9', '#6ba5e7', '#22c55e', '#f59e0b', '#ef4444',
+      '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#06b6d4'
+    ];
+
+    // Initialize
+    async function init() {
+      try {
+        const [prodRes, matRes, consRes, critRes] = await Promise.all([
+          fetch('/api/urunler/list'),
+          fetch('/api/hammadde/list'),
+          fetch('/api/hammadde/consumption?limit=10'),
+          fetch('/api/hammadde/critical?limit=10')
+        ]);
+
+        products = await prodRes.json();
+        materials = await matRes.json();
+        consumptionData = await consRes.json();
+        criticalData = await critRes.json();
+
+        // Populate dropdowns
+        const productFilter = document.getElementById('productFilter');
+        const materialFilter = document.getElementById('materialFilter');
+        const reverseMaterialFilter = document.getElementById('reverseMaterialFilter');
+
+        products.forEach(p => {
+          productFilter.innerHTML += `<option value="${p.urun_id}">${p.urun_ad}</option>`;
+        });
+
+        materials.forEach(m => {
+          materialFilter.innerHTML += `<option value="${m.hammadde_id}">${m.hammadde_ad}</option>`;
+          reverseMaterialFilter.innerHTML += `<option value="${m.hammadde_id}">${m.hammadde_ad}</option>`;
+        });
+
+        // Populate unit filters
+        populateUnitFilters();
+
+        // Init charts
+        initProductChart();
+        renderConsumptionChart();
+        renderCriticalChart();
+
+      } catch (e) {
+        console.error('Init error:', e);
+      }
+    }
+
+    function populateUnitFilters() {
+      const units = [...new Set([...consumptionData, ...criticalData].map(d => d.birim).filter(Boolean))];
+      const consumptionUnitFilter = document.getElementById('consumptionUnitFilter');
+      const criticalUnitFilter = document.getElementById('criticalUnitFilter');
+
+      units.forEach(u => {
+        consumptionUnitFilter.innerHTML += `<option value="${u}">${u}</option>`;
+        criticalUnitFilter.innerHTML += `<option value="${u}">${u}</option>`;
+      });
+    }
+
+    function initProductChart() {
+      const ctx = document.getElementById('chartProductMaterials').getContext('2d');
+      productChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(42, 58, 92, 0.3)' } },
+            y: { grid: { color: 'rgba(42, 58, 92, 0.3)' }, beginAtZero: true }
+          }
+        }
+      });
+      document.getElementById('productChartNote').textContent = 'Bir ürün seçerek grafiği görüntüleyin';
+    }
+
+    function renderProductChart(data) {
+      if (!data || data.length === 0) {
+        productChart.data.labels = [];
+        productChart.data.datasets = [];
+        productChart.update();
+        document.getElementById('productChartNote').textContent = 'Bu ürün için reçete bulunamadı';
+        return;
+      }
+
+      // Separate by unit type
+      const adetItems = data.filter(d => d.birim === 'adet');
+      const otherItems = data.filter(d => d.birim !== 'adet');
+
+      const datasets = [];
+      let labels = [];
+
+      if (otherItems.length > 0) {
+        labels = otherItems.map(d => d.hammadde_ad);
+        datasets.push({
+          label: 'Miktar',
+          data: otherItems.map(d => Number(d.miktar)),
+          backgroundColor: chartColors.slice(0, otherItems.length),
+          borderRadius: 4
+        });
+      }
+
+      if (adetItems.length > 0 && otherItems.length === 0) {
+        labels = adetItems.map(d => d.hammadde_ad);
+        datasets.push({
+          label: 'Adet',
+          data: adetItems.map(d => Math.round(Number(d.miktar))),
+          backgroundColor: chartColors.slice(0, adetItems.length),
+          borderRadius: 4
+        });
+      }
+
+      productChart.data.labels = labels;
+      productChart.data.datasets = datasets;
+      productChart.options.scales.y.ticks = {
+        callback: function(value) {
+          return adetItems.length > 0 && otherItems.length === 0 ? Math.round(value) : value;
+        }
+      };
+      productChart.update();
+
+      let note = '';
+      if (adetItems.length > 0 && otherItems.length > 0) {
+        note = `Not: ${adetItems.length} adet birimli hammadde grafikte gösterilmiyor (karma birimler).`;
+      }
+      document.getElementById('productChartNote').textContent = note;
+    }
+
+    function renderConsumptionChart() {
+      const unit = document.getElementById('consumptionUnitFilter').value;
+      let filtered = consumptionData;
+      if (unit) {
+        filtered = consumptionData.filter(d => d.birim === unit);
+      }
+
+      const ctx = document.getElementById('chartTopConsumption').getContext('2d');
+
+      if (consumptionChart) consumptionChart.destroy();
+
+      const isAdet = unit === 'adet';
+
+      consumptionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: filtered.map(d => d.hammadde_ad),
+          datasets: [{
+            label: 'Toplam Tüketim',
+            data: filtered.map(d => isAdet ? Math.round(Number(d.toplam_miktar)) : Number(d.toplam_miktar)),
+            backgroundColor: chartColors.slice(0, filtered.length),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              grid: { color: 'rgba(42, 58, 92, 0.3)' },
+              beginAtZero: true,
+              ticks: { callback: v => isAdet ? Math.round(v) : v }
+            },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function renderCriticalChart() {
+      const unit = document.getElementById('criticalUnitFilter').value;
+      let filtered = criticalData;
+      if (unit) {
+        filtered = criticalData.filter(d => d.birim === unit);
+      }
+
+      const ctx = document.getElementById('chartCriticalMaterials').getContext('2d');
+
+      if (criticalChart) criticalChart.destroy();
+
+      const isAdet = unit === 'adet';
+
+      criticalChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: filtered.map(d => d.hammadde_ad),
+          datasets: [{
+            label: 'Kritiklik Skoru',
+            data: filtered.map(d => isAdet ? Math.round(Number(d.kritiklik_skoru)) : Number(d.kritiklik_skoru)),
+            backgroundColor: filtered.map((_, i) => i < 3 ? '#ef4444' : '#f59e0b'),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              grid: { color: 'rgba(42, 58, 92, 0.3)' },
+              beginAtZero: true,
+              ticks: { callback: v => isAdet ? Math.round(v) : v }
+            },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // Load recipe for selected product
+    async function loadRecipe(urunId) {
+      if (!urunId) {
+        recipeData = [];
+        renderRecipe([]);
+        updateStats([]);
+        renderProductChart([]);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/urun-recepte?urun_id=${urunId}`);
+        recipeData = await res.json();
+        applyFilters();
+        renderProductChart(recipeData);
+      } catch (e) {
+        console.error('Recipe load error:', e);
+        recipeData = [];
+        renderRecipe([]);
+        renderProductChart([]);
+      }
+    }
+
+    function applyFilters() {
+      const materialId = document.getElementById('materialFilter').value;
+      const search = document.getElementById('searchInput').value.toLowerCase().trim();
+
+      let filtered = [...recipeData];
+
+      if (materialId) {
+        filtered = filtered.filter(r => String(r.hammadde_id) === materialId);
+      }
+
+      if (search) {
+        filtered = filtered.filter(r =>
+          (r.hammadde_ad || '').toLowerCase().includes(search) ||
+          (r.urun_ad || '').toLowerCase().includes(search)
+        );
+      }
+
+      renderRecipe(filtered);
+      updateStats(filtered);
+    }
+
+    function renderRecipe(data) {
+      const tbody = document.getElementById('recipeTable');
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="3">
+              <div class="empty-state">
+                <div class="icon">📭</div>
+                <p>Kayıt bulunamadı</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = data.map(r => {
+        const isAdet = r.birim === 'adet';
+        const miktar = isAdet ? Math.round(Number(r.miktar || 0)) : Number(r.miktar || 0).toLocaleString('tr-TR');
+        return `
+          <tr>
+            <td>${r.hammadde_ad || '-'}</td>
+            <td>${miktar}</td>
+            <td>${r.birim || '-'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function updateStats(data) {
+      document.getElementById('statCount').textContent = data.length;
+      const total = data.reduce((sum, r) => sum + Number(r.miktar || 0), 0);
+      document.getElementById('statTotal').textContent = total.toLocaleString('tr-TR');
+    }
+
+    // Reverse lookup
+    async function loadReverseProducts(hammaddeId) {
+      const tbody = document.getElementById('reverseTable');
+
+      if (!hammaddeId) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="2">
+              <div class="empty-state">
+                <div class="icon">🔎</div>
+                <p>Bir hammadde seçerek kullanıldığı ürünleri görüntüleyin</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/hammadde-urunler?hammadde_id=${hammaddeId}`);
+        const data = await res.json();
+
+        if (!data || data.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="2">
+                <div class="empty-state">
+                  <div class="icon">📭</div>
+                  <p>Bu hammadde hiçbir üründe kullanılmıyor</p>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = data.map(r => `
+          <tr>
+            <td>${r.urun_ad || '-'}</td>
+            <td>${Number(r.miktar || 0).toLocaleString('tr-TR')}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Reverse lookup error:', e);
+      }
+    }
+
+    function clearFilters() {
+      document.getElementById('productFilter').value = '';
+      document.getElementById('materialFilter').value = '';
+      document.getElementById('searchInput').value = '';
+      recipeData = [];
+      renderRecipe([]);
+      updateStats([]);
+      renderProductChart([]);
+    }
+
+    // Event listeners
+    document.getElementById('productFilter').addEventListener('change', (e) => {
+      loadRecipe(e.target.value);
+    });
+
+    document.getElementById('materialFilter').addEventListener('change', () => {
+      applyFilters();
+    });
+
+    document.getElementById('searchInput').addEventListener('input', () => {
+      applyFilters();
+    });
+
+    document.getElementById('reverseMaterialFilter').addEventListener('change', (e) => {
+      loadReverseProducts(e.target.value);
+    });
+
+    document.getElementById('consumptionUnitFilter').addEventListener('change', () => {
+      renderConsumptionChart();
+    });
+
+    document.getElementById('criticalUnitFilter').addEventListener('change', () => {
+      renderCriticalChart();
+    });
+
+    // Initialize
+    init();
+  </script>
+</body>
+</html>

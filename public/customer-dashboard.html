@@ -704,23 +704,6 @@
       </div>
     </section>
 
-    <section class="quick-actions">
-      <div class="action-card">
-        <div class="action-icon">📦</div>
-        <h3>Tüm Siparişler</h3>
-        <p>Sipariş geçmişinizi görüntüleyin</p>
-      </div>
-      <div class="action-card">
-        <div class="action-icon">📄</div>
-        <h3>Faturalarım</h3>
-        <p>Fatura ve ödeme bilgileri</p>
-      </div>
-      <div class="action-card">
-        <div class="action-icon">📞</div>
-        <h3>Destek</h3>
-        <p>Bizimle iletişime geçin</p>
-      </div>
-    </section>
 
     <section class="info-card">
       <h3>🚧 Geliştirme Aşamasında</h3>
@@ -819,17 +802,18 @@
 
   // ---- Helpers
   function getLoggedInCustomerId() {
-    // Projede hangi key kullanılıyorsa onu çek (senin projelerde bazen M01 gibi de olabiliyor)
     const v =
+      localStorage.getItem("loggedCustomerId") ||
       localStorage.getItem("musteri_id") ||
       localStorage.getItem("customerId") ||
       localStorage.getItem("musteriId") ||
       localStorage.getItem("loggedInCustomerId") ||
+      (typeof customerId !== "undefined" ? customerId : "") ||
       "";
 
-    // "M12" gibi gelirse 12'yi al
     const num = String(v).match(/\d+/);
-    return num ? Number(num[0]) : Number(v) || null;
+    const id = num ? Number(num[0]) : Number(v);
+    return Number.isFinite(id) && id > 0 ? id : null;
   }
 
   function statusLabel(raw) {
@@ -872,50 +856,22 @@
   window.fetchAllOrders = async function fetchAllOrders() {
     const musteriId = getLoggedInCustomerId();
 
-    // 1) Eğer sayfa zaten siparişleri çekip globalde tutuyorsa (en hızlı):
-    if (Array.isArray(window.__ALL_ORDERS__) && window.__ALL_ORDERS__.length) {
-      return window.__ALL_ORDERS__;
+    if (!musteriId) {
+      throw new Error("Müşteri ID bulunamadı");
     }
 
-    // 2) Endpoint denemeleri (projende hangisi varsa)
-    // Önce ID gerektirmeyen (session bazlı) dene:
-    const candidates = [
-      "/api/customer/orders/all",
-      "/api/customer/orders",
-      "/api/musteri/siparisler",
-    ];
+    // Use the same working endpoint as loadOrders
+    const url = `/api/customer/orders?musteriId=${musteriId}`;
+    const payload = await fetchJson(url);
 
-    // ID ile çalışanlar:
-    if (musteriId) {
-      candidates.unshift(`/api/musteri/${musteriId}/siparisler`);
-      candidates.unshift(`/api/customer/${musteriId}/orders`);
-    }
+    // Normalize response
+    const orders =
+      payload.orders ||
+      payload.siparisler ||
+      payload.data ||
+      (Array.isArray(payload) ? payload : []);
 
-    let lastErr = null;
-    for (const url of candidates) {
-      try {
-        const data = await fetchJson(url);
-
-        // yaygın response şekilleri:
-        const orders =
-          data.orders ||
-          data.siparisler ||
-          data.data ||
-          (Array.isArray(data) ? data : null);
-
-        if (Array.isArray(orders)) return orders;
-
-        // success:true ama farklı key ise:
-        if (data.success && Array.isArray(data.result)) return data.result;
-
-        // boş ama hata yoksa yine de döndür:
-        if (data.success && Array.isArray(data.orders)) return data.orders;
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-
-    throw new Error(lastErr?.message || "Siparişler getirilemedi (endpoint bulunamadı).");
+    return orders;
   };
 
   // GLOBAL: render fonksiyonu
@@ -939,10 +895,22 @@
 
     for (const o of sorted) {
       const id = o.id || o.siparis_id || o.siparisId || "-";
-      const durum = statusLabel(o.durum || o.status);
+      const durum = statusLabel(o.durumu || o.durum || o.status);
       const siparisTarih = fmtDate(o.siparis_tarihi || o.siparisTarihi || o.tarih);
-      const teslimTarih = fmtDate(o.teslim_tarihi || o.teslimTarihi);
-      const adet = o.adet ?? o.miktar ?? "-";
+      const teslimTarih = fmtDate(
+        o.teslim_plan ||
+        o.teslim_tarihi ||
+        o.teslimTarihi ||
+        o.teslim_tarihi_plan ||
+        o.teslimPlan
+      );
+      const adet =
+        o.toplam_adet ??
+        o.urun_adet ??
+        o.quantity ??
+        o.adet ??
+        o.miktar ??
+        "-";
       const tutar = moneyTry(o.toplam_tutar ?? o.tutar ?? o.total ?? 0);
 
       const card = document.createElement("div");
@@ -1068,29 +1036,6 @@
       updatePriceAndTotal();
     };
 
-    const ensureAllOrdersModalExists = () => {
-      if (!allOrdersModal) {
-        console.error('All orders modal element missing.');
-        return false;
-      }
-      // Bind close handlers once
-      closeAllOrdersBtn.onclick = closeAllOrdersModal;
-      closeAllOrdersBtn2.onclick = closeAllOrdersModal;
-      return true;
-    };
-
-    const openAllOrdersModal = async () => {
-      try {
-        if (!ensureAllOrdersModalExists()) return;
-        cachedAllOrders = await fetchAllOrders();
-        renderAllOrders(cachedAllOrders);
-        allOrdersModal.style.display = 'flex';
-      } catch (err) {
-        console.error('All orders modal error:', err);
-        showToast(err.message || 'Siparişler yüklenemedi', 'error');
-      }
-    };
-
     const closeModal = () => {
       orderModal.style.display = 'none';
       orderForm.reset();
@@ -1101,10 +1046,6 @@
       productPriceInput.value = '';
       totalAmountEl.textContent = formatTRY(0);
       closeCombo();
-    };
-
-    const closeAllOrdersModal = () => {
-      allOrdersModal.style.display = 'none';
     };
 
     const fetchPriceForModel = async (modelId) => {
@@ -1223,11 +1164,13 @@
     };
 
     openOrderBtn.addEventListener('click', openModal);
-    openAllOrdersBtn.addEventListener('click', openAllOrdersModal);
     closeOrderBtn.addEventListener('click', closeModal);
     cancelOrderBtn.addEventListener('click', closeModal);
-    closeAllOrdersBtn.addEventListener('click', closeAllOrdersModal);
-    closeAllOrdersBtn2.addEventListener('click', closeAllOrdersModal);
+    
+    // Use the IIFE's global openAllOrdersModal
+    if (openAllOrdersBtn) {
+      openAllOrdersBtn.addEventListener('click', window.openAllOrdersModal);
+    }
     quantityInput.addEventListener('input', updatePriceAndTotal);
 
     productTrigger.addEventListener('click', () => {
@@ -1347,17 +1290,48 @@
     async function loadOrders() {
       try {
         const res = await fetch(`/api/customer/orders?musteriId=${customerId}`);
-        const orders = await res.json();
-        cachedAllOrders = orders || [];
+        const payload = await res.json();
+        // Normalize response - backend may return array or { orders: [...] }
+        const ordersArr =
+          payload.orders ||
+          payload.siparisler ||
+          payload.data ||
+          (Array.isArray(payload) ? payload : []);
+        cachedAllOrders = ordersArr;
         const container = document.getElementById("recent-orders-list");
         container.innerHTML = "";
 
-        const ACTIVE = new Set(['PLANLANDI','URETIMDE','SEVK_EDILDI','IPTAL']);
-        const activeOrders = (orders || []).filter(order => {
-          const raw = (order.durumu || order.status || '').toString().trim();
-          const norm = raw.toUpperCase().replaceAll(' ', '_');
+        // Normalize Turkish chars and spaces
+        function normStatus(s) {
+          return (s || '')
+            .toString()
+            .trim()
+            .toUpperCase()
+            .replaceAll('İ','I')
+            .replaceAll('Ü','U')
+            .replaceAll('Ö','O')
+            .replaceAll('Ş','S')
+            .replaceAll('Ç','C')
+            .replaceAll('Ğ','G')
+            .replaceAll('ı','I')
+            .replaceAll('ü','U')
+            .replaceAll('ö','O')
+            .replaceAll('ş','S')
+            .replaceAll('ç','C')
+            .replaceAll('ğ','G')
+            .replace(/\s+/g,'_');
+        }
+
+        // Active statuses - include early-stage states
+        const ACTIVE = new Set(['PLANLANDI','BEKLEMEDE','ONAYLANDI','URETIMDE','SEVK_EDILDI','AKTIF']);
+        
+        // Sort newest first, then filter and slice
+        const sorted = [...ordersArr].sort((a, b) => (b.siparis_id || 0) - (a.siparis_id || 0));
+        const activeOrders = sorted.filter(order => {
+          const rawStatus = (order.durum || order.durumu || order.status || '').toString().trim();
+          const norm = normStatus(rawStatus);
           return ACTIVE.has(norm);
-        });
+        }).slice(0, 5);
 
         if (!activeOrders || activeOrders.length === 0) {
           container.innerHTML = `

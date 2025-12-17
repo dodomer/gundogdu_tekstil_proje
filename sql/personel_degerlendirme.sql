@@ -9,3 +9,4 @@ CREATE TABLE IF NOT EXISTS `personel_degerlendirme` (
   CONSTRAINT `fk_pd_hedef` FOREIGN KEY (`hedef_personel_id`) REFERENCES `personel`(`personel_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+
