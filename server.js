@@ -1,3 +1,4 @@
+require("dotenv").config();
 // server.js - Ana Express Sunucusu
 const express = require('express');
 const cors = require('cors');
@@ -404,6 +405,84 @@ app.get('/api/admin/personnel', async (req, res) => {
       success: false,
       message: 'Sunucu hatası'
     });
+  }
+});
+
+// Get machine fault reports with filters
+app.get('/api/admin/machine-fault-reports', async (req, res) => {
+  try {
+    const { status, priority, makine_id, limit = 50 } = req.query;
+    
+    const statusFilter = status && status !== 'All' ? status : null;
+    const priorityFilter = priority && priority !== 'All' ? priority : null;
+    const makineIdFilter = makine_id ? parseInt(makine_id, 10) : null;
+    const limitNum = parseInt(limit, 10) || 50;
+    
+    const [rows] = await pool.query(`
+      SELECT
+        r.report_id,
+        r.personel_id,
+        p.personel_ad_soyad AS personel_adsoyad,
+        r.makine_id,
+        m.makine_adi,
+        m.makine_turu,
+        r.fault_type,
+        r.priority,
+        r.title,
+        r.description,
+        r.status,
+        r.created_at,
+        r.updated_at
+      FROM machine_fault_reports r
+      JOIN makine m ON m.makine_id = r.makine_id
+      JOIN personel p ON p.personel_id = r.personel_id
+      WHERE 1=1
+        AND (? IS NULL OR r.status = ?)
+        AND (? IS NULL OR r.priority = ?)
+        AND (? IS NULL OR r.makine_id = ?)
+      ORDER BY r.created_at DESC
+      LIMIT ?
+    `, [statusFilter, statusFilter, priorityFilter, priorityFilter, makineIdFilter, makineIdFilter, limitNum]);
+    
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Admin machine fault reports error:', error);
+    res.status(500).json({ error: 'Bildirimler yüklenirken hata oluştu' });
+  }
+});
+
+// Update machine fault report status
+app.patch('/api/admin/machine-fault-reports/:report_id', async (req, res) => {
+  try {
+    const { report_id } = req.params;
+    const { status } = req.body;
+    
+    const validStatuses = ['Açık', 'İşlemde', 'Çözüldü', 'İptal'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        error: 'Geçersiz durum. Geçerli değerler: ' + validStatuses.join(', ') 
+      });
+    }
+    
+    const [result] = await pool.query(`
+      UPDATE machine_fault_reports 
+      SET status = ?, updated_at = NOW() 
+      WHERE report_id = ?
+    `, [status, report_id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Bildirim bulunamadı' });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Durum güncellendi',
+      report_id: parseInt(report_id, 10),
+      status: status
+    });
+  } catch (error) {
+    console.error('Update machine fault report error:', error);
+    res.status(500).json({ error: 'Durum güncellenirken hata oluştu' });
   }
 });
 
@@ -939,19 +1018,23 @@ app.get('/api/reports/kpis', async (req, res) => {
   }
 });
 
-// Monthly sales for bar chart
+// Monthly sales for bar chart (last 3 months: Oct, Nov, Dec)
 app.get('/api/reports/monthly-sales', async (req, res) => {
   try {
+    const currentYear = new Date().getFullYear();
     const [rows] = await pool.query(`
       SELECT 
         DATE_FORMAT(s.siparis_tarihi, '%Y-%m') AS month,
+        MONTH(s.siparis_tarihi) AS month_num,
         COALESCE(SUM(d.toplam_tutar), 0) AS total
       FROM siparisler s
       LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
       WHERE UPPER(TRIM(s.durumu)) <> 'IPTAL'
-      GROUP BY DATE_FORMAT(s.siparis_tarihi, '%Y-%m')
-      ORDER BY month ASC
-    `);
+        AND YEAR(s.siparis_tarihi) = ?
+        AND MONTH(s.siparis_tarihi) IN (10, 11, 12)
+      GROUP BY DATE_FORMAT(s.siparis_tarihi, '%Y-%m'), MONTH(s.siparis_tarihi)
+      ORDER BY month_num ASC
+    `, [currentYear]);
     res.json(rows || []);
   } catch (error) {
     console.error('Monthly sales error:', error);
@@ -959,26 +1042,226 @@ app.get('/api/reports/monthly-sales', async (req, res) => {
   }
 });
 
-// GET /api/reports/revenue-trend
-app.get('/api/reports/revenue-trend', async (req, res) => {
+// GET /api/dashboard/inflation-and-cost-impact
+app.get('/api/dashboard/inflation-and-cost-impact', async (req, res) => {
   try {
-    const [rows] = await pool.query(`
-      SELECT 
-        MONTH(s.siparis_tarihi) AS month_num,
-        COALESCE(SUM(d.toplam_tutar), 0) AS total_revenue
-      FROM siparisler s
-      LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
-      WHERE UPPER(TRIM(s.durumu)) <> 'IPTAL'
-        AND s.siparis_tarihi IS NOT NULL
-      GROUP BY MONTH(s.siparis_tarihi)
-      ORDER BY month_num ASC
-    `);
-    res.json(rows || []);
+    // Demo values — replace with live TÜİK source later
+    const TUIK_TUFE_MONTHLY = {
+      Eki: 2.8,
+      Kas: 3.1,
+      Ara: 2.9
+    };
+    
+    // Material names only (no prices - user will enter manually)
+    const materialNames = [
+      'PVC Branda Kumaşı (700 gr/m²)',
+      'Rüzgar Bariyeri Şeffaf Mica Branda',
+      'Alüminyum Profil (Gövde)',
+      'Lastik Fitil (Kenar Sıkıştırma)',
+      'Cırt Cırt Şerit'
+    ];
+    
+    // Demo TÜİK annual inflation value – replace with live source later
+    const TUIK_ANNUAL_INFLATION = 64.8;
+    
+    // TÜİK data
+    const tuikLabels = ['Eki', 'Kas', 'Ara'];
+    const tuikValues = [TUIK_TUFE_MONTHLY.Eki, TUIK_TUFE_MONTHLY.Kas, TUIK_TUFE_MONTHLY.Ara];
+    const latestTuik = TUIK_TUFE_MONTHLY.Ara;
+    
+    // Thresholds
+    const HIGH_INFLATION_TUIK = 3.0;
+    const HIGH_COST_INCREASE = 5.0;
+    
+    res.json({
+      tuik: {
+        labels: tuikLabels,
+        monthly_values: tuikValues,
+        latest_monthly: latestTuik,
+        annual: TUIK_ANNUAL_INFLATION
+      },
+      materials: {
+        names: materialNames
+      },
+      thresholds: {
+        tuik: HIGH_INFLATION_TUIK,
+        cost: HIGH_COST_INCREASE
+      }
+    });
   } catch (error) {
-    console.error('Revenue trend error:', error);
+    console.error('Inflation and cost impact error:', error);
     return res.status(500).json({ error: error.message });
   }
 });
+
+// GET /api/dashboard/order-completion-distribution
+app.get('/api/dashboard/order-completion-distribution', async (req, res) => {
+  try {
+    const SLA_DAYS = 7; // Service Level Agreement: 7 days
+    const currentYear = new Date().getFullYear();
+    // Get completed orders from last 3 months and calculate completion days
+    const [rows] = await pool.query(`
+      SELECT 
+        DATEDIFF(
+          COALESCE(s.teslim_plan, s.siparis_tarihi),
+          s.siparis_tarihi
+        ) AS completion_days
+      FROM siparisler s
+      WHERE YEAR(s.siparis_tarihi) = ?
+        AND MONTH(s.siparis_tarihi) IN (10, 11, 12)
+        AND UPPER(TRIM(s.durumu)) = 'TAMAMLANDI'
+        AND s.siparis_tarihi IS NOT NULL
+    `, [currentYear]);
+    
+    // Initialize buckets
+    const buckets = {
+      '0-2': 0,
+      '3-5': 0,
+      '6-8': 0,
+      '9+': 0
+    };
+    
+    // Calculate totals and late orders
+    let totalCompleted = rows.length;
+    let lateCompleted = 0;
+    
+    // Group orders into buckets and count late orders
+    rows.forEach(row => {
+      const days = Number(row.completion_days) || 0;
+      if (days >= 0 && days <= 2) {
+        buckets['0-2']++;
+      } else if (days >= 3 && days <= 5) {
+        buckets['3-5']++;
+      } else if (days >= 6 && days <= 8) {
+        buckets['6-8']++;
+      } else if (days >= 9) {
+        buckets['9+']++;
+      }
+      
+      // Count late orders (completion_days > SLA_DAYS)
+      if (days > SLA_DAYS) {
+        lateCompleted++;
+      }
+    });
+    
+    // Calculate late rate
+    const lateRate = totalCompleted > 0 
+      ? Number(((lateCompleted / totalCompleted) * 100).toFixed(1))
+      : 0;
+    
+    res.json({
+      labels: ["0–2 gün", "3–5 gün", "6–8 gün", "9+ gün"],
+      values: [buckets['0-2'], buckets['3-5'], buckets['6-8'], buckets['9+']],
+      totals: {
+        total_completed: totalCompleted,
+        late_completed: lateCompleted,
+        late_rate: lateRate
+      },
+      sla_days: SLA_DAYS
+    });
+  } catch (error) {
+    console.error('Order completion distribution error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+
+// GET /api/dashboard/ciro-kar-6ay (Revenue & Profit 6-month: 3 actual + 3 forecast)
+app.get('/api/dashboard/ciro-kar-6ay', async (req, res) => {
+  try {
+    const DEFAULT_COST_RATE = 0.65; // 65% cost, 35% profit margin
+    const currentYear = new Date().getFullYear();
+    
+    // Get historical revenue for Oct, Nov, Dec 2025
+    const [rows] = await pool.query(`
+      SELECT 
+        MONTH(s.siparis_tarihi) AS month_num,
+        COALESCE(SUM(d.toplam_tutar), 0) AS revenue
+      FROM siparisler s
+      LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
+      WHERE UPPER(TRIM(s.durumu)) <> 'IPTAL'
+        AND YEAR(s.siparis_tarihi) = ?
+        AND MONTH(s.siparis_tarihi) IN (10, 11, 12)
+        AND s.siparis_tarihi IS NOT NULL
+      GROUP BY MONTH(s.siparis_tarihi)
+      ORDER BY month_num ASC
+    `, [currentYear]);
+    
+    // Build historical data array (Oct=10, Nov=11, Dec=12)
+    const historical = [10, 11, 12].map(monthNum => {
+      const row = rows.find(r => Number(r.month_num) === monthNum);
+      return row ? Number(row.revenue) || 0 : 0;
+    });
+    
+    // Calculate profit for historical data
+    const actualProfit = historical.map(rev => rev * (1 - DEFAULT_COST_RATE));
+    
+    // Forecast configuration constants
+    const JAN_BOOST_RATE = 0.08; // +8% over Dec
+    const MONTHLY_DECAY_RATE = 0.07; // -7% per month after Jan
+    const FORECAST_REVENUE_FLOOR_RATE = 0.55; // never go below 55% of Dec actual revenue
+    const FORECAST_PROFIT_FLOOR_RATE = 0.55; // never go below 55% of Dec actual profit
+    
+    // Calculate forecast revenue
+    let forecastRevenue = [];
+    const decRevenue = historical[2] || 0; // December (index 2)
+    const decProfit = actualProfit[2] || 0; // December profit
+    
+    if (decRevenue > 0) {
+      // Jan forecast: +8% over Dec
+      const forecastRevenueOca = decRevenue * (1 + JAN_BOOST_RATE);
+      
+      // Feb forecast: -7% from Jan, but floor at 55% of Dec
+      const forecastRevenueSub = Math.max(
+        forecastRevenueOca * (1 - MONTHLY_DECAY_RATE),
+        decRevenue * FORECAST_REVENUE_FLOOR_RATE
+      );
+      
+      // Mar forecast: -7% from Feb, but floor at 55% of Dec
+      const forecastRevenueMar = Math.max(
+        forecastRevenueSub * (1 - MONTHLY_DECAY_RATE),
+        decRevenue * FORECAST_REVENUE_FLOOR_RATE
+      );
+      
+      forecastRevenue = [forecastRevenueOca, forecastRevenueSub, forecastRevenueMar];
+    } else {
+      // Fallback: if no Dec data, use average of available months
+      const nonZeroValues = historical.filter(v => v > 0);
+      const avg = nonZeroValues.length > 0
+        ? nonZeroValues.reduce((a, b) => a + b, 0) / nonZeroValues.length
+        : 0;
+      forecastRevenue = [avg, avg, avg];
+    }
+    
+    // Calculate forecast profit from revenue, then apply floor
+    let forecastProfit = forecastRevenue.map(rev => rev * (1 - DEFAULT_COST_RATE));
+    
+    // Apply profit floor to Feb and Mar (ensure they don't drop below 55% of Dec profit)
+    if (decProfit > 0) {
+      forecastProfit[1] = Math.max(forecastProfit[1], decProfit * FORECAST_PROFIT_FLOOR_RATE);
+      forecastProfit[2] = Math.max(forecastProfit[2], decProfit * FORECAST_PROFIT_FLOOR_RATE);
+    }
+    
+    // Ensure profit never becomes negative
+    forecastProfit = forecastProfit.map(profit => Math.max(0, profit));
+    
+    res.json({
+      labels: ["Eki", "Kas", "Ara", "Oca", "Şub", "Mar"],
+      actual: {
+        revenue: historical,
+        profit: actualProfit
+      },
+      forecast: {
+        revenue: forecastRevenue,
+        profit: forecastProfit
+      }
+    });
+  } catch (error) {
+    console.error('Ciro-Kar 6ay error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 
 // Get customer orders summary (for KPI cards)
 app.get('/api/customer/orders/summary', async (req, res) => {

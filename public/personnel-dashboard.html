@@ -87,6 +87,32 @@
       gap: 20px;
     }
 
+    .rating-widget {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(69, 176, 136, 0.1);
+      border: 1px solid rgba(69, 176, 136, 0.3);
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    .rating-widget .rating-number {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .rating-widget .rating-stars {
+      color: #fbbf24;
+      font-size: 0.9rem;
+    }
+
+    .rating-widget .rating-count {
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+    }
+
     .user-info {
       text-align: right;
     }
@@ -736,6 +762,11 @@
       </div>
     </div>
     <div class="header-right">
+      <div class="rating-widget" id="header-rating-widget" style="display: none;">
+        <span class="rating-number" id="header-rating-number">--</span>
+        <span class="rating-stars" id="header-rating-stars"></span>
+        <span class="rating-count" id="header-rating-count"></span>
+      </div>
       <div class="user-info">
         <div class="name" id="user-name">Personel</div>
         <div class="role">Personel ID: <span id="user-id">-</span></div>
@@ -757,12 +788,11 @@
         <div class="stat-value" id="calisma-saati-value">--</div>
         <div class="stat-label">Bu Ay Çalışma Saati</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon">⭐</div>
-        <div class="stat-value" id="performans-puani-value">--</div>
-        <div class="stat-label">Performans Puanı</div>
-        <div class="stat-subtext" id="performans-puani-subtext" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;"></div>
-      </div>
+      <a href="machine-fault-report.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-label">Makine Arıza Bildirimi</div>
+        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 8px;">Makine arızası bildir</div>
+      </a>
     </section>
 
     <section class="quick-actions">
@@ -1160,15 +1190,14 @@
 
       // Load performance score
       async function loadPerformanceScore() {
-        const performansPuaniEl = document.getElementById('performans-puani-value');
-        const performansPuaniSubtextEl = document.getElementById('performans-puani-subtext');
+        const ratingWidget = document.getElementById('header-rating-widget');
+        const ratingNumber = document.getElementById('header-rating-number');
+        const ratingStars = document.getElementById('header-rating-stars');
+        const ratingCount = document.getElementById('header-rating-count');
         
         if (!personnelId) {
-          if (performansPuaniEl) {
-            performansPuaniEl.textContent = '--';
-          }
-          if (performansPuaniSubtextEl) {
-            performansPuaniSubtextEl.textContent = '';
+          if (ratingWidget) {
+            ratingWidget.style.display = 'none';
           }
           return;
         }
@@ -1183,18 +1212,12 @@
 
           const { avg_puan, puanlayan_sayisi } = data;
           
-          if (performansPuaniEl) {
+          if (ratingWidget && ratingNumber && ratingStars && ratingCount) {
             if (puanlayan_sayisi === 0) {
-              performansPuaniEl.textContent = '--';
-              if (performansPuaniSubtextEl) {
-                performansPuaniSubtextEl.textContent = 'Henüz puan yok';
-              }
+              ratingWidget.style.display = 'none';
             } else {
-              // Display average rating
-              performansPuaniEl.innerHTML = '';
-              const numberSpan = document.createElement('span');
-              numberSpan.textContent = `${avg_puan}`;
-              performansPuaniEl.appendChild(numberSpan);
+              // Display average rating in header
+              ratingNumber.textContent = `${avg_puan}`;
               
               // Generate star display (e.g., 4.5 -> ★★★★☆)
               const fullStars = Math.floor(avg_puan);
@@ -1208,28 +1231,16 @@
                 starDisplay += '☆';
               }
               
-              // Add stars next to the number
-              const starSpan = document.createElement('span');
-              starSpan.style.marginLeft = '8px';
-              starSpan.style.fontSize = '1.2rem';
-              starSpan.style.color = '#fbbf24';
-              starSpan.textContent = starDisplay;
-              performansPuaniEl.appendChild(starSpan);
+              ratingStars.textContent = starDisplay;
+              ratingCount.textContent = `(${puanlayan_sayisi} kişi)`;
               
-              if (performansPuaniSubtextEl) {
-                performansPuaniSubtextEl.textContent = `(${puanlayan_sayisi} kişi)`;
-              }
+              ratingWidget.style.display = 'flex';
             }
           }
         } catch (err) {
           console.error('Performans puanı yükleme hatası:', err);
-          const performansPuaniEl = document.getElementById('performans-puani-value');
-          const performansPuaniSubtextEl = document.getElementById('performans-puani-subtext');
-          if (performansPuaniEl) {
-            performansPuaniEl.textContent = '--';
-          }
-          if (performansPuaniSubtextEl) {
-            performansPuaniSubtextEl.textContent = '';
+          if (ratingWidget) {
+            ratingWidget.style.display = 'none';
           }
         }
       }

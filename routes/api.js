@@ -1,7 +1,44 @@
 // routes/api.js - API Route Tanımlamaları
+const OpenAI = require("openai");
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const pool = require('../config/database');
+
+// Configure multer for file uploads
+const uploadsDir = path.join(__dirname, '../public/uploads/faults');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'fault-' + uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: function (req, file, cb) {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Sadece resim dosyaları yüklenebilir'), false);
+    }
+  }
+});
 
 // ============================================
 // 📊 DASHBOARD - İstatistikler
@@ -319,6 +356,439 @@ router.get('/health', async (req, res) => {
       status: 'ERROR', 
       database: 'Bağlantı hatası',
       error: error.message 
+    });
+  }
+});
+
+// ============================================
+// 🔧 MAKINE ARIZA BILDIRIMLERI
+// ============================================
+
+// GET /api/machines - Get active machines
+router.get('/machines', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT makine_id, makine_adi, makine_turu
+      FROM makine
+      WHERE aktif_mi = 1
+      ORDER BY makine_adi
+    `);
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Machines list error:', error);
+    res.status(500).json({ error: 'Makineler yüklenirken hata oluştu' });
+  }
+});
+
+// GET /api/machine-fault-reports - Get reports for a personnel
+router.get('/machine-fault-reports', async (req, res) => {
+  try {
+    const { personel_id, limit = 5 } = req.query;
+    
+    if (!personel_id) {
+      return res.status(400).json({ error: 'personel_id gerekli' });
+    }
+
+    const limitNum = parseInt(limit, 10) || 5;
+    
+    const [rows] = await pool.query(`
+      SELECT 
+        r.report_id,
+        r.personel_id,
+        r.makine_id,
+        r.fault_type,
+        r.priority,
+        r.title,
+        r.description,
+        r.status,
+        r.created_at,
+        r.updated_at,
+        m.makine_adi
+      FROM machine_fault_reports r
+      JOIN makine m ON m.makine_id = r.makine_id
+      WHERE r.personel_id = ?
+      ORDER BY r.created_at DESC
+      LIMIT ?
+    `, [personel_id, limitNum]);
+    
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Machine fault reports list error:', error);
+    res.status(500).json({ error: 'Bildirimler yüklenirken hata oluştu' });
+  }
+});
+
+// POST /api/machine-fault-reports - Create new fault report
+router.post('/machine-fault-reports', upload.single('photo'), async (req, res) => {
+  try {
+    const { personel_id, makine_id, fault_type, priority, title, description } = req.body;
+
+    
+    // Validate required fields
+    if (!personel_id || !makine_id || !fault_type || !priority || !title || !description) {
+      return res.status(400).json({ 
+        error: 'Tüm zorunlu alanlar doldurulmalıdır' 
+      });
+    }
+
+    // Validate title length
+    if (title.length > 160) {
+      return res.status(400).json({ 
+        error: 'Başlık en fazla 160 karakter olabilir' 
+      });
+    }
+
+    // Insert report
+    const [result] = await pool.query(`
+      INSERT INTO machine_fault_reports 
+        (personel_id, makine_id, fault_type, priority, title, description, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'Açık', NOW(), NOW())
+    `, [personel_id, makine_id, fault_type, priority, title, description]);
+
+    const reportId = result.insertId;
+
+    // Handle file upload if present
+    if (req.file) {
+      try {
+        await pool.query(`
+          INSERT INTO machine_fault_attachments 
+            (report_id, file_name, file_path, mime_type, file_size, created_at)
+          VALUES (?, ?, ?, ?, ?, NOW())
+        `, [
+          reportId,
+          req.file.originalname,
+          `/uploads/faults/${req.file.filename}`,
+          req.file.mimetype,
+          req.file.size
+        ]);
+      } catch (attachError) {
+        console.error('Attachment insert error:', attachError);
+        // Don't fail the whole request if attachment fails
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      report_id: reportId,
+      message: 'Bildirim başarıyla oluşturuldu' 
+    });
+  } catch (error) {
+    console.error('Machine fault report create error:', error);
+    res.status(500).json({ 
+      error: 'Bildirim oluşturulurken hata oluştu: ' + error.message 
+    });
+  }
+});
+// ============================================
+// 🤖 AI DECISION SUPPORT
+// ============================================
+
+// POST /api/ai/decision
+router.post("/ai/decision", async (req, res) => {
+  try {
+    const { question, context } = req.body;
+
+    if (!question || question.trim().length < 5) {
+      return res.status(400).json({ success: false, error: "Soru çok kısa." });
+    }
+
+    const input = context
+      ? `CONTEXT:\n${JSON.stringify(context, null, 2)}\n\nQUESTION:\n${question}`
+      : question;
+
+    const response = await openai.responses.create({
+      model: "gpt-5",
+      instructions:
+        "You are a decision support assistant for a textile manufacturing company. Reply in Turkish. Be concise and actionable. Use bullet points. If data is missing, state assumptions.",
+      input
+    });
+
+    return res.json({ success: true, answer: response.output_text });
+  } catch (err) {
+    console.error("AI decision error:", err);
+    return res.status(500).json({ success: false, error: "AI servisi hatası." });
+  }
+});
+
+
+// ============================================
+// 🤖 AI INSIGHTS & DECISION SUPPORT
+// ============================================
+
+// GET /api/ai/insights - Generate automatic insights from database
+router.get('/ai/insights', async (req, res) => {
+  try {
+    const pool = require('../config/database');
+    
+    // Build context object from database
+    const context = {};
+    
+    // 1. Dashboard KPIs
+    try {
+      const [kpiRows] = await pool.query(`
+        SELECT
+          COUNT(*) AS totalOrders,
+          SUM(CASE WHEN UPPER(TRIM(s.durumu)) NOT IN ('TAMAMLANDI','TESLIM_EDILDI') THEN 1 ELSE 0 END) AS activeOrders,
+          SUM(CASE WHEN UPPER(TRIM(s.durumu)) = 'IPTAL' THEN 1 ELSE 0 END) AS canceledOrders,
+          COALESCE(SUM(CASE WHEN UPPER(TRIM(s.durumu)) <> 'IPTAL' THEN d.toplam_tutar END), 0) AS totalRevenue
+        FROM siparisler s
+        LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
+      `);
+      const kpi = kpiRows[0] || {};
+      context.kpis = {
+        totalOrders: Number(kpi.totalOrders) || 0,
+        activeOrders: Number(kpi.activeOrders) || 0,
+        totalRevenue: Number(kpi.totalRevenue) || 0,
+        cancelRate: kpi.totalOrders > 0 ? ((Number(kpi.canceledOrders) || 0) / Number(kpi.totalOrders)) * 100 : 0
+      };
+    } catch (err) {
+      console.error('KPI query error:', err);
+    }
+    
+    // 2. Order status counts (last 3 months)
+    try {
+      const [statusRows] = await pool.query(`
+        SELECT durumu AS status, COUNT(*) AS count
+        FROM siparisler
+        WHERE siparis_tarihi >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+        GROUP BY durumu
+      `);
+      context.orderStatusCounts = statusRows || [];
+    } catch (err) {
+      console.error('Order status query error:', err);
+    }
+    
+    // 3. Order completion time distribution + delayed ratio (last 3 months)
+    try {
+      const [completionRows] = await pool.query(`
+        SELECT
+          COUNT(*) AS total_completed,
+          SUM(CASE WHEN DATEDIFF(COALESCE(s.teslim_plan, s.siparis_tarihi), s.siparis_tarihi) > 7 THEN 1 ELSE 0 END) AS late_completed
+        FROM siparisler s
+        WHERE s.durumu = 'TAMAMLANDI'
+          AND s.siparis_tarihi >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+      `);
+      const comp = completionRows[0] || {};
+      context.orderCompletion = {
+        totalCompleted: Number(comp.total_completed) || 0,
+        lateCompleted: Number(comp.late_completed) || 0,
+        lateRate: comp.total_completed > 0 ? ((Number(comp.late_completed) || 0) / Number(comp.total_completed)) * 100 : 0
+      };
+    } catch (err) {
+      console.error('Order completion query error:', err);
+    }
+    
+    // 4. Machine faults (last 14 days)
+    try {
+      const [faultRows] = await pool.query(`
+        SELECT
+          COUNT(*) AS total_faults,
+          SUM(CASE WHEN status = 'Açık' THEN 1 ELSE 0 END) AS open_faults,
+          SUM(CASE WHEN priority = 'Kritik' THEN 1 ELSE 0 END) AS critical_faults
+        FROM machine_fault_reports
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+      `);
+      const fault = faultRows[0] || {};
+      context.machineFaults = {
+        totalFaults: Number(fault.total_faults) || 0,
+        openFaults: Number(fault.open_faults) || 0,
+        criticalFaults: Number(fault.critical_faults) || 0
+      };
+      
+      // Top machines by fault count
+      const [topMachines] = await pool.query(`
+        SELECT m.makine_adi, COUNT(*) AS fault_count
+        FROM machine_fault_reports r
+        JOIN makine m ON m.makine_id = r.makine_id
+        WHERE r.created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+        GROUP BY m.makine_id, m.makine_adi
+        ORDER BY fault_count DESC
+        LIMIT 5
+      `);
+      context.topMachinesByFaults = topMachines || [];
+    } catch (err) {
+      console.error('Machine faults query error:', err);
+    }
+    
+    // 5. Raw material consumption (top 10)
+    try {
+      const [rawMatRows] = await pool.query(`
+        SELECT
+          h.hammadde_id,
+          h.hammadde_adi,
+          SUM(uh.miktar) AS toplam_miktar
+        FROM urun_hammadde uh
+        JOIN hammadde h ON h.hammadde_id = uh.hammadde_id
+        GROUP BY h.hammadde_id, h.hammadde_adi
+        ORDER BY toplam_miktar DESC
+        LIMIT 10
+      `);
+      context.topRawMaterials = rawMatRows || [];
+    } catch (err) {
+      console.error('Raw materials query error:', err);
+    }
+    
+    // 6. Inflation data (last 3 months)
+    try {
+      // Use demo values from existing endpoint
+      context.inflation = {
+        monthly: {
+          Eki: 2.8,
+          Kas: 3.1,
+          Ara: 2.9
+        },
+        annual: 64.8
+      };
+    } catch (err) {
+      console.error('Inflation query error:', err);
+    }
+    
+    // Call OpenAI with context
+    const prompt = `Aşağıda bir tekstil üretim şirketinin veritabanı verileri bulunmaktadır. Bu verilere dayanarak, şirket için 6-10 adet öncelikli, eyleme dönüştürülebilir öneri üret.
+
+VERİLER:
+${JSON.stringify(context, null, 2)}
+
+ÖNEMLİ KURALLAR:
+1. SADECE verilen verileri kullan. Genel tekstil danışmanlığı yapma.
+2. Veritabanında olmayan ürünlerden (tişört, kot pantolon, kumaş türleri vb.) bahsetme.
+3. Her öneri şu formatta JSON olmalı:
+   {
+     "title": "Kısa başlık",
+     "priority": "High|Medium|Low",
+     "why": "Neden bu öneri önemli (veri referansları ile)",
+     "action": "Yapılacak eylem",
+     "metric_refs": ["hangi metriklerden bahsedildiği"]
+   }
+4. Öncelik belirleme: Kritik sorunlar (yüksek iptal oranı, kritik arızalar, gecikmeler) = High, Orta seviye sorunlar = Medium, İyileştirme fırsatları = Low
+5. Türkçe yanıt ver.
+
+Yanıtı SADECE JSON formatında ver, başka açıklama ekleme:
+{
+  "insights": [
+    ...
+  ]
+}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Sen bir tekstil üretim şirketi için veri analisti ve iş danışmanısın. Sadece verilen verilere dayanarak öneriler üret."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    });
+
+    const responseText = completion.choices[0].message.content;
+    let insightsData;
+    
+    try {
+      insightsData = JSON.parse(responseText);
+    } catch (parseErr) {
+      // Fallback if JSON parsing fails
+      console.error('JSON parse error:', parseErr);
+      insightsData = {
+        insights: [{
+          title: "Veri analizi tamamlandı",
+          priority: "Medium",
+          why: "Sistem verilerinizi analiz etti",
+          action: "Detaylı raporları inceleyin",
+          metric_refs: ["Genel"]
+        }]
+      };
+    }
+
+    res.json({
+      success: true,
+      insights: insightsData.insights || [],
+      context: context // Return context for use in question form
+    });
+    
+  } catch (error) {
+    console.error('AI insights error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'İçgörüler oluşturulurken hata oluştu: ' + error.message
+    });
+  }
+});
+
+// POST /api/ai/decision - Get AI decision support with context
+router.post('/ai/decision', async (req, res) => {
+  try {
+    const { question, context } = req.body;
+    
+    if (!question || !question.trim()) {
+      return res.status(400).json({ 
+        error: 'Soru alanı boş olamaz' 
+      });
+    }
+
+    // Use provided context or build minimal context
+    let dbContext = context;
+    if (!dbContext || Object.keys(dbContext).length === 0) {
+      // Build minimal context if not provided
+      const pool = require('../config/database');
+      try {
+        const [kpiRows] = await pool.query(`
+          SELECT
+            COUNT(*) AS totalOrders,
+            SUM(CASE WHEN UPPER(TRIM(s.durumu)) NOT IN ('TAMAMLANDI','TESLIM_EDILDI') THEN 1 ELSE 0 END) AS activeOrders,
+            SUM(CASE WHEN UPPER(TRIM(s.durumu)) = 'IPTAL' THEN 1 ELSE 0 END) AS canceledOrders,
+            COALESCE(SUM(CASE WHEN UPPER(TRIM(s.durumu)) <> 'IPTAL' THEN d.toplam_tutar END), 0) AS totalRevenue
+          FROM siparisler s
+          LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
+        `);
+        const kpi = kpiRows[0] || {};
+        dbContext = {
+          kpis: {
+            totalOrders: Number(kpi.totalOrders) || 0,
+            activeOrders: Number(kpi.activeOrders) || 0,
+            totalRevenue: Number(kpi.totalRevenue) || 0,
+            cancelRate: kpi.totalOrders > 0 ? ((Number(kpi.canceledOrders) || 0) / Number(kpi.totalOrders)) * 100 : 0
+          }
+        };
+      } catch (err) {
+        console.error('Context build error:', err);
+        dbContext = {};
+      }
+    }
+
+    const prompt = `VERİLER:\n${JSON.stringify(dbContext, null, 2)}\n\nSORU:\n${question}\n\nYanıtını SADECE verilen veritabanı verilerine dayandır. Veritabanında olmayan ürünlerden bahsetme. Türkçe yanıt ver.`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Sen bir tekstil üretim şirketi için veri analisti ve iş danışmanısın. Sadece verilen verilere dayanarak yanıt ver."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7
+    });
+
+    const response = completion.choices[0].message.content;
+
+    res.json({ 
+      success: true,
+      response: response,
+      question: question
+    });
+  } catch (error) {
+    console.error('AI decision error:', error);
+    res.status(500).json({ 
+      error: 'AI karar alınırken hata oluştu: ' + error.message 
     });
   }
 });

@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Makine Arıza Bildirimi - Gündoğdu Tekstil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c1222;
+      --bg-card: #151d30;
+      --border-color: #2a3a5c;
+      --accent: #45b088;
+      --accent-light: #5fc9a0;
+      --accent-glow: rgba(69, 176, 136, 0.3);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      color: var(--text-primary);
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-icon {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .header-title h1 {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .header-title p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .back-btn {
+      padding: 10px 20px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Main Content */
+    .main-content {
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .page-header {
+      margin-bottom: 30px;
+    }
+
+    .page-header h2 {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .page-header p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+    }
+
+    .form-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form-label {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .form-label .required {
+      color: var(--danger);
+      margin-left: 2px;
+    }
+
+    .input,
+    .textarea,
+    .select {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: #0f172a;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .input:focus,
+    .textarea:focus,
+    .select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+      background: #020617;
+    }
+
+    .textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+
+    .file-input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .file-input-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: #0f172a;
+      border: 1px dashed var(--border-color);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .file-input-label:hover {
+      border-color: var(--accent);
+      background: #020617;
+      color: var(--text-primary);
+    }
+
+    .file-name {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .priority-warning {
+      margin-top: 8px;
+      padding: 10px 14px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--warning);
+      display: none;
+    }
+
+    .priority-warning.show {
+      display: block;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      color: #020617;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 22px var(--accent-glow);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--text-secondary);
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .error-text {
+      margin-top: 4px;
+      font-size: 0.8rem;
+      color: var(--danger);
+      display: none;
+    }
+
+    .error-text.show {
+      display: block;
+    }
+
+    .reports-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+
+    .reports-section h3 {
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+      color: var(--text-primary);
+    }
+
+    .reports-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .reports-table thead {
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .reports-table th {
+      padding: 12px;
+      text-align: left;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .reports-table td {
+      padding: 12px;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .reports-table tbody tr:hover {
+      background: rgba(15, 23, 42, 0.3);
+    }
+
+    .reports-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-badge.acik {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
+
+    .status-badge.inceleniyor {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+    }
+
+    .status-badge.cozuldu {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+    }
+
+    .status-badge.kapali {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text-secondary);
+    }
+
+    .priority-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .priority-badge.dusuk {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+    }
+
+    .priority-badge.orta {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+    }
+
+    .priority-badge.yuksek {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
+
+    .priority-badge.kritik {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #022c22;
+      color: #bbf7d0;
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 1100;
+      max-width: 300px;
+    }
+
+    .toast.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.error {
+      background: #2d1b1b;
+      color: #fca5a5;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+      }
+
+      .header-right {
+        flex-direction: column;
+      }
+
+      .main-content {
+        padding: 20px;
+      }
+
+      .form-card,
+      .reports-section {
+        padding: 20px;
+      }
+
+      .reports-table {
+        font-size: 0.8rem;
+      }
+
+      .reports-table th,
+      .reports-table td {
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon">👷</div>
+      <div class="header-title">
+        <h1>Makine Arıza Bildirimi</h1>
+        <p>Gündoğdu Tekstil Personel Portalı</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="/personnel-dashboard.html" class="back-btn">
+        ← Personel Paneline Dön
+      </a>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h2>Makine Arıza Bildirimi</h2>
+      <p>Lütfen arızayı detaylı şekilde bildiriniz.</p>
+    </div>
+
+    <div class="form-card">
+      <form id="fault-report-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="makine_id">
+              Makine Seç <span class="required">*</span>
+            </label>
+            <select id="makine_id" class="select" required>
+              <option value="">Seçiniz...</option>
+            </select>
+            <div class="error-text" id="makine_id-error"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="fault_type">
+              Arıza Tipi <span class="required">*</span>
+            </label>
+            <select id="fault_type" class="select" required>
+              <option value="">Seçiniz...</option>
+              <option value="Elektrik">Elektrik</option>
+              <option value="Mekanik">Mekanik</option>
+              <option value="Yazılım">Yazılım</option>
+              <option value="Sensör">Sensör</option>
+              <option value="Diğer">Diğer</option>
+            </select>
+            <div class="error-text" id="fault_type-error"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="priority">
+              Öncelik <span class="required">*</span>
+            </label>
+            <select id="priority" class="select" required>
+              <option value="">Seçiniz...</option>
+              <option value="Düşük">Düşük</option>
+              <option value="Orta">Orta</option>
+              <option value="Yüksek">Yüksek</option>
+              <option value="Kritik">Kritik</option>
+            </select>
+            <div class="error-text" id="priority-error"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="title">
+              Kısa Başlık <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="title" 
+              class="input" 
+              placeholder="Arıza başlığını giriniz"
+              maxlength="160"
+              required
+            />
+            <div class="error-text" id="title-error"></div>
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="description">
+              Detay Açıklama <span class="required">*</span>
+            </label>
+            <textarea 
+              id="description" 
+              class="textarea" 
+              placeholder="Arıza detaylarını açıklayınız..."
+              required
+            ></textarea>
+            <div class="error-text" id="description-error"></div>
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="photo">
+              Fotoğraf Ekle (Opsiyonel)
+            </label>
+            <div class="file-input-wrapper">
+              <input 
+                type="file" 
+                id="photo" 
+                class="file-input" 
+                accept="image/*"
+              />
+              <label for="photo" class="file-input-label">
+                📷 Fotoğraf Seç
+              </label>
+            </div>
+            <div class="file-name" id="file-name"></div>
+          </div>
+        </div>
+
+        <div class="priority-warning" id="priority-warning">
+          ⚠️ Kritik arızalar öncelikli işleme alınır.
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="window.location.href='/personnel-dashboard.html'">
+            Geri Dön
+          </button>
+          <button type="submit" class="btn-primary" id="submit-btn">
+            Bildirimi Gönder
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="reports-section">
+      <h3>Son 5 Bildirimim</h3>
+      <div id="reports-container">
+        <div class="empty-state">
+          <div class="empty-state-icon">⏳</div>
+          <p>Yükleniyor...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let personnelId = null;
+
+    // Get personnel ID from session
+    function getPersonnelId() {
+      try {
+        const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+        return user?.id || null;
+      } catch (err) {
+        console.error('Session parse error:', err);
+        return null;
+      }
+    }
+
+    // Show toast message
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type === 'error' ? 'error' : ''} show`;
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // Load machines dropdown
+    async function loadMachines() {
+      const select = document.getElementById('makine_id');
+      try {
+        const res = await fetch('/api/machines');
+        if (!res.ok) throw new Error('Makineler yüklenemedi');
+        const machines = await res.json();
+        
+        // Clear existing options except the first one
+        while (select.children.length > 1) {
+          select.removeChild(select.lastChild);
+        }
+        
+        machines.forEach(machine => {
+          const option = document.createElement('option');
+          option.value = machine.makine_id;
+          option.textContent = `${machine.makine_adi} (${machine.makine_turu})`;
+          select.appendChild(option);
+        });
+      } catch (err) {
+        console.error('Machines load error:', err);
+        showToast('Makineler yüklenirken hata oluştu', 'error');
+      }
+    }
+
+    // Load last 5 reports
+    async function loadReports() {
+      const container = document.getElementById('reports-container');
+      if (!personnelId) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Oturum bulunamadı</p></div>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/machine-fault-reports?personel_id=${personnelId}&limit=5`);
+        if (!res.ok) throw new Error('Bildirimler yüklenemedi');
+        const reports = await res.json();
+        
+        if (!reports || reports.length === 0) {
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>Henüz bildirim bulunmamaktadır</p></div>';
+          return;
+        }
+
+        const table = document.createElement('table');
+        table.className = 'reports-table';
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>Tarih</th>
+              <th>Makine</th>
+              <th>Tip</th>
+              <th>Öncelik</th>
+              <th>Durum</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reports.map(report => {
+              const date = new Date(report.created_at);
+              const dateStr = date.toLocaleDateString('tr-TR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+              
+              const statusClass = report.status.toLowerCase().replace(' ', '');
+              const priorityClass = report.priority.toLowerCase();
+              
+              return `
+                <tr>
+                  <td>${dateStr}</td>
+                  <td>${report.makine_adi || '-'}</td>
+                  <td>${report.fault_type}</td>
+                  <td><span class="priority-badge ${priorityClass}">${report.priority}</span></td>
+                  <td><span class="status-badge ${statusClass}">${report.status}</span></td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        `;
+        
+        container.innerHTML = '';
+        container.appendChild(table);
+      } catch (err) {
+        console.error('Reports load error:', err);
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Bildirimler yüklenirken hata oluştu</p></div>';
+      }
+    }
+
+    // Validate form
+    function validateForm() {
+      let isValid = true;
+      const fields = ['makine_id', 'fault_type', 'priority', 'title', 'description'];
+      
+      fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        const errorEl = document.getElementById(`${fieldId}-error`);
+        
+        if (!field.value.trim()) {
+          errorEl.textContent = 'Bu alan zorunludur';
+          errorEl.classList.add('show');
+          isValid = false;
+        } else {
+          errorEl.classList.remove('show');
+        }
+      });
+
+      // Validate title length
+      const title = document.getElementById('title');
+      if (title.value.trim().length > 160) {
+        const errorEl = document.getElementById('title-error');
+        errorEl.textContent = 'Başlık en fazla 160 karakter olabilir';
+        errorEl.classList.add('show');
+        isValid = false;
+      }
+
+      return isValid;
+    }
+
+    // Handle priority change
+    document.getElementById('priority').addEventListener('change', function() {
+      const warning = document.getElementById('priority-warning');
+      if (this.value === 'Kritik') {
+        warning.classList.add('show');
+      } else {
+        warning.classList.remove('show');
+      }
+    });
+
+    // Handle file input
+    document.getElementById('photo').addEventListener('change', function(e) {
+      const fileName = document.getElementById('file-name');
+      if (e.target.files.length > 0) {
+        fileName.textContent = `Seçilen: ${e.target.files[0].name}`;
+      } else {
+        fileName.textContent = '';
+      }
+    });
+
+    // Handle form submission
+    document.getElementById('fault-report-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      if (!validateForm()) {
+        showToast('Lütfen tüm zorunlu alanları doldurunuz', 'error');
+        return;
+      }
+
+      if (!personnelId) {
+        showToast('Oturum bulunamadı. Lütfen tekrar giriş yapınız.', 'error');
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Gönderiliyor...';
+
+      try {
+        const formData = new FormData();
+        formData.append('personel_id', personnelId);
+        formData.append('makine_id', document.getElementById('makine_id').value);
+        formData.append('fault_type', document.getElementById('fault_type').value);
+        formData.append('priority', document.getElementById('priority').value);
+        formData.append('title', document.getElementById('title').value);
+        formData.append('description', document.getElementById('description').value);
+        
+        const photoInput = document.getElementById('photo');
+        if (photoInput.files.length > 0) {
+          formData.append('photo', photoInput.files[0]);
+        }
+
+        const res = await fetch('/api/machine-fault-reports', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Bildirim gönderilemedi');
+        }
+
+        showToast('✅ Bildirim alındı.');
+        
+        // Reset form
+        this.reset();
+        document.getElementById('file-name').textContent = '';
+        document.getElementById('priority-warning').classList.remove('show');
+        
+        // Reload reports
+        await loadReports();
+        
+      } catch (err) {
+        console.error('Submit error:', err);
+        showToast(err.message || 'Bildirim gönderilirken hata oluştu', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Bildirimi Gönder';
+      }
+    });
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+      personnelId = getPersonnelId();
+      
+      if (!personnelId) {
+        showToast('Oturum bulunamadı. Yönlendiriliyorsunuz...', 'error');
+        setTimeout(() => {
+          window.location.href = '/personnel-login.html';
+        }, 2000);
+        return;
+      }
+
+      await loadMachines();
+      await loadReports();
+    });
+  </script>
+</body>
+</html>

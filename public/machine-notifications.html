@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Makine Bildirimleri - Gündoğdu Tekstil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0c1222;
+      --bg-card: #151d30;
+      --border-color: #2a3a5c;
+      --accent: #d4a853;
+      --accent-light: #f0c970;
+      --accent-glow: rgba(212, 168, 83, 0.3);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      color: var(--text-primary);
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-icon {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .header-title h1 {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .header-title p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .back-btn {
+      padding: 10px 20px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Main Content */
+    .main-content {
+      padding: 30px 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Filters Section */
+    .filters-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filter-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .filter-select {
+      padding: 8px 12px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 150px;
+    }
+
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .btn-refresh {
+      padding: 8px 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border: none;
+      border-radius: 8px;
+      color: var(--bg-dark);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .btn-refresh:hover {
+      box-shadow: 0 5px 20px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-refresh:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Table Section */
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: rgba(212, 168, 83, 0.1);
+    }
+
+    th {
+      padding: 16px 20px;
+      text-align: left;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    tbody tr {
+      transition: background 0.2s ease;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .btn-detail {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: var(--accent);
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-detail:hover {
+      background: var(--accent);
+      color: var(--bg-dark);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-badge.acik {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
+
+    .status-badge.islemde {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+    }
+
+    .status-badge.cozuldu {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+    }
+
+    .status-badge.iptal {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text-secondary);
+    }
+
+    .priority-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .priority-badge.dusuk {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+    }
+
+    .priority-badge.orta {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+    }
+
+    .priority-badge.yuksek {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
+
+    .priority-badge.kritik {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+
+    .spinner {
+      border: 3px solid var(--border-color);
+      border-top: 3px solid var(--accent);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      max-width: 700px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 1.2rem;
+      color: var(--text-primary);
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close:hover {
+      background: rgba(148, 163, 184, 0.15);
+      color: #ffffff;
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .detail-group {
+      margin-bottom: 20px;
+    }
+
+    .detail-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .detail-value {
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .detail-description {
+      background: rgba(15, 23, 42, 0.5);
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .modal-footer {
+      padding: 20px 24px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-update-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .status-update-select {
+      padding: 8px 12px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      flex: 1;
+      max-width: 200px;
+    }
+
+    .status-update-select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .btn-save {
+      padding: 8px 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border: none;
+      border-radius: 8px;
+      color: var(--bg-dark);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-save:hover:not(:disabled) {
+      box-shadow: 0 5px 20px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-save:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #022c22;
+      color: #bbf7d0;
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 1100;
+      max-width: 300px;
+    }
+
+    .toast.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.error {
+      background: #2d1b1b;
+      color: #fca5a5;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+      }
+
+      .header-right {
+        flex-direction: column;
+      }
+
+      .main-content {
+        padding: 20px;
+      }
+
+      .filters-section {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .filter-group {
+        width: 100%;
+      }
+
+      .filter-select {
+        width: 100%;
+      }
+
+      .btn-refresh {
+        margin-left: 0;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .table-container {
+        overflow-x: scroll;
+      }
+
+      table {
+        font-size: 0.8rem;
+      }
+
+      th, td {
+        padding: 10px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon">👔</div>
+      <div class="header-title">
+        <h1>Makine Bildirimleri</h1>
+        <p>Gündoğdu Tekstil Yönetim Paneli</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="/admin-dashboard.html" class="back-btn">
+        ← Admin Paneline Dön
+      </a>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="filters-section">
+      <div class="filter-group">
+        <label class="filter-label">Durum</label>
+        <select id="filter-status" class="filter-select">
+          <option value="All">Tümü</option>
+          <option value="Açık">Açık</option>
+          <option value="İşlemde">İşlemde</option>
+          <option value="Çözüldü">Çözüldü</option>
+          <option value="İptal">İptal</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Öncelik</label>
+        <select id="filter-priority" class="filter-select">
+          <option value="All">Tümü</option>
+          <option value="Düşük">Düşük</option>
+          <option value="Orta">Orta</option>
+          <option value="Yüksek">Yüksek</option>
+          <option value="Kritik">Kritik</option>
+        </select>
+      </div>
+      <button class="btn-refresh" id="btn-refresh" onclick="loadReports()">
+        🔄 Yenile
+      </button>
+    </div>
+
+    <div class="table-card">
+      <div class="table-container">
+        <div id="reports-container">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Yükleniyor...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Detail Modal -->
+  <div class="modal" id="detail-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Bildirim Detayı</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Content will be populated by JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <div class="status-update-group">
+          <label class="filter-label" style="margin: 0;">Durum Güncelle:</label>
+          <select id="status-update-select" class="status-update-select">
+            <option value="Açık">Açık</option>
+            <option value="İşlemde">İşlemde</option>
+            <option value="Çözüldü">Çözüldü</option>
+            <option value="İptal">İptal</option>
+          </select>
+          <button class="btn-save" id="btn-save-status" onclick="updateStatus()">
+            Kaydet
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let currentReportId = null;
+    let allReports = [];
+
+    // Show toast message
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type === 'error' ? 'error' : ''} show`;
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // Get status badge class
+    function getStatusClass(status) {
+      const statusMap = {
+        'Açık': 'acik',
+        'İşlemde': 'islemde',
+        'Çözüldü': 'cozuldu',
+        'İptal': 'iptal'
+      };
+      return statusMap[status] || 'acik';
+    }
+
+    // Get priority badge class
+    function getPriorityClass(priority) {
+      const priorityMap = {
+        'Düşük': 'dusuk',
+        'Orta': 'orta',
+        'Yüksek': 'yuksek',
+        'Kritik': 'kritik'
+      };
+      return priorityMap[priority] || 'orta';
+    }
+
+    // Format date
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('tr-TR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    // Load reports
+    async function loadReports() {
+      const container = document.getElementById('reports-container');
+      const refreshBtn = document.getElementById('btn-refresh');
+      
+      refreshBtn.disabled = true;
+      container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Yükleniyor...</p></div>';
+
+      try {
+        const status = document.getElementById('filter-status').value;
+        const priority = document.getElementById('filter-priority').value;
+        
+        const params = new URLSearchParams();
+        if (status !== 'All') params.append('status', status);
+        if (priority !== 'All') params.append('priority', priority);
+        params.append('limit', '50');
+
+        const res = await fetch(`/api/admin/machine-fault-reports?${params.toString()}`);
+        if (!res.ok) throw new Error('Bildirimler yüklenemedi');
+        
+        const reports = await res.json();
+        allReports = reports;
+
+        if (!reports || reports.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📋</div>
+              <p>Henüz makine arıza bildirimi bulunmuyor.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const table = document.createElement('table');
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>Tarih</th>
+              <th>Makine</th>
+              <th>Tür</th>
+              <th>Personel</th>
+              <th>Öncelik</th>
+              <th>Durum</th>
+              <th>Başlık</th>
+              <th>İşlem</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reports.map(report => {
+              const dateStr = formatDate(report.created_at);
+              const statusClass = getStatusClass(report.status);
+              const priorityClass = getPriorityClass(report.priority);
+              
+              return `
+                <tr>
+                  <td>${dateStr}</td>
+                  <td>${report.makine_adi || '-'}</td>
+                  <td>${report.fault_type}</td>
+                  <td>${report.personel_adsoyad || '-'}</td>
+                  <td><span class="priority-badge ${priorityClass}">${report.priority}</span></td>
+                  <td><span class="status-badge ${statusClass}">${report.status}</span></td>
+                  <td>${report.title}</td>
+                  <td>
+                    <button class="btn-detail" onclick="showDetail(${report.report_id})">
+                      Detay
+                    </button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        `;
+        
+        container.innerHTML = '';
+        container.appendChild(table);
+      } catch (err) {
+        console.error('Reports load error:', err);
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <p>Veriler yüklenemedi.</p>
+          </div>
+        `;
+        showToast('Veriler yüklenirken hata oluştu', 'error');
+      } finally {
+        refreshBtn.disabled = false;
+      }
+    }
+
+    // Show detail modal
+    function showDetail(reportId) {
+      const report = allReports.find(r => r.report_id === reportId);
+      if (!report) {
+        showToast('Bildirim bulunamadı', 'error');
+        return;
+      }
+
+      currentReportId = reportId;
+      const modalBody = document.getElementById('modal-body');
+      const statusSelect = document.getElementById('status-update-select');
+      
+      statusSelect.value = report.status;
+      
+      const dateStr = formatDate(report.created_at);
+      const updatedStr = report.updated_at ? formatDate(report.updated_at) : '-';
+      const statusClass = getStatusClass(report.status);
+      const priorityClass = getPriorityClass(report.priority);
+
+      modalBody.innerHTML = `
+        <div class="detail-group">
+          <div class="detail-label">Başlık</div>
+          <div class="detail-value">${report.title}</div>
+        </div>
+        <div class="detail-group">
+          <div class="detail-label">Açıklama</div>
+          <div class="detail-value detail-description">${report.description || '-'}</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+          <div class="detail-group">
+            <div class="detail-label">Makine</div>
+            <div class="detail-value">${report.makine_adi || '-'} (${report.makine_turu || '-'})</div>
+          </div>
+          <div class="detail-group">
+            <div class="detail-label">Arıza Tipi</div>
+            <div class="detail-value">${report.fault_type}</div>
+          </div>
+          <div class="detail-group">
+            <div class="detail-label">Personel</div>
+            <div class="detail-value">${report.personel_adsoyad || '-'}</div>
+          </div>
+          <div class="detail-group">
+            <div class="detail-label">Öncelik</div>
+            <div class="detail-value">
+              <span class="priority-badge ${priorityClass}">${report.priority}</span>
+            </div>
+          </div>
+          <div class="detail-group">
+            <div class="detail-label">Durum</div>
+            <div class="detail-value">
+              <span class="status-badge ${statusClass}">${report.status}</span>
+            </div>
+          </div>
+          <div class="detail-group">
+            <div class="detail-label">Oluşturulma Tarihi</div>
+            <div class="detail-value">${dateStr}</div>
+          </div>
+          <div class="detail-group">
+            <div class="detail-label">Güncellenme Tarihi</div>
+            <div class="detail-value">${updatedStr}</div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('detail-modal').classList.add('show');
+    }
+
+    // Close modal
+    function closeModal() {
+      document.getElementById('detail-modal').classList.remove('show');
+      currentReportId = null;
+    }
+
+    // Update status
+    async function updateStatus() {
+      if (!currentReportId) return;
+
+      const statusSelect = document.getElementById('status-update-select');
+      const saveBtn = document.getElementById('btn-save-status');
+      const newStatus = statusSelect.value;
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Kaydediliyor...';
+
+      try {
+        const res = await fetch(`/api/admin/machine-fault-reports/${currentReportId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Durum güncellenemedi');
+        }
+
+        showToast('✅ Durum başarıyla güncellendi');
+        
+        // Update local data
+        const report = allReports.find(r => r.report_id === currentReportId);
+        if (report) {
+          report.status = newStatus;
+          report.updated_at = new Date().toISOString();
+        }
+        
+        // Reload table
+        await loadReports();
+        
+        // Update modal
+        showDetail(currentReportId);
+        
+      } catch (err) {
+        console.error('Status update error:', err);
+        showToast(err.message || 'Durum güncellenirken hata oluştu', 'error');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Kaydet';
+      }
+    }
+
+    // Close modal on outside click
+    document.getElementById('detail-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeModal();
+      }
+    });
+
+    // Filter change handlers
+    document.getElementById('filter-status').addEventListener('change', loadReports);
+    document.getElementById('filter-priority').addEventListener('change', loadReports);
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadReports();
+    });
+  </script>
+</body>
+</html>
