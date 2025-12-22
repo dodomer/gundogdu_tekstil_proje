@@ -108,31 +108,246 @@
       margin: 0 auto;
     }
 
-    .placeholder-card {
+    /* KPI Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 16px;
-      padding: 60px 40px;
-      text-align: center;
+      padding: 22px;
+      display: grid;
+      gap: 8px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.25);
     }
 
-    .placeholder-card h2 {
-      font-size: 2rem;
-      margin-bottom: 20px;
+    .stat-card .label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .stat-card .value {
+      font-size: 1.7rem;
+      font-weight: 700;
       color: var(--accent);
     }
 
-    .placeholder-card p {
-      font-size: 1.1rem;
-      color: var(--text-secondary);
-      line-height: 1.6;
+    /* Charts Row */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 0 auto 24px;
+      align-items: stretch;
     }
 
-    .placeholder-icon {
-      font-size: 4rem;
-      margin-bottom: 30px;
-      opacity: 0.7;
+    @media (max-width: 960px) {
+      .charts-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Info Card */
+    .info-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 30px;
+    }
+
+    .info-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mock-label {
+      font-size: 0.75rem;
+      color: var(--warning);
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    /* Table */
+    .table-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 30px;
+      margin-top: 24px;
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .table-header h3 {
+      font-size: 1.1rem;
+      margin: 0;
+    }
+
+    .search-input {
+      padding: 10px 14px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      min-width: 250px;
+      transition: border-color 0.2s ease;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .table-container {
+      overflow-x: auto;
+      position: relative;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      padding: 12px;
+      text-align: left;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(42, 58, 92, 0.5);
+      font-size: 0.9rem;
+    }
+
+    tbody tr {
+      cursor: default;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .status-badge.aktif {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+    }
+
+    .status-badge.riskli {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+    }
+
+    .status-badge.pasif {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text-secondary);
+    }
+
+    .risk-level {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .risk-level.cok-guvenli {
+      color: #22c55e;
+      background: rgba(34, 197, 94, 0.15);
+    }
+
+    .risk-level.dusuk-risk {
+      color: #14b8a6;
+      background: rgba(20, 184, 166, 0.15);
+    }
+
+    .risk-level.orta-risk {
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.15);
+    }
+
+    .risk-level.riskli {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.15);
+    }
+
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    .loading-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    .loading-spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Tooltip */
+    .tooltip-trigger {
+      position: relative;
+      display: inline-block;
+    }
+
+    .tooltip-content {
+      position: fixed !important;
+      z-index: 9999 !important;
+      pointer-events: none;
+      max-width: 320px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+    }
+
+    .tooltip-trigger:hover .tooltip-content,
+    .tooltip-trigger:focus .tooltip-content {
+      display: block !important;
     }
 
     /* Footer */
@@ -167,16 +382,14 @@
         padding: 20px;
       }
 
-      .placeholder-card {
-        padding: 40px 20px;
+      .table-header {
+        flex-direction: column;
+        align-items: stretch;
       }
 
-      .placeholder-card h2 {
-        font-size: 1.5rem;
-      }
-
-      .placeholder-card p {
-        font-size: 1rem;
+      .search-input {
+        width: 100%;
+        min-width: auto;
       }
     }
   </style>
@@ -198,16 +411,535 @@
   </header>
 
   <main class="main-content">
-    <div class="placeholder-card">
-      <div class="placeholder-icon">👤</div>
-      <h2>Müşteri Yönetimi</h2>
-      <p>Bu sayfa ileride müşteri yönetimi özellikleri için kullanılacaktır.</p>
-    </div>
+    <!-- KPI Cards -->
+    <section class="stats-grid" id="kpi-grid">
+      <div class="stat-card">
+        <div class="label">Toplam Müşteri</div>
+        <div class="value" id="kpi-total-customers">Yükleniyor...</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Aktif Müşteri</div>
+        <div class="value" id="kpi-active-customers">Yükleniyor...</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Riskli Müşteri</div>
+        <div class="value" id="kpi-risky-customers">Yükleniyor...</div>
+      </div>
+    </section>
+
+    <!-- Charts Row -->
+    <section class="charts-row">
+      <!-- Left Chart: Average Delivery Time -->
+      <div class="info-card">
+        <h3>
+          ⏱️ Müşteri Bazlı Ortalama Teslim Süresi (Gün)
+          <span id="delivery-time-mock-label" class="mock-label" style="display:none;">[Simülasyon]</span>
+        </h3>
+        <div style="position:relative; min-height:280px;">
+          <canvas id="avg-delivery-time-chart" height="250"></canvas>
+          <div id="avg-delivery-time-empty" style="display:none; padding:16px; text-align:center; color: var(--text-secondary);">Veri bulunamadı</div>
+        </div>
+      </div>
+
+      <!-- Right Chart: Top Value Customers -->
+      <div class="info-card">
+        <h3>💰 En Değerli Müşteriler (Top 5 Ciro Payı)</h3>
+        <div style="position:relative; min-height:280px;">
+          <canvas id="top-value-chart" height="250"></canvas>
+          <div id="top-value-empty" style="display:none; padding:16px; text-align:center; color: var(--text-secondary);">Veri bulunamadı</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Customer List Table -->
+    <section class="table-section">
+      <div class="table-header">
+        <h3>Müşteri Listesi</h3>
+        <input type="text" class="search-input" id="customer-search" placeholder="Müşteri adı ara...">
+      </div>
+      <div class="table-container">
+        <table id="customers-table">
+          <thead>
+            <tr>
+              <th>Müşteri Adı</th>
+              <th>Toplam Sipariş</th>
+              <th>Toplam Ciro</th>
+              <th>Son Sipariş Tarihi</th>
+              <th>Durum</th>
+              <th>
+                Risk Durumu
+                <span class="tooltip-trigger" id="risk-score-tooltip-trigger" style="cursor: help; margin-left: 5px; color: var(--text-secondary); font-size: 0.9rem; position: relative; display: inline-block;">
+                  ?
+                  <div class="tooltip-content" id="risk-score-tooltip" style="display: none; padding: 12px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.85rem; line-height: 1.6; white-space: normal; text-align: left;">
+                    <strong style="display: block; margin-bottom: 8px; color: var(--accent);">Risk Durumu Nasıl Belirlenir?</strong>
+                    <p style="margin-bottom: 8px;">Risk skoru, müşterinin iptal oranı (%60) ve son siparişten bu yana geçen süreye (%40) göre 0–100 aralığında hesaplanır.</p>
+                    <p style="margin-top: 8px; margin-bottom: 0;">Risk seviyesi etiketleri (Çok Güvenli / Düşük Risk / Orta Risk / Riskli), mevcut müşteri listesindeki risk skorlarının dağılımına göre göreli (yüzdelik/percentile) olarak belirlenir. Bu sayede skorlar düşük aralıkta toplansa bile en riskli müşteriler görsel olarak ayrıştırılır.</p>
+                  </div>
+                </span>
+              </th>
+              <th>İptal Oranı</th>
+            </tr>
+          </thead>
+          <tbody id="customers-table-body">
+            <tr>
+              <td colspan="7" class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Müşteriler yükleniyor...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
   <footer class="dashboard-footer">
     <p>© 2025 Gündoğdu Tekstil. Tüm hakları saklıdır. | <a href="/admin-dashboard.html">Admin Paneli</a></p>
   </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Chart instances
+    const chartInstances = {};
+
+    // Format currency
+    function formatCurrency(value) {
+      return `₺${Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    }
+
+    // Format date
+    function formatDate(dateString) {
+      if (!dateString) return '-';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('tr-TR');
+    }
+
+    // Destroy chart
+    function destroyChart(chartId) {
+      if (chartInstances[chartId]) {
+        chartInstances[chartId].destroy();
+        delete chartInstances[chartId];
+      }
+    }
+
+    // Load KPI summary
+    async function loadSummary() {
+      try {
+        const res = await fetch('/api/admin/customers/summary');
+        const data = await res.json();
+        
+        if (data.success) {
+          document.getElementById('kpi-total-customers').textContent = data.data.totalCustomers.toLocaleString('tr-TR');
+          document.getElementById('kpi-active-customers').textContent = data.data.activeCustomers.toLocaleString('tr-TR');
+          document.getElementById('kpi-risky-customers').textContent = data.data.riskyCustomers.toLocaleString('tr-TR');
+        }
+      } catch (err) {
+        console.error('Summary error:', err);
+        document.getElementById('kpi-total-customers').textContent = 'Hata';
+        document.getElementById('kpi-active-customers').textContent = 'Hata';
+        document.getElementById('kpi-risky-customers').textContent = 'Hata';
+      }
+    }
+
+    // Load average delivery time chart
+    async function loadAvgDeliveryTime() {
+      const canvas = document.getElementById('avg-delivery-time-chart');
+      const empty = document.getElementById('avg-delivery-time-empty');
+      const mockLabel = document.getElementById('delivery-time-mock-label');
+      
+      if (!canvas) return;
+      destroyChart('avg-delivery-time-chart');
+
+      try {
+        const res = await fetch('/api/admin/customers/avg-delivery-time?months=3');
+        const data = await res.json();
+
+        if (data.isMock) {
+          mockLabel.style.display = 'inline';
+        } else {
+          mockLabel.style.display = 'none';
+        }
+
+        if (!data.success || !data.data || data.data.length === 0) {
+          empty.style.display = 'block';
+          canvas.style.display = 'none';
+          return;
+        }
+
+        empty.style.display = 'none';
+        canvas.style.display = 'block';
+
+        const labels = data.data.map(c => c.musteri_ad);
+        const values = data.data.map(c => Number(c.avg_days) || 0);
+
+        chartInstances['avg-delivery-time-chart'] = new Chart(canvas.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Ortalama Gün',
+              data: values,
+              backgroundColor: 'rgba(212, 168, 83, 0.6)',
+              borderColor: 'rgba(212, 168, 83, 1)',
+              borderWidth: 1,
+              borderRadius: 6
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: ctx => `${ctx.parsed.x.toFixed(1)} gün`
+                }
+              }
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: {
+                  callback: (v) => `${v} gün`,
+                  color: '#cbd5e1'
+                },
+                grid: { color: 'rgba(255,255,255,0.05)' }
+              },
+              y: {
+                ticks: { color: '#cbd5e1' },
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Avg delivery time error:', err);
+        empty.style.display = 'block';
+        canvas.style.display = 'none';
+      }
+    }
+
+    // Load top value customers chart
+    async function loadTopValue() {
+      const canvas = document.getElementById('top-value-chart');
+      const empty = document.getElementById('top-value-empty');
+      
+      if (!canvas) return;
+      destroyChart('top-value-chart');
+
+      try {
+        const res = await fetch('/api/admin/customers/top-value?months=3');
+        const data = await res.json();
+
+        if (!data.success || !data.data || data.data.length === 0) {
+          empty.style.display = 'block';
+          canvas.style.display = 'none';
+          return;
+        }
+
+        empty.style.display = 'none';
+        canvas.style.display = 'block';
+
+        const labels = data.data.map(c => c.musteri_ad);
+        const values = data.data.map(c => Number(c.revenue) || 0);
+
+        chartInstances['top-value-chart'] = new Chart(canvas.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Ciro',
+              data: values,
+              backgroundColor: 'rgba(139, 92, 246, 0.6)',
+              borderColor: 'rgba(139, 92, 246, 1)',
+              borderWidth: 1,
+              borderRadius: 6
+            }]
+          },
+          options: {
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: ctx => formatCurrency(ctx.parsed.y)
+                }
+              }
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: (v) => formatCurrency(v),
+                  color: '#cbd5e1'
+                },
+                grid: { color: 'rgba(255,255,255,0.05)' }
+              },
+              x: {
+                ticks: { color: '#cbd5e1' },
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Top value error:', err);
+        empty.style.display = 'block';
+        canvas.style.display = 'none';
+      }
+    }
+
+    // Load customer list
+    let allCustomers = [];
+    async function loadCustomerList() {
+      const tbody = document.getElementById('customers-table-body');
+
+      try {
+        const res = await fetch('/api/admin/customers/list?months=3');
+        const data = await res.json();
+
+        if (!data.success || !data.data || data.data.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" class="empty-state">
+                <p>Henüz müşteri bulunmamaktadır.</p>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        allCustomers = data.data;
+        renderCustomerTable(allCustomers);
+      } catch (err) {
+        console.error('Customer list error:', err);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="empty-state">
+              <p>Müşteriler yüklenirken hata oluştu.</p>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Calculate quartiles and assign risk levels
+    function calculateRiskLevels(customers) {
+      if (!customers || customers.length === 0) {
+        return {};
+      }
+
+      // Extract and sort risk scores
+      const scores = customers
+        .map(c => Math.max(0, Math.min(100, c.risk_score || 0)))
+        .sort((a, b) => a - b);
+
+      const count = scores.length;
+      
+      // Edge case: If all scores are identical
+      if (scores[0] === scores[count - 1]) {
+        const levelMap = {};
+        customers.forEach(c => {
+          levelMap[c.musteri_id] = {
+            label: 'Düşük Risk',
+            class: 'dusuk-risk'
+          };
+        });
+        return levelMap;
+      }
+
+      // Edge case: If customer count < 8, use fixed thresholds
+      if (count < 8) {
+        const levelMap = {};
+        customers.forEach(c => {
+          const score = Math.max(0, Math.min(100, c.risk_score || 0));
+          let label, className;
+          if (score <= 20) {
+            label = 'Çok Güvenli';
+            className = 'cok-guvenli';
+          } else if (score <= 39) {
+            label = 'Düşük Risk';
+            className = 'dusuk-risk';
+          } else if (score <= 59) {
+            label = 'Orta Risk';
+            className = 'orta-risk';
+          } else {
+            label = 'Riskli';
+            className = 'riskli';
+          }
+          levelMap[c.musteri_id] = { label, class: className };
+        });
+        return levelMap;
+      }
+
+      // Calculate quartiles
+      const q1Index = Math.floor(count * 0.25);
+      const q2Index = Math.floor(count * 0.50);
+      const q3Index = Math.floor(count * 0.75);
+      
+      const Q1 = scores[q1Index];
+      const Q2 = scores[q2Index];
+      const Q3 = scores[q3Index];
+
+      // Create level map
+      const levelMap = {};
+      customers.forEach(customer => {
+        const score = Math.max(0, Math.min(100, customer.risk_score || 0));
+        let label, className;
+        
+        if (score <= Q1) {
+          label = 'Çok Güvenli';
+          className = 'cok-guvenli';
+        } else if (score <= Q2) {
+          label = 'Düşük Risk';
+          className = 'dusuk-risk';
+        } else if (score <= Q3) {
+          label = 'Orta Risk';
+          className = 'orta-risk';
+        } else {
+          label = 'Riskli';
+          className = 'riskli';
+        }
+        
+        levelMap[customer.musteri_id] = { label, class: className };
+      });
+
+      return levelMap;
+    }
+
+    // Render customer table
+    function renderCustomerTable(customers) {
+      const tbody = document.getElementById('customers-table-body');
+      
+      if (customers.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="empty-state">
+              <p>Sonuç bulunamadı.</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      // Calculate risk levels based on current customer list
+      const riskLevels = calculateRiskLevels(customers);
+
+      tbody.innerHTML = customers.map(customer => {
+        const statusClass = customer.status_badge.toLowerCase();
+        const riskScore = Math.max(0, Math.min(100, customer.risk_score || 0));
+        const riskLevel = riskLevels[customer.musteri_id] || { label: 'Düşük Risk', class: 'dusuk-risk' };
+        
+        // Format cancellation rate
+        const cancelRate = customer.cancel_rate_percent !== null && customer.cancel_rate_percent !== undefined
+          ? `%${customer.cancel_rate_percent}`
+          : '-';
+        
+        return `
+          <tr>
+            <td>${customer.musteri_ad}</td>
+            <td>${customer.total_orders}</td>
+            <td>${formatCurrency(customer.total_revenue)}</td>
+            <td>${formatDate(customer.last_order_date)}</td>
+            <td><span class="status-badge ${statusClass}">${customer.status_badge}</span></td>
+            <td>
+              <span class="risk-level ${riskLevel.class}">${riskLevel.label}</span>
+            </td>
+            <td>${cancelRate}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Search functionality
+    document.getElementById('customer-search').addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase().trim();
+      if (!searchTerm) {
+        renderCustomerTable(allCustomers);
+        return;
+      }
+      
+      const filtered = allCustomers.filter(c => 
+        c.musteri_ad.toLowerCase().includes(searchTerm)
+      );
+      renderCustomerTable(filtered);
+    });
+
+    // Tooltip positioning
+    function positionTooltip() {
+      const trigger = document.getElementById('risk-score-tooltip-trigger');
+      const tooltip = document.getElementById('risk-score-tooltip');
+      
+      if (!trigger || !tooltip) return;
+
+      function updatePosition() {
+        const rect = trigger.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        // Position above the trigger, centered horizontally
+        let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+        let top = rect.top - tooltipRect.height - 8;
+        
+        // Ensure tooltip doesn't go off screen
+        if (left < 10) left = 10;
+        if (left + tooltipRect.width > window.innerWidth - 10) {
+          left = window.innerWidth - tooltipRect.width - 10;
+        }
+        
+        // If tooltip would go above viewport, show below instead
+        if (top < 10) {
+          top = rect.bottom + 8;
+        }
+        
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+      }
+
+      // Show tooltip on hover/focus
+      trigger.addEventListener('mouseenter', () => {
+        tooltip.style.display = 'block';
+        // Small delay to ensure tooltip is rendered before calculating position
+        setTimeout(updatePosition, 0);
+      });
+
+      trigger.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+      });
+
+      // Mobile: show on click/tap
+      trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (tooltip.style.display === 'none' || !tooltip.style.display) {
+          tooltip.style.display = 'block';
+          setTimeout(updatePosition, 0);
+        } else {
+          tooltip.style.display = 'none';
+        }
+      });
+
+      // Close tooltip when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!trigger.contains(e.target) && !tooltip.contains(e.target)) {
+          tooltip.style.display = 'none';
+        }
+      });
+
+      // Update position on scroll/resize
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSummary();
+      loadAvgDeliveryTime();
+      loadTopValue();
+      loadCustomerList();
+      positionTooltip();
+    });
+  </script>
 </body>
 </html>
-

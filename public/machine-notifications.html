@@ -526,6 +526,85 @@
       }
     }
 
+     /* Charts Row Top */
+     .charts-row-top {
+       display: grid;
+       grid-template-columns: repeat(2, 1fr);
+       gap: 25px;
+       margin-bottom: 25px;
+     }
+
+     @media (max-width: 768px) {
+       .charts-row-top {
+         grid-template-columns: 1fr;
+       }
+     }
+
+     /* Chart Card */
+     .chart-card {
+       background: var(--bg-card);
+       border: 1px solid var(--border-color);
+       border-radius: 16px;
+       padding: 24px;
+       box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+     }
+
+     .chart-card.chart-full-width {
+       margin-bottom: 25px;
+     }
+
+     .chart-card h3 {
+       font-size: 1.2rem;
+       margin-bottom: 4px;
+       color: var(--text-primary);
+     }
+
+     .chart-subtitle {
+       font-size: 0.85rem;
+       color: var(--text-secondary);
+       margin-bottom: 0;
+     }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding: 20px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .pagination-btn {
+      padding: 8px 16px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 40px;
+    }
+
+    .pagination-btn:hover:not(:disabled):not(.active) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .pagination-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-color: var(--accent);
+      color: var(--bg-dark);
+      font-weight: 600;
+    }
+
+    .pagination-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     @media (max-width: 768px) {
       .header {
         flex-direction: column;
@@ -591,6 +670,46 @@
   </header>
 
   <main class="main-content">
+    <!-- Top Row: Two Charts Side-by-Side -->
+    <div class="charts-row-top">
+      <!-- Left Chart: Machine Distribution -->
+      <div class="chart-card">
+        <h3>📊 Makine Arıza Dağılımı</h3>
+        <p class="chart-subtitle">Son 3 ay (bildirim sayısı)</p>
+        <div style="position: relative; height: 300px; margin-top: 20px;">
+          <canvas id="fault-distribution-chart"></canvas>
+          <div id="chart-empty" style="display: none; padding: 40px; text-align: center; color: var(--text-secondary);">
+            Veri yok
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Chart: Fault Type Distribution -->
+      <div class="chart-card">
+        <h3>📊 Arıza Türü Dağılımı</h3>
+        <p class="chart-subtitle">Son 3 ay (bildirim sayısı)</p>
+        <div style="position: relative; height: 300px; margin-top: 20px;">
+          <canvas id="fault-type-chart"></canvas>
+          <div id="chart-type-empty" style="display: none; padding: 40px; text-align: center; color: var(--text-secondary);">
+            Veri yok
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Second Row: Full-Width Personnel Chart -->
+    <div class="chart-card chart-full-width">
+      <h3>👷 Personel Bazlı Arıza Bildirim Sayısı</h3>
+      <p class="chart-subtitle">Son 3 ay (bildirim sayısı)</p>
+      <div style="position: relative; height: 350px; margin-top: 20px;">
+        <canvas id="personnel-chart"></canvas>
+        <div id="chart-personnel-empty" style="display: none; padding: 40px; text-align: center; color: var(--text-secondary);">
+          Veri yok
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters Section -->
     <div class="filters-section">
       <div class="filter-group">
         <label class="filter-label">Durum</label>
@@ -612,7 +731,7 @@
           <option value="Kritik">Kritik</option>
         </select>
       </div>
-      <button class="btn-refresh" id="btn-refresh" onclick="loadReports()">
+      <button class="btn-refresh" id="btn-refresh" onclick="loadReports(1)">
         🔄 Yenile
       </button>
     </div>
@@ -625,6 +744,9 @@
             <p>Yükleniyor...</p>
           </div>
         </div>
+      </div>
+      <!-- Pagination -->
+      <div id="pagination-container" class="pagination" style="display: none;">
       </div>
     </div>
   </main>
@@ -658,9 +780,15 @@
 
   <div class="toast" id="toast"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    let currentReportId = null;
-    let allReports = [];
+     let currentReportId = null;
+     let allReports = [];
+     let currentPage = 1;
+     let paginationInfo = null;
+     let distributionChart = null;
+     let typeChart = null;
+     let personnelChart = null;
 
     // Show toast message
     function showToast(message, type = 'success') {
@@ -706,8 +834,8 @@
       });
     }
 
-    // Load reports
-    async function loadReports() {
+    // Load reports with pagination
+    async function loadReports(page = 1) {
       const container = document.getElementById('reports-container');
       const refreshBtn = document.getElementById('btn-refresh');
       
@@ -721,13 +849,27 @@
         const params = new URLSearchParams();
         if (status !== 'All') params.append('status', status);
         if (priority !== 'All') params.append('priority', priority);
-        params.append('limit', '50');
+        params.append('page', page.toString());
+        params.append('limit', '20');
 
         const res = await fetch(`/api/admin/machine-fault-reports?${params.toString()}`);
         if (!res.ok) throw new Error('Bildirimler yüklenemedi');
         
-        const reports = await res.json();
+        const result = await res.json();
+        
+        // Handle both old format (array) and new format (object with data and pagination)
+        let reports, pagination;
+        if (Array.isArray(result)) {
+          reports = result;
+          pagination = null;
+        } else {
+          reports = result.data || [];
+          pagination = result.pagination || null;
+        }
+        
         allReports = reports;
+        paginationInfo = pagination;
+        currentPage = page;
 
         if (!reports || reports.length === 0) {
           container.innerHTML = `
@@ -736,6 +878,7 @@
               <p>Henüz makine arıza bildirimi bulunmuyor.</p>
             </div>
           `;
+          renderPagination();
           return;
         }
 
@@ -781,6 +924,8 @@
         
         container.innerHTML = '';
         container.appendChild(table);
+        
+        renderPagination();
       } catch (err) {
         console.error('Reports load error:', err);
         container.innerHTML = `
@@ -790,10 +935,299 @@
           </div>
         `;
         showToast('Veriler yüklenirken hata oluştu', 'error');
+        renderPagination();
       } finally {
         refreshBtn.disabled = false;
       }
     }
+
+    // Render pagination controls
+    function renderPagination() {
+      const container = document.getElementById('pagination-container');
+      if (!paginationInfo || paginationInfo.totalPages <= 1) {
+        container.style.display = 'none';
+        return;
+      }
+
+      container.style.display = 'flex';
+      const { page, totalPages } = paginationInfo;
+      
+      let html = '';
+      
+      // Previous button
+      html += `<button class="pagination-btn" ${page === 1 ? 'disabled' : ''} onclick="loadReports(${page - 1})">‹</button>`;
+      
+      // Page numbers
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
+          html += `<button class="pagination-btn ${i === page ? 'active' : ''}" onclick="loadReports(${i})">${i}</button>`;
+        } else if (i === page - 2 || i === page + 2) {
+          html += `<span style="color: var(--text-secondary); padding: 0 4px;">...</span>`;
+        }
+      }
+      
+      // Next button
+      html += `<button class="pagination-btn" ${page === totalPages ? 'disabled' : ''} onclick="loadReports(${page + 1})">›</button>`;
+      
+      container.innerHTML = html;
+    }
+
+     // Load distribution chart
+     async function loadDistributionChart() {
+       const canvas = document.getElementById('fault-distribution-chart');
+       const emptyDiv = document.getElementById('chart-empty');
+       
+       try {
+         const res = await fetch('/api/admin/machine-faults/distribution?months=3');
+         if (!res.ok) throw new Error('Chart verisi yüklenemedi');
+         
+         const result = await res.json();
+         const data = result.data || [];
+         console.log("machine-distribution data", data);
+         
+         if (data.length === 0) {
+           canvas.style.display = 'none';
+           emptyDiv.style.display = 'block';
+           emptyDiv.textContent = 'Veri yok (son 3 ay filtresi nedeniyle boş olabilir).';
+           return;
+         }
+         
+         canvas.style.display = 'block';
+         emptyDiv.style.display = 'none';
+         
+         // Destroy existing chart if it exists
+         if (distributionChart) {
+           distributionChart.destroy();
+         }
+         
+         const ctx = canvas.getContext('2d');
+         distributionChart = new Chart(ctx, {
+           type: 'bar',
+           data: {
+             labels: data.map(item => item.label),
+             datasets: [{
+               label: 'Arıza Sayısı',
+               data: data.map(item => item.value),
+               backgroundColor: 'rgba(212, 168, 83, 0.6)',
+               borderColor: 'rgba(212, 168, 83, 1)',
+               borderWidth: 1
+             }]
+           },
+           options: {
+             indexAxis: 'y',
+             responsive: true,
+             maintainAspectRatio: false,
+             plugins: {
+               legend: {
+                 display: false
+               },
+               tooltip: {
+                 backgroundColor: 'rgba(21, 29, 48, 0.95)',
+                 titleColor: '#ffffff',
+                 bodyColor: '#d4a853',
+                 borderColor: '#2a3a5c',
+                 borderWidth: 1
+               }
+             },
+             scales: {
+               x: {
+                 beginAtZero: true,
+                 ticks: {
+                   color: '#94a3b8',
+                   stepSize: 1
+                 },
+                 grid: {
+                   color: 'rgba(42, 58, 92, 0.5)'
+                 }
+               },
+               y: {
+                 ticks: {
+                   color: '#94a3b8'
+                 },
+                 grid: {
+                   color: 'rgba(42, 58, 92, 0.5)'
+                 }
+               }
+             }
+           }
+         });
+       } catch (err) {
+         console.error('Chart load error:', err);
+         canvas.style.display = 'none';
+         emptyDiv.style.display = 'block';
+         emptyDiv.textContent = 'Veri yüklenirken hata oluştu.';
+       }
+     }
+
+     // Load fault type distribution chart
+     async function loadTypeDistributionChart() {
+       const canvas = document.getElementById('fault-type-chart');
+       const emptyDiv = document.getElementById('chart-type-empty');
+       
+       try {
+         const res = await fetch('/api/admin/machine-faults/type-distribution?months=3');
+         if (!res.ok) throw new Error('Chart verisi yüklenemedi');
+         
+         const result = await res.json();
+         const data = result.data || [];
+         console.log("type-distribution data", data);
+         
+         if (data.length === 0) {
+           canvas.style.display = 'none';
+           emptyDiv.style.display = 'block';
+           emptyDiv.textContent = 'Veri yok (son 3 ay filtresi nedeniyle boş olabilir).';
+           return;
+         }
+         
+         canvas.style.display = 'block';
+         emptyDiv.style.display = 'none';
+         
+         // Destroy existing chart if it exists
+         if (typeChart) {
+           typeChart.destroy();
+         }
+         
+         const ctx = canvas.getContext('2d');
+         
+         // Color palette for doughnut chart
+         const colors = [
+           'rgba(212, 168, 83, 0.8)',
+           'rgba(69, 176, 136, 0.8)',
+           'rgba(59, 130, 246, 0.8)',
+           'rgba(245, 158, 11, 0.8)',
+           'rgba(239, 68, 68, 0.8)'
+         ];
+         
+         typeChart = new Chart(ctx, {
+           type: 'doughnut',
+           data: {
+             labels: data.map(item => item.label),
+             datasets: [{
+               label: 'Arıza Sayısı',
+               data: data.map(item => item.value),
+               backgroundColor: colors.slice(0, data.length),
+               borderColor: 'rgba(21, 29, 48, 0.8)',
+               borderWidth: 2
+             }]
+           },
+           options: {
+             responsive: true,
+             maintainAspectRatio: false,
+             plugins: {
+               legend: {
+                 position: 'bottom',
+                 labels: {
+                   color: '#94a3b8',
+                   padding: 15,
+                   font: {
+                     size: 12
+                   }
+                 }
+               },
+               tooltip: {
+                 backgroundColor: 'rgba(21, 29, 48, 0.95)',
+                 titleColor: '#ffffff',
+                 bodyColor: '#d4a853',
+                 borderColor: '#2a3a5c',
+                 borderWidth: 1
+               }
+             }
+           }
+         });
+       } catch (err) {
+         console.error('Type chart load error:', err);
+         canvas.style.display = 'none';
+         emptyDiv.style.display = 'block';
+         emptyDiv.textContent = 'Veri yüklenirken hata oluştu.';
+       }
+     }
+
+     // Load personnel distribution chart
+     async function loadPersonnelChart() {
+       const canvas = document.getElementById('personnel-chart');
+       const emptyDiv = document.getElementById('chart-personnel-empty');
+       
+       try {
+         const res = await fetch('/api/admin/machine-faults/personnel-distribution?months=3');
+         if (!res.ok) throw new Error('Chart verisi yüklenemedi');
+         
+         const result = await res.json();
+         const data = result.data || [];
+         console.log("personnel-distribution data", data);
+         
+         if (data.length === 0) {
+           canvas.style.display = 'none';
+           emptyDiv.style.display = 'block';
+           emptyDiv.textContent = 'Veri yok (son 3 ay filtresi nedeniyle boş olabilir).';
+           return;
+         }
+         
+         canvas.style.display = 'block';
+         emptyDiv.style.display = 'none';
+         
+         // Destroy existing chart if it exists
+         if (personnelChart) {
+           personnelChart.destroy();
+         }
+         
+         const ctx = canvas.getContext('2d');
+         personnelChart = new Chart(ctx, {
+           type: 'bar',
+           data: {
+             labels: data.map(item => item.label),
+             datasets: [{
+               label: 'Bildirim Sayısı',
+               data: data.map(item => item.value),
+               backgroundColor: 'rgba(212, 168, 83, 0.6)',
+               borderColor: 'rgba(212, 168, 83, 1)',
+               borderWidth: 1
+             }]
+           },
+           options: {
+             indexAxis: 'y',
+             responsive: true,
+             maintainAspectRatio: false,
+             plugins: {
+               legend: {
+                 display: false
+               },
+               tooltip: {
+                 backgroundColor: 'rgba(21, 29, 48, 0.95)',
+                 titleColor: '#ffffff',
+                 bodyColor: '#d4a853',
+                 borderColor: '#2a3a5c',
+                 borderWidth: 1
+               }
+             },
+             scales: {
+               x: {
+                 beginAtZero: true,
+                 ticks: {
+                   color: '#94a3b8',
+                   stepSize: 1
+                 },
+                 grid: {
+                   color: 'rgba(42, 58, 92, 0.5)'
+                 }
+               },
+               y: {
+                 ticks: {
+                   color: '#94a3b8'
+                 },
+                 grid: {
+                   color: 'rgba(42, 58, 92, 0.5)'
+                 }
+               }
+             }
+           }
+         });
+       } catch (err) {
+         console.error('Personnel chart load error:', err);
+         canvas.style.display = 'none';
+         emptyDiv.style.display = 'block';
+         emptyDiv.textContent = 'Veri yüklenirken hata oluştu.';
+       }
+     }
 
     // Show detail modal
     function showDetail(reportId) {
@@ -925,14 +1359,23 @@
       }
     });
 
-    // Filter change handlers
-    document.getElementById('filter-status').addEventListener('change', loadReports);
-    document.getElementById('filter-priority').addEventListener('change', loadReports);
-
-    // Initialize on page load
-    document.addEventListener('DOMContentLoaded', () => {
-      loadReports();
+    // Filter change handlers (reset to page 1)
+    document.getElementById('filter-status').addEventListener('change', () => {
+      currentPage = 1;
+      loadReports(1);
     });
+    document.getElementById('filter-priority').addEventListener('change', () => {
+      currentPage = 1;
+      loadReports(1);
+    });
+
+     // Initialize on page load
+     document.addEventListener('DOMContentLoaded', () => {
+       loadReports(1);
+       loadDistributionChart();
+       loadTypeDistributionChart();
+       loadPersonnelChart();
+     });
   </script>
 </body>
 </html>

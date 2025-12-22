@@ -408,16 +408,52 @@ app.get('/api/admin/personnel', async (req, res) => {
   }
 });
 
-// Get machine fault reports with filters
+// Get machine fault reports with filters and pagination
 app.get('/api/admin/machine-fault-reports', async (req, res) => {
   try {
-    const { status, priority, makine_id, limit = 50 } = req.query;
+    const { status, priority, makine_id, page = 1, limit = 20 } = req.query;
     
     const statusFilter = status && status !== 'All' ? status : null;
     const priorityFilter = priority && priority !== 'All' ? priority : null;
     const makineIdFilter = makine_id ? parseInt(makine_id, 10) : null;
-    const limitNum = parseInt(limit, 10) || 50;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 20);
+    const offset = (pageNum - 1) * limitNum;
     
+    // Build WHERE clause conditions
+    const whereConditions = [];
+    const queryParams = [];
+    
+    if (statusFilter) {
+      whereConditions.push('r.status = ?');
+      queryParams.push(statusFilter);
+    }
+    if (priorityFilter) {
+      whereConditions.push('r.priority = ?');
+      queryParams.push(priorityFilter);
+    }
+    if (makineIdFilter) {
+      whereConditions.push('r.makine_id = ?');
+      queryParams.push(makineIdFilter);
+    }
+    
+    const whereClause = whereConditions.length > 0 
+      ? 'WHERE ' + whereConditions.join(' AND ')
+      : '';
+    
+    // Get total count for pagination
+    const [countRows] = await pool.query(`
+      SELECT COUNT(*) as total
+      FROM machine_fault_reports r
+      JOIN makine m ON m.makine_id = r.makine_id
+      JOIN personel p ON p.personel_id = r.personel_id
+      ${whereClause}
+    `, queryParams);
+    
+    const total = countRows[0]?.total || 0;
+    const totalPages = Math.ceil(total / limitNum);
+    
+    // Get paginated data
     const [rows] = await pool.query(`
       SELECT
         r.report_id,
@@ -436,18 +472,151 @@ app.get('/api/admin/machine-fault-reports', async (req, res) => {
       FROM machine_fault_reports r
       JOIN makine m ON m.makine_id = r.makine_id
       JOIN personel p ON p.personel_id = r.personel_id
-      WHERE 1=1
-        AND (? IS NULL OR r.status = ?)
-        AND (? IS NULL OR r.priority = ?)
-        AND (? IS NULL OR r.makine_id = ?)
+      ${whereClause}
       ORDER BY r.created_at DESC
-      LIMIT ?
-    `, [statusFilter, statusFilter, priorityFilter, priorityFilter, makineIdFilter, makineIdFilter, limitNum]);
+      LIMIT ? OFFSET ?
+    `, [...queryParams, limitNum, offset]);
     
-    res.json(rows || []);
+    res.json({
+      success: true,
+      data: rows || [],
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: total,
+        totalPages: totalPages
+      }
+    });
   } catch (error) {
     console.error('Admin machine fault reports error:', error);
-    res.status(500).json({ error: 'Bildirimler yüklenirken hata oluştu' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Bildirimler yüklenirken hata oluştu' 
+    });
+  }
+});
+
+// Get machine fault distribution for chart
+app.get('/api/admin/machine-faults/distribution', async (req, res) => {
+  try {
+    const months = parseInt(req.query.months) || 3;
+
+    const [rows] = await pool.query(`
+      SELECT
+        mk.makine_adi AS label,
+        COUNT(*) AS value
+      FROM machine_fault_reports mfr
+      JOIN makine mk ON mk.makine_id = mfr.makine_id
+      WHERE mfr.created_at >= NOW() - INTERVAL ? MONTH
+      GROUP BY mk.makine_id, mk.makine_adi
+      ORDER BY value DESC
+      LIMIT 8
+    `, [months]);
+
+    console.log("[machine-distribution] months=", months, "rows=", rows.length);
+
+    if (rows.length === 0) {
+      const [maxDateRows] = await pool.query(`SELECT MAX(created_at) AS maxDate FROM machine_fault_reports`);
+      console.log("[machine-distribution] No data, max created_at:", maxDateRows[0]?.maxDate);
+    }
+
+    const data = rows.map(row => ({
+      label: row.label || 'Bilinmiyor',
+      value: Number(row.value) || 0
+    }));
+
+    res.json({
+      success: true,
+      data: data
+    });
+  } catch (error) {
+    console.error('Machine fault distribution error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get fault type distribution for chart
+app.get('/api/admin/machine-faults/type-distribution', async (req, res) => {
+  try {
+    const months = parseInt(req.query.months) || 3;
+
+    const [rows] = await pool.query(`
+      SELECT
+        mfr.fault_type AS label,
+        COUNT(*) AS value
+      FROM machine_fault_reports mfr
+      WHERE mfr.created_at >= NOW() - INTERVAL ? MONTH
+      GROUP BY mfr.fault_type
+      ORDER BY value DESC
+    `, [months]);
+
+    console.log("[type-distribution] months=", months, "rows=", rows.length);
+
+    if (rows.length === 0) {
+      const [maxDateRows] = await pool.query(`SELECT MAX(created_at) AS maxDate FROM machine_fault_reports`);
+      console.log("[type-distribution] No data, max created_at:", maxDateRows[0]?.maxDate);
+    }
+
+    const data = rows.map(row => ({
+      label: row.label || 'Bilinmiyor',
+      value: Number(row.value) || 0
+    }));
+
+    res.json({
+      success: true,
+      data: data
+    });
+  } catch (error) {
+    console.error('Fault type distribution error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get personnel distribution for chart
+app.get('/api/admin/machine-faults/personnel-distribution', async (req, res) => {
+  try {
+    const months = parseInt(req.query.months) || 3;
+
+    const [rows] = await pool.query(`
+      SELECT
+        COALESCE(p.personel_ad_soyad, CONCAT('Personel #', mfr.personel_id)) AS label,
+        COUNT(*) AS value
+      FROM machine_fault_reports mfr
+      LEFT JOIN personel p ON p.personel_id = mfr.personel_id
+      WHERE mfr.created_at >= NOW() - INTERVAL ? MONTH
+      GROUP BY mfr.personel_id, label
+      ORDER BY value DESC
+      LIMIT 10
+    `, [months]);
+
+    console.log("[personnel-distribution] months=", months, "rows=", rows.length);
+
+    if (rows.length === 0) {
+      const [maxDateRows] = await pool.query(`SELECT MAX(created_at) AS maxDate FROM machine_fault_reports`);
+      console.log("[personnel-distribution] No data, max created_at:", maxDateRows[0]?.maxDate);
+    }
+
+    const data = rows.map(row => ({
+      label: row.label || 'Bilinmiyor',
+      value: Number(row.value) || 0
+    }));
+
+    res.json({
+      success: true,
+      data: data
+    });
+  } catch (error) {
+    console.error('Personnel distribution error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
@@ -1165,6 +1334,449 @@ app.get('/api/dashboard/order-completion-distribution', async (req, res) => {
   }
 });
 
+// GET /api/admin/analytics/top-production-time-products
+app.get('/api/admin/analytics/top-production-time-products', async (req, res) => {
+  try {
+    const months = parseInt(req.query.months) || 3;
+    const limit = 5; // Top 5 products
+    
+    // Calculate date threshold using MySQL DATE_SUB
+    const [dateRows] = await pool.query(`SELECT DATE_SUB(CURDATE(), INTERVAL ? MONTH) AS start_date`, [months]);
+    const startDate = dateRows[0].start_date;
+    
+    // Query to get average production days per product
+    // Groups by product and production group (siparis_detay_id or uretim_id)
+    // Calculates production_days = DATEDIFF(MAX(tarih), MIN(tarih)) + 1 per group
+    // Then takes AVG(production_days) per product
+    const [rows] = await pool.query(`
+      SELECT 
+        t.urun_id, 
+        u.urun_adi,
+        AVG(t.production_days) AS avg_production_days
+      FROM (
+        SELECT 
+          urun_id,
+          IFNULL(siparis_detay_id, uretim_id) AS grp_id,
+          DATEDIFF(MAX(tarih), MIN(tarih)) + 1 AS production_days
+        FROM uretim_kayit
+        WHERE tarih >= ?
+        GROUP BY urun_id, grp_id
+      ) t
+      JOIN urunler u ON u.urun_id = t.urun_id
+      GROUP BY t.urun_id, u.urun_adi
+      HAVING avg_production_days IS NOT NULL
+      ORDER BY avg_production_days DESC
+      LIMIT ?
+    `, [startDate, limit]);
+    
+    const data = rows.map(row => ({
+      urun_id: row.urun_id,
+      urun_adi: row.urun_adi,
+      avg_production_days: Number(row.avg_production_days) || 0
+    }));
+    
+    res.json({
+      success: true,
+      data: data
+    });
+  } catch (error) {
+    console.error('Top production time products error:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// GET /api/admin/analytics/mock/product-delay-risk
+app.get('/api/admin/analytics/mock/product-delay-risk', async (req, res) => {
+  try {
+    const months = parseInt(req.query.months) || 3;
+    const limit = 5; // Top 5 products
+    
+    // Query top 5 products from urunler (stable order by urun_id ASC)
+    const [rows] = await pool.query(`
+      SELECT urun_id, urun_adi
+      FROM urunler
+      ORDER BY urun_id ASC
+      LIMIT ?
+    `, [limit]);
+    
+    // Generate deterministic mock risk scores
+    const data = rows.map(row => {
+      // Compute pseudo risk score: risk = (urun_id * 37) % 101
+      let risk = (row.urun_id * 37) % 101;
+      // Clamp to 20..95: risk = 20 + ((risk % 76))
+      risk = 20 + (risk % 76);
+      
+      return {
+        urun_id: row.urun_id,
+        urun_adi: row.urun_adi,
+        risk_score: risk
+      };
+    });
+    
+    // If no products exist, use hardcoded fallback
+    if (data.length === 0) {
+      const fallbackProducts = [
+        { urun_id: 1, urun_adi: 'Örnek Ürün 1', risk_score: 45 },
+        { urun_id: 2, urun_adi: 'Örnek Ürün 2', risk_score: 62 },
+        { urun_id: 3, urun_adi: 'Örnek Ürün 3', risk_score: 78 },
+        { urun_id: 4, urun_adi: 'Örnek Ürün 4', risk_score: 34 },
+        { urun_id: 5, urun_adi: 'Örnek Ürün 5', risk_score: 89 }
+      ];
+      return res.json({
+        success: true,
+        isMock: true,
+        data: fallbackProducts
+      });
+    }
+    
+    res.json({
+      success: true,
+      isMock: true,
+      data: data
+    });
+  } catch (error) {
+    console.error('Mock product delay risk error:', error);
+    // Return fallback data on error
+    const fallbackProducts = [
+      { urun_id: 1, urun_adi: 'Örnek Ürün 1', risk_score: 45 },
+      { urun_id: 2, urun_adi: 'Örnek Ürün 2', risk_score: 62 },
+      { urun_id: 3, urun_adi: 'Örnek Ürün 3', risk_score: 78 },
+      { urun_id: 4, urun_adi: 'Örnek Ürün 4', risk_score: 34 },
+      { urun_id: 5, urun_adi: 'Örnek Ürün 5', risk_score: 89 }
+    ];
+    return res.json({
+      success: true,
+      isMock: true,
+      data: fallbackProducts
+    });
+  }
+});
+
+// ============================================
+// 👤 ADMIN CUSTOMER MANAGEMENT ENDPOINTS
+// ============================================
+
+// GET /api/admin/customers/summary
+app.get('/api/admin/customers/summary', async (req, res) => {
+  try {
+    // Total customers
+    const [totalRows] = await pool.query('SELECT COUNT(*) as total FROM musteriler');
+    const totalCustomers = Number(totalRows[0].total) || 0;
+
+    // Active customers (at least 1 order in last 60 days)
+    const [activeRows] = await pool.query(`
+      SELECT COUNT(DISTINCT s.musteri_id) as active_count
+      FROM siparisler s
+      WHERE s.siparis_tarihi >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+        AND s.musteri_id IS NOT NULL
+    `);
+    const activeCustomers = Number(activeRows[0].active_count) || 0;
+
+    // Risky customers (risk_score >= 60) - we'll calculate this in the list endpoint
+    // For summary, we'll use a simplified query
+    const [riskyRows] = await pool.query(`
+      SELECT COUNT(DISTINCT m.musteri_id) as risky_count
+      FROM musteriler m
+      LEFT JOIN siparisler s ON s.musteri_id = m.musteri_id
+      WHERE (
+        (SELECT COUNT(*) FROM siparisler s2 
+         WHERE s2.musteri_id = m.musteri_id 
+         AND UPPER(TRIM(s2.durumu)) = 'IPTAL') * 100.0 / 
+        NULLIF((SELECT COUNT(*) FROM siparisler s3 WHERE s3.musteri_id = m.musteri_id), 0) >= 30
+      )
+      OR (
+        DATEDIFF(CURDATE(), COALESCE(
+          (SELECT MAX(s4.siparis_tarihi) FROM siparisler s4 WHERE s4.musteri_id = m.musteri_id),
+          m.created_at
+        )) > 90
+      )
+    `);
+    const riskyCustomers = Number(riskyRows[0].risky_count) || 0;
+
+    res.json({
+      success: true,
+      data: {
+        totalCustomers,
+        activeCustomers,
+        riskyCustomers
+      }
+    });
+  } catch (error) {
+    console.error('Customer summary error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// GET /api/admin/customers/list?months=3
+app.get('/api/admin/customers/list', async (req, res) => {
+  try {
+    const months = parseInt(req.query.months) || 3;
+    const [dateRows] = await pool.query(`SELECT DATE_SUB(CURDATE(), INTERVAL ? MONTH) AS start_date`, [months]);
+    const startDate = dateRows[0].start_date;
+
+    const [rows] = await pool.query(`
+      SELECT 
+        m.musteri_id,
+        m.musteri_bilgisi as musteri_ad,
+        COALESCE(COUNT(DISTINCT s.siparis_id), 0) as total_orders,
+        COALESCE(SUM(d.toplam_tutar), 0) as total_revenue,
+        MAX(s.siparis_tarihi) as last_order_date,
+        GREATEST(0, DATEDIFF(CURDATE(), COALESCE(MAX(s.siparis_tarihi), m.created_at))) as inactivity_days
+      FROM musteriler m
+      LEFT JOIN siparisler s ON s.musteri_id = m.musteri_id 
+        AND s.siparis_tarihi >= ?
+      LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
+      GROUP BY m.musteri_id, m.musteri_bilgisi, m.created_at
+      ORDER BY total_revenue DESC
+    `, [startDate]);
+
+    // Get order statistics for all customers in one query (cancellation data only)
+    const customerIds = rows.map(r => r.musteri_id);
+    let statsMap = {};
+
+    if (customerIds.length > 0) {
+      try {
+        const placeholders = customerIds.map(() => '?').join(',');
+        const [orderStatsRows] = await pool.query(`
+          SELECT 
+            musteri_id,
+            COUNT(*) as total,
+            SUM(CASE WHEN UPPER(TRIM(durumu)) = 'IPTAL' THEN 1 ELSE 0 END) as cancelled
+          FROM siparisler
+          WHERE musteri_id IN (${placeholders})
+          GROUP BY musteri_id
+        `, customerIds);
+
+        orderStatsRows.forEach(stat => {
+          statsMap[stat.musteri_id] = stat;
+        });
+      } catch (err) {
+        console.error('Error fetching order stats:', err);
+      }
+    }
+
+    // Calculate risk scores and status badges
+    const customers = rows.map(row => {
+      const musteriId = row.musteri_id;
+      const totalOrders = Number(row.total_orders) || 0;
+      
+      // Handle NULL last_order_date: treat as max inactivity (100 days)
+      // If last_order_date is NULL, customer has never placed an order (or no orders in time period)
+      let inactivityDays = 0;
+      if (row.last_order_date === null || row.last_order_date === undefined || row.last_order_date === '') {
+        inactivityDays = 100; // Max inactivity - treat as never ordered
+      } else {
+        // Ensure inactivity_days is never negative (clamp to [0, 100])
+        inactivityDays = Math.max(0, Math.min(100, Number(row.inactivity_days) || 0));
+      }
+
+      // Edge case: Customers with 0 orders
+      if (totalOrders === 0) {
+        return {
+          musteri_id: musteriId,
+          musteri_ad: row.musteri_ad || `Müşteri ${musteriId}`,
+          total_orders: 0,
+          total_revenue: 0,
+          last_order_date: row.last_order_date,
+          status_badge: 'Pasif',
+          risk_score: 80, // Fixed high baseline for customers with no orders
+          cancel_rate_percent: null // Show "-" in UI
+        };
+      }
+
+      // Normal calculation for customers with orders > 0
+      // Get cancellation rate from all-time orders (not just last 3 months)
+      let cancelComponent = 0;
+      let cancelRatePercent = null; // For display in table
+
+      const stats = statsMap[musteriId];
+      const total = stats ? Number(stats.total) || 0 : 0;
+      
+      if (total > 0) {
+        // Real cancellation rate
+        const cancellationRate = (Number(stats.cancelled) || 0) / total;
+        // Clamp cancel_component to [0, 100]
+        cancelComponent = Math.max(0, Math.min(100, cancellationRate * 100));
+        // Calculate cancellation rate percentage for display
+        cancelRatePercent = Math.round(cancellationRate * 100);
+      } else {
+        // If no orders found in stats (customer has never placed an order), show "-"
+        cancelComponent = 0;
+        cancelRatePercent = null; // Will show "-" in UI
+      }
+
+      // Inactivity component: clamp to [0, 100]
+      const inactivityComponent = Math.max(0, Math.min(100, inactivityDays));
+
+      // Risk score: cancellation 60% + inactivity 40%
+      const rawScore = cancelComponent * 0.6 + inactivityComponent * 0.4;
+      // Final clamp to [0, 100]
+      const riskScore = Math.max(0, Math.min(100, Math.round(rawScore)));
+
+      // Determine status badge
+      let statusBadge = 'Aktif';
+      if (riskScore >= 60) {
+        statusBadge = 'Riskli';
+      } else if (inactivityDays > 90) {
+        statusBadge = 'Pasif';
+      }
+
+      return {
+        musteri_id: musteriId,
+        musteri_ad: row.musteri_ad || `Müşteri ${musteriId}`,
+        total_orders: totalOrders,
+        total_revenue: Number(row.total_revenue) || 0,
+        last_order_date: row.last_order_date,
+        status_badge: statusBadge,
+        risk_score: riskScore,
+        cancel_rate_percent: cancelRatePercent // null if totalOrders = 0, otherwise 0-100
+      };
+    });
+
+    res.json({
+      success: true,
+      data: customers
+    });
+  } catch (error) {
+    console.error('Customer list error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// GET /api/admin/customers/avg-delivery-time?months=3
+app.get('/api/admin/customers/avg-delivery-time', async (req, res) => {
+  try {
+    const months = parseInt(req.query.months) || 3;
+    const [dateRows] = await pool.query(`SELECT DATE_SUB(CURDATE(), INTERVAL ? MONTH) AS start_date`, [months]);
+    const startDate = dateRows[0].start_date;
+
+    // Try to get real data first
+    let isMock = false;
+    let rows = [];
+
+    try {
+      const [realRows] = await pool.query(`
+        SELECT 
+          m.musteri_bilgisi as musteri_ad,
+          AVG(DATEDIFF(
+            COALESCE(s.teslim_plan, s.siparis_tarihi),
+            s.siparis_tarihi
+          )) as avg_days
+        FROM musteriler m
+        INNER JOIN siparisler s ON s.musteri_id = m.musteri_id
+        WHERE s.siparis_tarihi >= ?
+          AND s.durumu = 'TAMAMLANDI'
+        GROUP BY m.musteri_id, m.musteri_bilgisi
+        HAVING avg_days IS NOT NULL
+        ORDER BY avg_days DESC
+        LIMIT 10
+      `, [startDate]);
+
+      if (realRows.length > 0) {
+        rows = realRows;
+      } else {
+        // Use mock data
+        isMock = true;
+        const [customerRows] = await pool.query(`
+          SELECT musteri_id, musteri_bilgisi as musteri_ad
+          FROM musteriler
+          ORDER BY musteri_id ASC
+          LIMIT 10
+        `);
+        rows = customerRows.map(c => ({
+          musteri_ad: c.musteri_ad || `Müşteri ${c.musteri_id}`,
+          avg_days: 2 + ((c.musteri_id * 13) % 12)
+        }));
+      }
+    } catch (err) {
+      // Fallback to mock
+      isMock = true;
+      const [customerRows] = await pool.query(`
+        SELECT musteri_id, musteri_bilgisi as musteri_ad
+        FROM musteriler
+        ORDER BY musteri_id ASC
+        LIMIT 10
+      `);
+      rows = customerRows.map(c => ({
+        musteri_ad: c.musteri_ad || `Müşteri ${c.musteri_id}`,
+        avg_days: 2 + ((c.musteri_id * 13) % 12)
+      }));
+    }
+
+    const data = rows.map(row => ({
+      musteri_ad: row.musteri_ad,
+      avg_days: Number(row.avg_days) || 0
+    })).sort((a, b) => b.avg_days - a.avg_days).slice(0, 10);
+
+    res.json({
+      success: true,
+      data: data,
+      isMock: isMock
+    });
+  } catch (error) {
+    console.error('Avg delivery time error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// GET /api/admin/customers/top-value?months=3
+app.get('/api/admin/customers/top-value', async (req, res) => {
+  try {
+    const months = parseInt(req.query.months) || 3;
+    const [dateRows] = await pool.query(`SELECT DATE_SUB(CURDATE(), INTERVAL ? MONTH) AS start_date`, [months]);
+    const startDate = dateRows[0].start_date;
+
+    const [rows] = await pool.query(`
+      SELECT 
+        m.musteri_bilgisi as musteri_ad,
+        COALESCE(SUM(d.toplam_tutar), 0) as revenue
+      FROM musteriler m
+      LEFT JOIN siparisler s ON s.musteri_id = m.musteri_id
+        AND s.siparis_tarihi >= ?
+        AND UPPER(TRIM(s.durumu)) <> 'IPTAL'
+      LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
+      GROUP BY m.musteri_id, m.musteri_bilgisi
+      HAVING revenue > 0
+      ORDER BY revenue DESC
+      LIMIT 5
+    `, [startDate]);
+
+    const data = rows.map(row => ({
+      musteri_ad: row.musteri_ad || 'Bilinmeyen Müşteri',
+      revenue: Number(row.revenue) || 0
+    }));
+
+    // Calculate total revenue for share percentage
+    const totalRevenue = data.reduce((sum, c) => sum + c.revenue, 0);
+    const dataWithShare = data.map(c => ({
+      ...c,
+      share: totalRevenue > 0 ? (c.revenue / totalRevenue * 100) : 0
+    }));
+
+    res.json({
+      success: true,
+      data: dataWithShare
+    });
+  } catch (error) {
+    console.error('Top value customers error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
 // GET /api/dashboard/ciro-kar-6ay (Revenue & Profit 6-month: 3 actual + 3 forecast)
 app.get('/api/dashboard/ciro-kar-6ay', async (req, res) => {
