@@ -655,6 +655,177 @@ app.patch('/api/admin/machine-fault-reports/:report_id', async (req, res) => {
   }
 });
 
+// Get machine fault summary (personnel list + overall KPIs)
+app.get('/api/machine-fault/summary', async (req, res) => {
+  try {
+    const months = parseInt(req.query.months) || 3;
+    
+    // Validate months parameter
+    if (months !== 1 && months !== 3) {
+      return res.status(400).json({ 
+        error: 'months parametresi sadece 1 veya 3 olabilir' 
+      });
+    }
+
+    // Get personnel summary with report counts
+    const [personnelRows] = await pool.query(`
+      SELECT
+        p.personel_id,
+        p.personel_ad_soyad,
+        COUNT(r.report_id) AS total_reports,
+        COUNT(DISTINCT r.makine_id) AS unique_machines
+      FROM personel p
+      LEFT JOIN machine_fault_reports r
+        ON r.personel_id = p.personel_id
+        AND r.created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
+      WHERE p.aktif_mi = 1
+      GROUP BY p.personel_id, p.personel_ad_soyad
+      ORDER BY total_reports DESC
+    `, [months]);
+
+    // Get overall totals
+    const [overallRows] = await pool.query(`
+      SELECT
+        COUNT(*) AS total_reports,
+        COUNT(DISTINCT makine_id) AS unique_machines
+      FROM machine_fault_reports
+      WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
+    `, [months]);
+
+    const overall = overallRows[0] || { total_reports: 0, unique_machines: 0 };
+
+    res.json({
+      success: true,
+      personnel: personnelRows.map(row => ({
+        personel_id: row.personel_id,
+        personel_ad_soyad: row.personel_ad_soyad,
+        total_reports: Number(row.total_reports) || 0,
+        unique_machines: Number(row.unique_machines) || 0
+      })),
+      overall: {
+        total_reports: Number(overall.total_reports) || 0,
+        unique_machines: Number(overall.unique_machines) || 0
+      },
+      months: months
+    });
+  } catch (error) {
+    console.error('Machine fault summary error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Özet veriler yüklenirken hata oluştu: ' + error.message 
+    });
+  }
+});
+
+// Get machine breakdown and recent reports
+app.get('/api/machine-fault/breakdown', async (req, res) => {
+  try {
+    const months = parseInt(req.query.months) || 3;
+    const personelIdParam = req.query.personel_id;
+    
+    // Validate months parameter
+    if (months !== 1 && months !== 3) {
+      return res.status(400).json({ 
+        error: 'months parametresi sadece 1 veya 3 olabilir' 
+      });
+    }
+
+    const isAll = !personelIdParam || personelIdParam === 'ALL';
+    const personelId = isAll ? null : parseInt(personelIdParam, 10);
+
+    if (!isAll && (isNaN(personelId) || personelId <= 0)) {
+      return res.status(400).json({ 
+        error: 'Geçersiz personel_id parametresi' 
+      });
+    }
+
+    // Machine breakdown query
+    let machineBreakdownQuery = `
+      SELECT
+        m.makine_id,
+        m.makine_adi,
+        COUNT(r.report_id) AS report_count,
+        MAX(r.created_at) AS last_report_at
+      FROM machine_fault_reports r
+      JOIN makine m ON m.makine_id = r.makine_id
+      WHERE r.created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
+    `;
+    const machineParams = [months];
+
+    if (!isAll) {
+      machineBreakdownQuery += ' AND r.personel_id = ?';
+      machineParams.push(personelId);
+    }
+
+    machineBreakdownQuery += `
+      GROUP BY m.makine_id, m.makine_adi
+      ORDER BY report_count DESC
+    `;
+
+    const [machineRows] = await pool.query(machineBreakdownQuery, machineParams);
+
+    // Recent reports query
+    let recentReportsQuery = `
+      SELECT
+        r.report_id,
+        r.created_at,
+        r.fault_type,
+        r.priority,
+        r.status,
+        r.title,
+        r.description,
+        p.personel_ad_soyad,
+        m.makine_adi
+      FROM machine_fault_reports r
+      JOIN personel p ON p.personel_id = r.personel_id
+      JOIN makine m ON m.makine_id = r.makine_id
+      WHERE r.created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
+    `;
+    const recentParams = [months];
+
+    if (!isAll) {
+      recentReportsQuery += ' AND r.personel_id = ?';
+      recentParams.push(personelId);
+    }
+
+    recentReportsQuery += `
+      ORDER BY r.created_at DESC
+      LIMIT 50
+    `;
+
+    const [recentRows] = await pool.query(recentReportsQuery, recentParams);
+
+    res.json({
+      success: true,
+      machine_breakdown: machineRows.map(row => ({
+        makine_id: row.makine_id,
+        makine_adi: row.makine_adi,
+        report_count: Number(row.report_count) || 0,
+        last_report_at: row.last_report_at
+      })),
+      recent_reports: recentRows.map(row => ({
+        report_id: row.report_id,
+        created_at: row.created_at,
+        fault_type: row.fault_type,
+        priority: row.priority,
+        status: row.status,
+        title: row.title,
+        description: row.description,
+        personel_ad_soyad: row.personel_ad_soyad,
+        makine_adi: row.makine_adi
+      })),
+      months: months,
+      personel_id: isAll ? 'ALL' : personelId
+    });
+  } catch (error) {
+    console.error('Machine fault breakdown error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Detay veriler yüklenirken hata oluştu: ' + error.message 
+    });
+  }
+});
+
 // ============================================
 // ⚙️ PRODUCTION MANAGEMENT API ENDPOINTS
 // ============================================
@@ -1092,12 +1263,13 @@ app.get('/api/customer/orders', async (req, res) => {
         s.teslim_plan,
         s.teslim_gercek,
         s.durumu,
+        s.musteri_notu,
         COALESCE(SUM(d.adet), 0) AS toplam_adet,
         COALESCE(SUM(d.toplam_tutar), 0) AS toplam_tutar
       FROM siparisler s
       LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
       WHERE s.musteri_id = ?
-      GROUP BY s.siparis_id, s.siparis_tarihi, s.teslim_plan, s.teslim_gercek, s.durumu
+      GROUP BY s.siparis_id, s.siparis_tarihi, s.teslim_plan, s.teslim_gercek, s.durumu, s.musteri_notu
       ORDER BY s.siparis_tarihi DESC
     `, [musteriId]);
     
@@ -1105,6 +1277,223 @@ app.get('/api/customer/orders', async (req, res) => {
   } catch (error) {
     console.error('Customer orders error:', error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+// Get completed orders for review
+app.get('/api/customer/orders/completed-for-review', async (req, res) => {
+  try {
+    const url = req.originalUrl || req.url;
+    const musteriId = req.query.musteriId || req.query.musteri_id || resolveCustomerId(req);
+    
+    console.log('[completed-for-review] Request URL:', url);
+    console.log('[completed-for-review] musteri_id:', musteriId);
+    
+    if (!musteriId) {
+      return res.status(400).json({ success: false, error: 'musteriId parametresi gerekli' });
+    }
+    
+    const [rows] = await pool.query(`
+      SELECT 
+        siparis_id, 
+        musteri_id,
+        durumu,
+        siparis_tarihi, 
+        teslim_plan, 
+        teslim_gercek, 
+        degerlendirme_puan, 
+        degerlendirme_yorum
+      FROM siparisler
+      WHERE musteri_id = ?
+        AND durumu = 'TAMAMLANDI'
+      ORDER BY siparis_id DESC
+    `, [musteriId]);
+    
+    console.log('[completed-for-review] Rows found:', rows.length);
+    if (rows.length > 0) {
+      console.log('[completed-for-review] Sample row:', {
+        siparis_id: rows[0].siparis_id,
+        durumu: rows[0].durumu,
+        has_puan: rows[0].degerlendirme_puan !== null,
+        has_yorum: rows[0].degerlendirme_yorum !== null
+      });
+    }
+    
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('[completed-for-review] Error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Temporary debug endpoint to check reviews in DB
+app.get('/api/dev/reviews-check', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        siparis_id, 
+        musteri_id, 
+        durumu, 
+        degerlendirme_puan, 
+        degerlendirme_yorum
+      FROM siparisler
+      WHERE degerlendirme_puan IS NOT NULL OR degerlendirme_yorum IS NOT NULL
+      ORDER BY siparis_id DESC
+      LIMIT 20
+    `);
+    
+    console.log('[reviews-check] Found reviews:', rows.length);
+    res.json({ success: true, count: rows.length, reviews: rows });
+  } catch (error) {
+    console.error('[reviews-check] Error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Submit review for completed order
+app.post('/api/customer/orders/:siparis_id/review', async (req, res) => {
+  try {
+    const { siparis_id } = req.params;
+    const { puan, yorum } = req.body || {};
+    const musteriId = req.query.musteriId || req.query.musteri_id || resolveCustomerId(req);
+    
+    if (!musteriId) {
+      return res.status(401).json({ success: false, error: 'Oturum bulunamadı' });
+    }
+    
+    // Validate puan (1-5 integer)
+    const puanNum = parseInt(puan, 10);
+    if (isNaN(puanNum) || puanNum < 1 || puanNum > 5) {
+      return res.status(400).json({ success: false, error: 'Puan 1 ile 5 arasında bir tam sayı olmalıdır' });
+    }
+    
+    // Validate yorum (max 500 chars, trim)
+    const yorumTrimmed = yorum ? String(yorum).trim().substring(0, 500) : null;
+    
+    // Update with atomic check (prevents double review)
+    const [result] = await pool.query(`
+      UPDATE siparisler
+      SET degerlendirme_puan = ?,
+          degerlendirme_yorum = ?
+      WHERE siparis_id = ?
+        AND musteri_id = ?
+        AND durumu = 'TAMAMLANDI'
+        AND degerlendirme_puan IS NULL
+    `, [puanNum, yorumTrimmed || null, siparis_id, musteriId]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(409).json({ 
+        success: false, 
+        error: 'Bu sipariş zaten değerlendirilmiş veya değerlendirilemez.' 
+      });
+    }
+    
+    res.json({ success: true, message: 'Değerlendirme kaydedildi' });
+  } catch (error) {
+    console.error('Submit review error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Cancel customer order
+app.patch('/api/customer/orders/:siparis_id/cancel', async (req, res) => {
+  try {
+    const { siparis_id } = req.params;
+    const musteriId = req.query.musteriId || req.body.musteriId;
+    
+    if (!musteriId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'musteriId parametresi gerekli' 
+      });
+    }
+    
+    // Fetch the order and verify it belongs to the customer
+    const [orderRows] = await pool.query(`
+      SELECT siparis_id, musteri_id, durumu
+      FROM siparisler
+      WHERE siparis_id = ? AND musteri_id = ?
+    `, [siparis_id, musteriId]);
+    
+    if (!orderRows || orderRows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Sipariş bulunamadı veya bu sipariş size ait değil' 
+      });
+    }
+    
+    const order = orderRows[0];
+    const currentStatus = (order.durumu || '').toString().trim().toUpperCase();
+    
+    // Normalize status (handle Turkish characters)
+    const normalizedStatus = currentStatus
+      .replace(/İ/g, 'I')
+      .replace(/Ü/g, 'U')
+      .replace(/Ö/g, 'O')
+      .replace(/Ş/g, 'S')
+      .replace(/Ç/g, 'C')
+      .replace(/Ğ/g, 'G')
+      .replace(/\s+/g, '_');
+    
+    // Check if order can be canceled (only Planlandı or Üretimde)
+    const cancelableStatuses = ['PLANLANDI', 'URETIMDE'];
+    
+    if (!cancelableStatuses.includes(normalizedStatus)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Bu sipariş bu aşamada iptal edilemez. Sadece "Planlandı" veya "Üretimde" durumundaki siparişler iptal edilebilir.' 
+      });
+    }
+    
+    // Check if already canceled
+    if (normalizedStatus === 'IPTAL') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Bu sipariş zaten iptal edilmiş' 
+      });
+    }
+    
+    // Update order status to IPTAL
+    const [updateResult] = await pool.query(`
+      UPDATE siparisler
+      SET durumu = 'IPTAL'
+      WHERE siparis_id = ?
+    `, [siparis_id]);
+    
+    if (updateResult.affectedRows === 0) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Sipariş iptal edilemedi' 
+      });
+    }
+    
+    // Fetch updated order with details
+    const [updatedRows] = await pool.query(`
+      SELECT
+        s.siparis_id,
+        s.siparis_tarihi,
+        s.teslim_plan,
+        s.teslim_gercek,
+        s.durumu,
+        COALESCE(SUM(d.adet), 0) AS toplam_adet,
+        COALESCE(SUM(d.toplam_tutar), 0) AS toplam_tutar
+      FROM siparisler s
+      LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
+      WHERE s.siparis_id = ?
+      GROUP BY s.siparis_id, s.siparis_tarihi, s.teslim_plan, s.teslim_gercek, s.durumu
+    `, [siparis_id]);
+    
+    res.json({
+      success: true,
+      message: 'Sipariş iptal edildi',
+      data: updatedRows[0] || null
+    });
+  } catch (error) {
+    console.error('Cancel order error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Sipariş iptal edilirken hata oluştu: ' + error.message 
+    });
   }
 });
 
@@ -1124,12 +1513,13 @@ app.get('/api/customer/orders/all', async (req, res) => {
         s.teslim_plan,
         s.teslim_gercek,
         s.durumu,
+        s.musteri_notu,
         COALESCE(SUM(d.adet), 0) AS toplam_adet,
         COALESCE(SUM(d.toplam_tutar), 0) AS toplam_tutar
       FROM siparisler s
       LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
       WHERE s.musteri_id = ?
-      GROUP BY s.siparis_id, s.siparis_tarihi, s.teslim_plan, s.teslim_gercek, s.durumu
+      GROUP BY s.siparis_id, s.siparis_tarihi, s.teslim_plan, s.teslim_gercek, s.durumu, s.musteri_notu
       ORDER BY s.siparis_id DESC
       LIMIT 500
     `, [musteriId]);
@@ -1525,9 +1915,10 @@ app.get('/api/admin/customers/list', async (req, res) => {
         m.musteri_id,
         m.musteri_bilgisi as musteri_ad,
         COALESCE(COUNT(DISTINCT s.siparis_id), 0) as total_orders,
-        COALESCE(SUM(d.toplam_tutar), 0) as total_revenue,
+        COALESCE(SUM(CASE WHEN UPPER(TRIM(s.durumu)) <> 'IPTAL' THEN d.toplam_tutar ELSE 0 END), 0) as total_revenue,
         MAX(s.siparis_tarihi) as last_order_date,
-        GREATEST(0, DATEDIFF(CURDATE(), COALESCE(MAX(s.siparis_tarihi), m.created_at))) as inactivity_days
+        GREATEST(0, DATEDIFF(CURDATE(), COALESCE(MAX(s.siparis_tarihi), m.created_at))) as inactivity_days,
+        SUM(CASE WHEN UPPER(TRIM(s.durumu)) = 'IPTAL' THEN 1 ELSE 0 END) as cancelled_orders
       FROM musteriler m
       LEFT JOIN siparisler s ON s.musteri_id = m.musteri_id 
         AND s.siparis_tarihi >= ?
@@ -1907,10 +2298,77 @@ app.get('/api/customer/orders/summary', async (req, res) => {
 // 📦 CUSTOMER ORDERS API ENDPOINTS (Sipariş Yönetimi)
 // ============================================
 
+// Get customer reviews for admin panel
+// This endpoint queries reviews from siparisler table (where degerlendirme_puan is stored)
+// If a separate siparis_degerlendirmeleri table exists, modify the query accordingly
+app.get('/api/admin/customer-reviews', async (req, res) => {
+  try {
+    // Query reviews from siparisler table where reviews exist
+    // Join with musteriler to get customer name
+    const [rows] = await pool.query(`
+      SELECT 
+        s.siparis_id AS id,
+        s.siparis_id,
+        m.musteri_bilgisi AS musteri_adsoyad,
+        s.siparis_tarihi,
+        s.degerlendirme_puan AS puan,
+        s.degerlendirme_yorum AS yorum,
+        s.siparis_tarihi AS olusturma_tarihi
+      FROM siparisler s
+      INNER JOIN musteriler m ON m.musteri_id = s.musteri_id
+      WHERE s.durumu = 'TAMAMLANDI'
+        AND s.degerlendirme_puan IS NOT NULL
+        AND s.degerlendirme_puan > 0
+      ORDER BY s.siparis_tarihi DESC, s.siparis_id DESC
+    `);
+    
+    console.log('[admin/customer-reviews] Found reviews:', rows.length);
+    
+    res.json({
+      success: true,
+      reviews: rows || []
+    });
+  } catch (error) {
+    console.error('[admin/customer-reviews] Error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Değerlendirmeler yüklenirken hata oluştu: ' + error.message 
+    });
+  }
+});
+
 // Get all customer orders with details
 // Orders are created by customers via Müşteri Paneli, admin can only view/update/delete
 app.get('/api/siparisler', async (req, res) => {
   try {
+    // Parse pagination params
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const offset = (page - 1) * limit;
+    const searchTerm = req.query.q ? String(req.query.q).trim() : null;
+    
+    // Build WHERE clause for search
+    const hasSearch = searchTerm && searchTerm.length > 0;
+    const searchCondition = hasSearch
+      ? `(m.musteri_bilgisi LIKE CONCAT('%', ?, '%') OR u.urun_adi LIKE CONCAT('%', ?, '%'))`
+      : '1=1';
+    
+    const searchParams = hasSearch ? [searchTerm, searchTerm] : [];
+    
+    // Get total count
+    const [countRows] = await pool.query(`
+      SELECT COUNT(DISTINCT s.siparis_id) AS total
+      FROM siparisler s
+      LEFT JOIN musteriler m ON m.musteri_id = s.musteri_id
+      LEFT JOIN siparis_detay sd ON sd.siparis_id = s.siparis_id
+      LEFT JOIN urunler u ON u.urun_id = sd.urun_id
+      WHERE ${searchCondition}
+    `, searchParams);
+    
+    const total = Number(countRows[0]?.total || 0);
+    const totalPages = Math.ceil(total / limit);
+    
+    // Get paginated data
     const [rows] = await pool.query(`
       SELECT 
         s.siparis_id AS id,
@@ -1920,6 +2378,9 @@ app.get('/api/siparisler', async (req, res) => {
         s.siparis_tarihi,
         s.teslim_plan AS teslim_tarihi,
         s.durumu AS durum,
+        s.musteri_notu,
+        s.degerlendirme_puan,
+        s.degerlendirme_yorum,
         COALESCE(SUM(sd.adet), 0) AS adet,
         COALESCE(SUM(sd.toplam_tutar), 0) AS tutar,
         GROUP_CONCAT(DISTINCT u.urun_adi SEPARATOR ', ') AS urunler
@@ -1927,11 +2388,23 @@ app.get('/api/siparisler', async (req, res) => {
       LEFT JOIN musteriler m ON m.musteri_id = s.musteri_id
       LEFT JOIN siparis_detay sd ON sd.siparis_id = s.siparis_id
       LEFT JOIN urunler u ON u.urun_id = sd.urun_id
+      WHERE ${searchCondition}
       GROUP BY s.siparis_id, s.musteri_id, m.musteri_bilgisi, m.sehir, 
-               s.siparis_tarihi, s.teslim_plan, s.durumu
+               s.siparis_tarihi, s.teslim_plan, s.durumu, s.musteri_notu, s.degerlendirme_puan, s.degerlendirme_yorum
       ORDER BY s.siparis_tarihi DESC, s.siparis_id DESC
-    `);
-    res.json(rows);
+      LIMIT ? OFFSET ?
+    `, [...searchParams, limit, offset]);
+    
+    res.json({
+      success: true,
+      data: {
+        rows: rows,
+        page: page,
+        limit: limit,
+        total: total,
+        totalPages: totalPages
+      }
+    });
   } catch (error) {
     console.error('Customer orders error:', error);
     return res.status(500).json({ error: error.message });
@@ -2020,8 +2493,11 @@ const resolveCustomerId = (req) => {
 // Create order for logged-in customer
 app.post('/api/orders', async (req, res) => {
   try {
-    const { aracModelId, quantity } = req.body || {};
+    const { aracModelId, quantity, musteri_notu } = req.body || {};
     const musteriId = resolveCustomerId(req);
+    
+    // Trim and validate note (max 500 chars)
+    const note = musteri_notu ? String(musteri_notu).trim().substring(0, 500) : null;
 
     if (!musteriId) {
       return res.status(401).json({ success: false, message: 'Oturum bulunamadı' });
@@ -2057,26 +2533,78 @@ app.post('/api/orders', async (req, res) => {
       total: totalAmount
     });
 
+    // Insert order with explicit PLANLANDI status (enum value, not Turkish text)
+    // ENUM values: 'URETIMDE','PLANLANDI','TAMAMLANDI','SEVK_EDILDI','IPTAL'
     const [orderResult] = await pool.query(
-      `INSERT INTO siparisler (musteri_id, siparis_tarihi, teslim_plan, durumu)
-       VALUES (?, NOW(), NULL, 'AKTIF')`,
-      [musteriId]
+      `INSERT INTO siparisler (musteri_id, siparis_tarihi, teslim_plan, durumu, musteri_notu)
+       VALUES (?, CURDATE(), NULL, 'PLANLANDI', ?)`,
+      [musteriId, note || null]
     );
 
     const siparisId = orderResult.insertId;
+    
+    // Verify the order was created
+    if (!siparisId) {
+      throw new Error('Sipariş oluşturulamadı: insertId alınamadı');
+    }
 
+    // Insert order details
     await pool.query(
       `INSERT INTO siparis_detay (siparis_id, urun_id, adet, toplam_tutar)
        VALUES (?, ?, ?, ?)`,
       [siparisId, product.urun_id, parsedQty, totalAmount]
     );
 
+    // Fetch the created order with full details to verify status
+    const [createdOrderRows] = await pool.query(`
+      SELECT
+        s.siparis_id,
+        s.musteri_id,
+        s.siparis_tarihi,
+        s.teslim_plan,
+        s.teslim_gercek,
+        s.durumu,
+        s.musteri_notu,
+        COALESCE(SUM(d.adet), 0) AS toplam_adet,
+        COALESCE(SUM(d.toplam_tutar), 0) AS toplam_tutar
+      FROM siparisler s
+      LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
+      WHERE s.siparis_id = ?
+      GROUP BY s.siparis_id, s.musteri_id, s.siparis_tarihi, s.teslim_plan, s.teslim_gercek, s.durumu, s.musteri_notu
+    `, [siparisId]);
+
+    const createdOrder = createdOrderRows[0] || null;
+    
+    // Verify status was set correctly (should be 'PLANLANDI')
+    if (createdOrder && (!createdOrder.durumu || createdOrder.durumu === '')) {
+      console.error('WARNING: Order created with NULL/empty status. Order ID:', siparisId);
+      // Attempt to fix it
+      await pool.query(
+        `UPDATE siparisler SET durumu = 'PLANLANDI' WHERE siparis_id = ? AND (durumu IS NULL OR durumu = '')`,
+        [siparisId]
+      );
+      // Re-fetch after fix
+      const [fixedOrderRows] = await pool.query(`
+        SELECT durumu FROM siparisler WHERE siparis_id = ?
+      `, [siparisId]);
+      if (fixedOrderRows[0]) {
+        createdOrder.durumu = fixedOrderRows[0].durumu || 'PLANLANDI';
+      }
+    }
+    
+    // Ensure durumu is set in response
+    if (createdOrder && !createdOrder.durumu) {
+      createdOrder.durumu = 'PLANLANDI';
+    }
+
     return res.status(201).json({
       success: true,
       urunId: product.urun_id,
       orderId: siparisId,
+      siparis_id: siparisId,
       totalAmount,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      order: createdOrder
     });
   } catch (error) {
     console.error('Create order error (full):', error);

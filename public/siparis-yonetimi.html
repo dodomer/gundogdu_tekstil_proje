@@ -283,7 +283,76 @@
       font-weight: 600;
       cursor: pointer;
     }
-    .btn-save:hover { box-shadow: 0 5px 20px var(--accent-glow); }
+      .btn-save:hover { box-shadow: 0 5px 20px var(--accent-glow); }
+
+      .pagination-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .pagination-btn {
+        padding: 8px 14px;
+        background: var(--bg-dark);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 40px;
+      }
+
+      .pagination-btn:hover:not(:disabled) {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: rgba(212, 168, 83, 0.1);
+      }
+
+      .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .pagination-btn.active {
+        background: linear-gradient(135deg, var(--accent), var(--accent-light));
+        border-color: var(--accent);
+        color: var(--bg-dark);
+        font-weight: 600;
+      }
+
+      .pagination-btn.active:hover {
+        background: linear-gradient(135deg, var(--accent), var(--accent-light));
+        color: var(--bg-dark);
+      }
+
+      .pagination-pages {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .loading-row {
+        text-align: center;
+        padding: 40px;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(212, 168, 83, 0.3);
+        border-radius: 50%;
+        border-top-color: var(--accent);
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
 
     .dashboard-footer {
       text-align: center;
@@ -370,6 +439,7 @@
               <th>Sipariş Tarihi</th>
               <th>Tahmini Teslim Tarihi</th>
               <th>Durum</th>
+              <th>Değerlendirme</th>
               <th>İşlemler</th>
             </tr>
           </thead>
@@ -384,6 +454,52 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      
+      <!-- Pagination Controls -->
+      <div class="pagination-wrapper" id="pagination-wrapper" style="display: none;">
+        <div style="color: var(--text-secondary); font-size: 0.9rem;">
+          Toplam: <strong style="color: var(--text-primary);" id="pagination-total">0</strong> kayıt
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <label style="color: var(--text-secondary); font-size: 0.9rem; margin-right: 8px;">
+            Sayfa başına:
+            <select id="rows-per-page" style="margin-left: 8px; padding: 6px 10px; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-family: inherit; cursor: pointer;">
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="50">50</option>
+            </select>
+          </label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button id="pagination-prev" class="pagination-btn" onclick="changePage(paginationState.page - 1)" disabled>
+              ← Önceki
+            </button>
+            <div id="pagination-pages" class="pagination-pages">
+              <!-- Page numbers will be inserted here -->
+            </div>
+            <button id="pagination-next" class="pagination-btn" onclick="changePage(paginationState.page + 1)">
+              Sonraki →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Customer Reviews Section -->
+    <div class="table-card" id="reviews-section" style="margin-top: 30px;">
+      <div class="table-header">
+        <h2>⭐ Müşteri Değerlendirmeleri</h2>
+      </div>
+      <div id="reviews-list" style="padding: 20px;">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Değerlendirmeler yükleniyor...</p>
+        </div>
+      </div>
+      <div id="reviews-pagination" style="display: none; padding: 20px; border-top: 1px solid var(--border-color); text-align: center;">
+        <button id="reviews-prev" class="pagination-btn" onclick="changeReviewsPage(reviewsState.page - 1)" disabled>← Önceki</button>
+        <span style="margin: 0 16px; color: var(--text-secondary);">Sayfa <strong id="reviews-page-num">1</strong> / <strong id="reviews-total-pages">1</strong></span>
+        <button id="reviews-next" class="pagination-btn" onclick="changeReviewsPage(reviewsState.page + 1)">Sonraki →</button>
       </div>
     </div>
   </main>
@@ -418,6 +534,34 @@
             <label for="edit_teslim_tarihi">Teslim Tarihi</label>
             <input type="date" id="edit_teslim_tarihi">
           </div>
+          
+          <div class="form-group">
+            <label for="edit_musteri_notu">Müşteri Notu</label>
+            <textarea 
+              id="edit_musteri_notu" 
+              readonly 
+              disabled
+              style="width: 100%; padding: 12px; min-height: 100px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 0.9rem; resize: vertical; color: #333; line-height: 1.5; cursor: not-allowed;"
+            ></textarea>
+            <small id="edit_musteri_notu_empty" style="display: none; color: #666; font-style: italic; padding: 12px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; display: block;">Bu sipariş için müşteri notu bulunmamaktadır.</small>
+          </div>
+          
+          <div class="form-group">
+            <label>Müşteri Değerlendirmesi</label>
+            <div id="edit_review_container" style="padding: 12px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; min-height: 60px;">
+              <small id="edit_review_empty" style="color: #666; font-style: italic;">Bu sipariş henüz değerlendirilmemiş.</small>
+              <div id="edit_review_content" style="display: none;">
+                <div style="margin-bottom: 12px;">
+                  <span style="font-size: 0.9rem; color: #333; margin-right: 8px;">Puan:</span>
+                  <span id="edit_review_stars" style="font-size: 1.2rem;"></span>
+                </div>
+                <div id="edit_review_yorum_container" style="display: none;">
+                  <span style="font-size: 0.9rem; color: #333; margin-right: 8px;">Yorum:</span>
+                  <p id="edit_review_yorum" style="font-size: 0.85rem; color: #555; margin-top: 8px; line-height: 1.5; white-space: pre-wrap;"></p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-cancel" onclick="closeEditModal()">İptal</button>
@@ -429,21 +573,80 @@
 
   <script>
     let allOrders = [];
+    let paginationState = {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
+      searchTerm: ''
+    };
+    let searchDebounceTimer = null;
+    
+    // Reviews state
+    let reviewsState = {
+      page: 1,
+      limit: 10,
+      totalPages: 1
+    };
 
-    async function loadOrders() {
+    async function loadOrders(page = null, limit = null, searchTerm = null) {
+      const tbody = document.getElementById('ordersTableBody');
+      
+      // Show loading state
+      tbody.innerHTML = `
+        <tr><td colspan="9">
+          <div class="loading-row">
+            <div class="spinner"></div>
+            <p style="margin-top: 12px; color: var(--text-secondary);">Yükleniyor...</p>
+          </div>
+        </td></tr>`;
+      
       try {
-        const response = await fetch('/api/siparisler');
+        // Update state
+        if (page !== null) paginationState.page = page;
+        if (limit !== null) {
+          paginationState.limit = limit;
+          paginationState.page = 1; // Reset to page 1 when limit changes
+        }
+        if (searchTerm !== null) {
+          paginationState.searchTerm = searchTerm;
+          paginationState.page = 1; // Reset to page 1 when search changes
+        }
+        
+        // Build query params
+        const params = new URLSearchParams({
+          page: paginationState.page,
+          limit: paginationState.limit
+        });
+        if (paginationState.searchTerm) {
+          params.append('q', paginationState.searchTerm);
+        }
+        
+        const response = await fetch(`/api/siparisler?${params.toString()}`);
         if (!response.ok) throw new Error('Sunucu hatası');
         
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          allOrders = data;
-          renderTable(data);
-          updateStats(data);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          allOrders = result.data.rows;
+          paginationState.total = result.data.total;
+          paginationState.totalPages = result.data.totalPages;
+          
+          renderTable(result.data.rows);
+          updateStats(result.data.rows);
+          updatePaginationUI();
+          
+          // Update rows per page selector to match current limit
+          const rowsPerPageSelect = document.getElementById('rows-per-page');
+          if (rowsPerPageSelect) {
+            rowsPerPageSelect.value = paginationState.limit;
+          }
+        } else {
+          throw new Error('Geçersiz yanıt formatı');
         }
       } catch (error) {
         console.error('Error loading orders:', error);
-        document.getElementById('ordersTableBody').innerHTML = `
+        tbody.innerHTML = `
           <tr><td colspan="9">
             <div class="empty-state">
               <p>⚠️ Siparişler yüklenirken hata oluştu.</p>
@@ -453,7 +656,9 @@
     }
 
     function updateStats(orders) {
-      document.getElementById('totalOrders').textContent = orders.length;
+      // Note: Stats are calculated from current page only
+      // For accurate stats across all pages, consider a separate /api/siparisler/stats endpoint
+      document.getElementById('totalOrders').textContent = paginationState.total || orders.length;
       document.getElementById('planlandiOrders').textContent = orders.filter(o => o.durum === 'PLANLANDI').length;
       document.getElementById('uretimdeOrders').textContent = orders.filter(o => o.durum === 'URETIMDE').length;
       document.getElementById('tamamlandiOrders').textContent = orders.filter(o => o.durum === 'TAMAMLANDI').length;
@@ -465,8 +670,8 @@
       const tbody = document.getElementById('ordersTableBody');
       
       if (orders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9">
-          <div class="empty-state"><p>📭 Henüz sipariş bulunmuyor.</p></div>
+        tbody.innerHTML = `<tr><td colspan="10">
+          <div class="empty-state"><p>📭 Kayıt bulunamadı.</p></div>
         </td></tr>`;
         return;
       }
@@ -483,10 +688,29 @@
         const adet = Number(order.adet) || 0;
         const tutarNum = Number(order.tutar) || 0;
         const tutar = tutarNum.toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ₺';
+        const hasNote = order.musteri_notu && order.musteri_notu.trim().length > 0;
+        const noteIcon = hasNote ? '<span title="Bu siparişte müşteri notu var" style="margin-left: 4px; font-size: 0.9rem; cursor: help;">📝</span>' : '';
+        
+        // Review display
+        const hasReview = order.degerlendirme_puan !== null && order.degerlendirme_puan !== undefined;
+        const puan = order.degerlendirme_puan || 0;
+        let reviewHtml = '<span style="color: var(--text-secondary);">—</span>';
+        
+        if (hasReview && puan > 0) {
+          const starsHtml = Array.from({ length: 5 }, (_, i) => {
+            const filled = i < puan ? '★' : '☆';
+            const color = i < puan ? '#fbbf24' : 'var(--text-secondary)';
+            return `<span style="color: ${color}; font-size: 0.9rem;">${filled}</span>`;
+          }).join('');
+          reviewHtml = `<div style="display: flex; align-items: center; gap: 6px;">
+            ${starsHtml}
+            <span style="font-size: 0.85rem; color: var(--text-secondary);">${puan}/5</span>
+          </div>`;
+        }
 
         return `
           <tr>
-            <td><strong>#${order.id}</strong></td>
+            <td><strong>#${order.id}</strong>${noteIcon}</td>
             <td>${order.musteri_adi || '-'}</td>
             <td>${urunler}</td>
             <td>${adet}</td>
@@ -494,6 +718,7 @@
             <td>${siparisTarihi}</td>
             <td>${teslimTarihi}</td>
             <td><span class="status-badge status-${statusClass}">${statusText}</span></td>
+            <td>${reviewHtml}</td>
             <td>
               <div class="action-btns">
                 <button class="btn-edit" onclick="openEditModal(${order.id})">✏️</button>
@@ -516,18 +741,19 @@
       return map[status] || status || '-';
     }
 
-    // Search
+    // Search with debounce
     document.getElementById('searchInput').addEventListener('input', (e) => {
-      const term = e.target.value.toLowerCase().trim();
-      if (term === '') {
-        renderTable(allOrders);
-        return;
+      const term = e.target.value.trim();
+      
+      // Clear existing timer
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
       }
-      const filtered = allOrders.filter(o => 
-        (o.musteri_adi || '').toLowerCase().includes(term) ||
-        (o.urunler || '').toLowerCase().includes(term)
-      );
-      renderTable(filtered);
+      
+      // Debounce: wait 300ms after user stops typing
+      searchDebounceTimer = setTimeout(() => {
+        loadOrders(null, null, term);
+      }, 300);
     });
 
     // Edit Modal
@@ -538,6 +764,60 @@
       document.getElementById('edit_id').value = id;
       document.getElementById('edit_durumu').value = order.durum || 'PLANLANDI';
       document.getElementById('edit_teslim_tarihi').value = order.teslim_tarihi ? order.teslim_tarihi.split('T')[0] : '';
+      
+      // Handle customer note
+      const noteTextarea = document.getElementById('edit_musteri_notu');
+      const noteEmptyMsg = document.getElementById('edit_musteri_notu_empty');
+      const hasNote = order.musteri_notu && order.musteri_notu.trim().length > 0;
+      
+      if (hasNote) {
+        noteTextarea.value = order.musteri_notu;
+        noteTextarea.style.display = 'block';
+        noteEmptyMsg.style.display = 'none';
+      } else {
+        noteTextarea.value = '';
+        noteTextarea.style.display = 'none';
+        noteEmptyMsg.style.display = 'block';
+      }
+      
+      // Handle customer review
+      const reviewContainer = document.getElementById('edit_review_container');
+      const reviewEmpty = document.getElementById('edit_review_empty');
+      const reviewContent = document.getElementById('edit_review_content');
+      const reviewStars = document.getElementById('edit_review_stars');
+      const reviewYorumContainer = document.getElementById('edit_review_yorum_container');
+      const reviewYorum = document.getElementById('edit_review_yorum');
+      
+      const hasReview = order.degerlendirme_puan !== null && order.degerlendirme_puan !== undefined;
+      const puan = order.degerlendirme_puan || 0;
+      const yorum = order.degerlendirme_yorum || '';
+      
+      if (hasReview && puan > 0) {
+        // Show review
+        reviewEmpty.style.display = 'none';
+        reviewContent.style.display = 'block';
+        
+        // Render stars
+        const starsHtml = Array.from({ length: 5 }, (_, i) => {
+          const filled = i < puan ? '★' : '☆';
+          const color = i < puan ? '#fbbf24' : '#ccc';
+          return `<span style="color: ${color};">${filled}</span>`;
+        }).join('');
+        reviewStars.innerHTML = starsHtml;
+        
+        // Show comment if exists
+        if (yorum && yorum.trim().length > 0) {
+          reviewYorumContainer.style.display = 'block';
+          reviewYorum.textContent = yorum;
+        } else {
+          reviewYorumContainer.style.display = 'none';
+        }
+      } else {
+        // No review
+        reviewEmpty.style.display = 'block';
+        reviewContent.style.display = 'none';
+      }
+      
       document.getElementById('editModal').classList.add('active');
     }
 
@@ -591,8 +871,208 @@
       }
     }
 
+    // Pagination functions
+    function changePage(newPage) {
+      if (newPage < 1 || newPage > paginationState.totalPages) return;
+      loadOrders(newPage, null, null);
+    }
+    
+    function updatePaginationUI() {
+      const wrapper = document.getElementById('pagination-wrapper');
+      const totalEl = document.getElementById('pagination-total');
+      const prevBtn = document.getElementById('pagination-prev');
+      const nextBtn = document.getElementById('pagination-next');
+      const pagesContainer = document.getElementById('pagination-pages');
+      
+      // Show pagination if there are multiple pages
+      if (wrapper) {
+        wrapper.style.display = paginationState.totalPages > 1 ? 'flex' : 'none';
+      }
+      
+      if (totalEl) totalEl.textContent = paginationState.total;
+      if (prevBtn) prevBtn.disabled = paginationState.page <= 1;
+      if (nextBtn) nextBtn.disabled = paginationState.page >= paginationState.totalPages;
+      
+      // Render page numbers
+      if (pagesContainer) {
+        const maxVisible = 5;
+        let startPage = Math.max(1, paginationState.page - Math.floor(maxVisible / 2));
+        let endPage = Math.min(paginationState.totalPages, startPage + maxVisible - 1);
+        
+        // Adjust start if we're near the end
+        if (endPage - startPage < maxVisible - 1) {
+          startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+        
+        let pagesHtml = '';
+        
+        // First page + ellipsis
+        if (startPage > 1) {
+          pagesHtml += `<button class="pagination-btn" onclick="changePage(1)">1</button>`;
+          if (startPage > 2) {
+            pagesHtml += `<span style="color: var(--text-secondary); padding: 0 4px;">...</span>`;
+          }
+        }
+        
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+          const isActive = i === paginationState.page;
+          pagesHtml += `<button class="pagination-btn ${isActive ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+        }
+        
+        // Ellipsis + last page
+        if (endPage < paginationState.totalPages) {
+          if (endPage < paginationState.totalPages - 1) {
+            pagesHtml += `<span style="color: var(--text-secondary); padding: 0 4px;">...</span>`;
+          }
+          pagesHtml += `<button class="pagination-btn" onclick="changePage(${paginationState.totalPages})">${paginationState.totalPages}</button>`;
+        }
+        
+        pagesContainer.innerHTML = pagesHtml;
+      }
+    }
+    
+    // Rows per page selector
+    document.getElementById('rows-per-page').addEventListener('change', (e) => {
+      const newLimit = parseInt(e.target.value, 10);
+      loadOrders(null, newLimit, null);
+    });
+
+    // Load and render reviews from dedicated endpoint
+    async function loadReviews() {
+      const reviewsList = document.getElementById('reviews-list');
+      if (!reviewsList) return;
+      
+      // Show loading state
+      reviewsList.innerHTML = `
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Değerlendirmeler yükleniyor...</p>
+        </div>
+      `;
+      
+      try {
+        const response = await fetch('/api/admin/customer-reviews');
+        if (!response.ok) throw new Error('Sunucu hatası');
+        
+        const result = await response.json();
+        console.log('[loadReviews] API response:', result);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Değerlendirmeler yüklenemedi');
+        }
+        
+        const reviews = result.reviews || [];
+        console.log('[loadReviews] Reviews found:', reviews.length);
+        
+        if (reviews.length === 0) {
+          reviewsList.innerHTML = `
+            <div class="empty-state">
+              <p>Henüz müşteri değerlendirmesi bulunmamaktadır.</p>
+            </div>
+          `;
+          const paginationEl = document.getElementById('reviews-pagination');
+          if (paginationEl) paginationEl.style.display = 'none';
+          return;
+        }
+        
+        // Paginate reviews
+        reviewsState.totalPages = Math.ceil(reviews.length / reviewsState.limit);
+        const startIdx = (reviewsState.page - 1) * reviewsState.limit;
+        const endIdx = startIdx + reviewsState.limit;
+        const paginatedReviews = reviews.slice(startIdx, endIdx);
+        
+        // Render reviews
+        reviewsList.innerHTML = paginatedReviews.map(review => {
+          const puan = review.puan || 0;
+          const yorum = review.yorum || '';
+          const olusturmaTarihi = review.olusturma_tarihi ? new Date(review.olusturma_tarihi).toLocaleDateString('tr-TR') : '-';
+          const musteriAdi = review.musteri_adsoyad || review.musteri_adi || 'Bilinmeyen Müşteri';
+          const siparisId = review.siparis_id || review.id || '-';
+          
+          // Escape HTML in comment
+          const escapedYorum = yorum
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+          
+          const starsHtml = Array.from({ length: 5 }, (_, i) => {
+            const filled = i < puan ? '★' : '☆';
+            const color = i < puan ? '#fbbf24' : 'var(--text-secondary)';
+            return `<span style="color: ${color}; font-size: 1.1rem;">${filled}</span>`;
+          }).join('');
+          
+          return `
+            <div class="review-card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                  <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                    Sipariş #${siparisId} - ${musteriAdi}
+                  </div>
+                  <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                    📅 ${olusturmaTarihi}
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  ${starsHtml}
+                  <span style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 600;">${puan}/5</span>
+                </div>
+              </div>
+              ${yorum ? `
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                  <p style="color: var(--text-primary); line-height: 1.6; white-space: pre-wrap;">${escapedYorum}</p>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+        
+        // Update pagination UI
+        updateReviewsPaginationUI(reviews.length);
+      } catch (error) {
+        console.error('[loadReviews] Error:', error);
+        reviewsList.innerHTML = `
+          <div class="empty-state">
+            <p style="color: #ef4444;">Değerlendirmeler yüklenirken hata oluştu: ${error.message || 'Bilinmeyen hata'}</p>
+          </div>
+        `;
+        const paginationEl = document.getElementById('reviews-pagination');
+        if (paginationEl) paginationEl.style.display = 'none';
+      }
+    }
+    
+    function changeReviewsPage(newPage) {
+      if (newPage < 1 || newPage > reviewsState.totalPages) return;
+      reviewsState.page = newPage;
+      loadReviews();
+    }
+    
+    function updateReviewsPaginationUI(totalReviews) {
+      const paginationEl = document.getElementById('reviews-pagination');
+      const prevBtn = document.getElementById('reviews-prev');
+      const nextBtn = document.getElementById('reviews-next');
+      const pageNum = document.getElementById('reviews-page-num');
+      const totalPages = document.getElementById('reviews-total-pages');
+      
+      if (!paginationEl) return;
+      
+      if (reviewsState.totalPages <= 1) {
+        paginationEl.style.display = 'none';
+        return;
+      }
+      
+      paginationEl.style.display = 'block';
+      if (prevBtn) prevBtn.disabled = reviewsState.page <= 1;
+      if (nextBtn) nextBtn.disabled = reviewsState.page >= reviewsState.totalPages;
+      if (pageNum) pageNum.textContent = reviewsState.page;
+      if (totalPages) totalPages.textContent = reviewsState.totalPages;
+    }
+
     // Initialize
     loadOrders();
+    loadReviews(); // Load reviews independently
   </script>
 </body>
 </html>

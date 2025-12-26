@@ -463,7 +463,15 @@
             <tr>
               <th>Müşteri Adı</th>
               <th>Toplam Sipariş</th>
-              <th>Toplam Ciro</th>
+              <th>
+                Toplam Ciro
+                <span class="tooltip-trigger" style="cursor: help; margin-left: 5px; color: var(--text-secondary); font-size: 0.9rem; position: relative; display: inline-block;">
+                  ?
+                  <div class="tooltip-content" style="display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 8px; padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.85rem; white-space: nowrap; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                    İptal siparişler hariç
+                  </div>
+                </span>
+              </th>
               <th>Son Sipariş Tarihi</th>
               <th>Durum</th>
               <th>

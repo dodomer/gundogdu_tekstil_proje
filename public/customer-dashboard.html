@@ -282,6 +282,7 @@
 
     /* Order Cards */
     .order-card {
+      position: relative;
       background: var(--bg-dark);
       border: 1px solid var(--border-color);
       border-radius: 12px;
@@ -408,11 +409,20 @@
     .modal {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 16px;
-      max-width: 480px;
+      border-radius: 20px;
+      max-width: 680px;
       width: 100%;
-      padding: 24px;
+      padding: 28px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    @media (max-width: 768px) {
+      .modal {
+        max-width: 92vw;
+        padding: 24px;
+      }
     }
 
     .modal-header {
@@ -437,32 +447,104 @@
 
     .modal form {
       display: grid;
-      gap: 14px;
+      gap: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .form-group input,
+    .form-group input[type="text"],
+    .form-group input[type="number"] {
+      width: 100%;
+      padding: 12px 16px;
+      height: 44px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: rgba(139, 92, 246, 0.6);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+    }
+
+    .form-group input[readonly] {
+      background: rgba(15, 23, 42, 0.5);
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
+
+    .form-group input[type="number"] {
+  appearance: textfield;        /* standart */
+  -moz-appearance: textfield;   /* Firefox */
+}
+
+
+    .form-group input[type="number"]::-webkit-outer-spin-button,
+    .form-group input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
 
     .form-inline {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .form-inline {
+        grid-template-columns: 1fr;
+      }
     }
 
     .total-box {
-      background: rgba(139, 92, 246, 0.12);
-      border: 1px solid var(--border-color);
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.3);
       border-radius: 12px;
-      padding: 12px 14px;
+      padding: 16px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       color: #fff;
       font-weight: 600;
+      font-size: 1.05rem;
+      margin-top: 8px;
+    }
+
+    .total-box span:first-child {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .total-box span:last-child {
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 1.15rem;
     }
 
     .modal-actions {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       justify-content: flex-end;
-      margin-top: 4px;
+      margin-top: 8px;
+      padding-top: 8px;
     }
 
     /* Custom combo */
@@ -576,8 +658,21 @@
     }
 
     .combo-option-price {
-      color: var(--text-secondary);
+      color: var(--accent);
       font-size: 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+      margin-left: 12px;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+
+    .combo-option-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     @keyframes fadeIn {
@@ -622,6 +717,18 @@
 
     .toast.show {
       display: block;
+    }
+
+    .cancel-order-btn:hover {
+      background: rgba(239, 68, 68, 0.2) !important;
+      border-color: rgba(239, 68, 68, 0.5) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+    }
+
+    .cancel-order-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 4px rgba(239, 68, 68, 0.15);
     }
 
     .dashboard-footer {
@@ -705,12 +812,14 @@
     </section>
 
 
-    <section class="info-card">
-      <h3>🚧 Geliştirme Aşamasında</h3>
-      <div class="placeholder-text">
-        <span>🔧</span>
-        <p>Bu sayfa daha sonra geliştirilecektir.</p>
-        <p>Müşterilerin siparişlerini takip edebileceği, faturalarını görüntüleyebileceği bir panel olacaktır.</p>
+    <section class="info-card" id="review-section">
+      <h3>⭐ Sipariş Sonrası Değerlendirme</h3>
+      <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">Sadece tamamlanan siparişler için değerlendirme yapabilirsiniz.</p>
+      <div id="completed-orders-list">
+        <div class="loading-orders">
+          <div class="loading-spinner"></div>
+          <p>Tamamlanan siparişler yükleniyor...</p>
+        </div>
       </div>
     </section>
   </main>
@@ -720,6 +829,76 @@
   </footer>
 
   <div class="toast" id="toast"></div>
+
+  <!-- Cancel Order Confirmation Modal -->
+  <div class="modal-backdrop" id="cancel-order-modal" style="display: none;">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <div class="modal-title">Siparişi İptal Et</div>
+        <button class="close-btn" onclick="closeCancelModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 16px; line-height: 1.6;">Siparişi iptal etmek istediğinizden emin misiniz?</p>
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">Bu işlem geri alınamaz.</p>
+      </div>
+      <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 24px; border-top: 1px solid var(--border-color);">
+        <button onclick="closeCancelModal()" style="padding: 10px 20px; background: transparent; border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); cursor: pointer; font-family: inherit;">
+          Vazgeç
+        </button>
+        <button id="confirm-cancel-btn" onclick="confirmCancelOrder()" style="padding: 10px 20px; background: #ef4444; border: none; border-radius: 8px; color: white; cursor: pointer; font-family: inherit; font-weight: 600;">
+          İptal Et
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Modal -->
+  <div class="modal-backdrop" id="review-modal" style="display: none;">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <div class="modal-title">Sipariş Değerlendirmesi</div>
+        <button class="close-btn" onclick="closeReviewModal()">&times;</button>
+      </div>
+      <form id="review-form">
+        <div class="modal-body">
+          <input type="hidden" id="review-siparis-id">
+          <div class="form-group">
+            <label>Puan</label>
+            <div id="star-rating" style="display: flex; gap: 8px; margin: 12px 0;">
+              <span class="star" data-rating="1" style="font-size: 2rem; cursor: pointer; color: var(--text-secondary); transition: all 0.2s;">☆</span>
+              <span class="star" data-rating="2" style="font-size: 2rem; cursor: pointer; color: var(--text-secondary); transition: all 0.2s;">☆</span>
+              <span class="star" data-rating="3" style="font-size: 2rem; cursor: pointer; color: var(--text-secondary); transition: all 0.2s;">☆</span>
+              <span class="star" data-rating="4" style="font-size: 2rem; cursor: pointer; color: var(--text-secondary); transition: all 0.2s;">☆</span>
+              <span class="star" data-rating="5" style="font-size: 2rem; cursor: pointer; color: var(--text-secondary); transition: all 0.2s;">☆</span>
+            </div>
+            <input type="hidden" id="review-puan" value="0" required>
+          </div>
+          <div class="form-group">
+            <label for="review-yorum">
+              Yorum
+              <span id="review-char-count" style="float: right; font-size: 0.75rem; color: var(--text-secondary); font-weight: normal;">0/500</span>
+            </label>
+            <textarea 
+              id="review-yorum" 
+              name="review-yorum"
+              placeholder="Siparişiniz hakkında görüşlerinizi paylaşın..."
+              maxlength="500"
+              rows="4"
+              style="width: 100%; padding: 12px 16px; height: auto; min-height: 100px; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-family: inherit; font-size: 0.95rem; resize: vertical; transition: all 0.2s ease;"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 24px; border-top: 1px solid var(--border-color);">
+          <button type="button" onclick="closeReviewModal()" style="padding: 10px 20px; background: transparent; border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); cursor: pointer; font-family: inherit;">
+            İptal
+          </button>
+          <button type="submit" class="primary-btn" style="padding: 10px 20px;">
+            Gönder
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <div class="modal-backdrop" id="order-modal">
     <div class="modal">
@@ -746,13 +925,31 @@
         <div class="form-inline">
           <div class="form-group">
             <label>Fiyat</label>
-            <input type="text" id="product-price" readonly placeholder="--">
+            <div style="position: relative;">
+              <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-weight: 600; z-index: 1;">₺</span>
+              <input type="text" id="product-price" readonly placeholder="--" style="padding-left: 32px;">
+            </div>
           </div>
           <div class="form-group">
             <label for="quantity">Adet</label>
-            <input type="number" id="quantity" min="1" value="1" required>
+            <input type="number" id="quantity" min="1" step="1" value="1" required>
           </div>
         </div>
+        <div class="form-group">
+          <label for="order-note">
+            Sipariş Notu (Opsiyonel)
+            <span id="note-char-count" style="float: right; font-size: 0.75rem; color: var(--text-secondary); font-weight: normal;">0/500</span>
+          </label>
+          <textarea 
+            id="order-note" 
+            name="order-note"
+            placeholder="Örn: Etiket rengi siyah olsun, teslimattan önce arayın..."
+            maxlength="500"
+            rows="3"
+            style="width: 100%; padding: 12px 16px; height: auto; min-height: 80px; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-family: inherit; font-size: 0.95rem; resize: vertical; transition: all 0.2s ease;"
+          ></textarea>
+        </div>
+        <div style="height: 1px; background: var(--border-color); margin: 8px 0;"></div>
         <div class="total-box">
           <span>Toplam Tutar</span>
           <span id="total-amount">0 ₺</span>
@@ -779,6 +976,27 @@
   </div>
 
   <script>
+    // ==============================
+    // GLOBAL HELPER: Get logged in customer ID
+    // ==============================
+    function getLoggedInCustomerId() {
+      const v =
+        localStorage.getItem("loggedCustomerId") ||
+        localStorage.getItem("musteri_id") ||
+        localStorage.getItem("customerId") ||
+        localStorage.getItem("musteriId") ||
+        localStorage.getItem("loggedInCustomerId") ||
+        (typeof window.currentCustomerId !== "undefined" ? window.currentCustomerId : "") ||
+        "";
+
+      const num = String(v).match(/\d+/);
+      const id = num ? Number(num[0]) : Number(v);
+      return Number.isFinite(id) && id > 0 ? id : null;
+    }
+    
+    // Make it explicitly available on window for inline handlers
+    window.getLoggedInCustomerId = getLoggedInCustomerId;
+
     // Get customer data from localStorage
     const customerId = localStorage.getItem("loggedCustomerId");
     const customerName = localStorage.getItem("loggedUserName");
@@ -801,20 +1019,7 @@
   if (!modalBackdrop || !closeX || !closeBtn || !listEl) return;
 
   // ---- Helpers
-  function getLoggedInCustomerId() {
-    const v =
-      localStorage.getItem("loggedCustomerId") ||
-      localStorage.getItem("musteri_id") ||
-      localStorage.getItem("customerId") ||
-      localStorage.getItem("musteriId") ||
-      localStorage.getItem("loggedInCustomerId") ||
-      (typeof customerId !== "undefined" ? customerId : "") ||
-      "";
-
-    const num = String(v).match(/\d+/);
-    const id = num ? Number(num[0]) : Number(v);
-    return Number.isFinite(id) && id > 0 ? id : null;
-  }
+  // getLoggedInCustomerId is now global, no need to redefine here
 
   function statusLabel(raw) {
     const key = String(raw || "").trim().toUpperCase().replaceAll(" ", "_");
@@ -1007,6 +1212,8 @@
     const productOptionsEl = document.getElementById('product-options');
     const productPriceInput = document.getElementById('product-price');
     const quantityInput = document.getElementById('quantity');
+    const orderNoteInput = document.getElementById('order-note');
+    const noteCharCount = document.getElementById('note-char-count');
     const totalAmountEl = document.getElementById('total-amount');
     const openOrderBtn = document.getElementById('open-order-modal');
     const closeOrderBtn = document.getElementById('close-order-modal');
@@ -1044,6 +1251,8 @@
       selectedModelId = null;
       currentUnitPrice = 0;
       productPriceInput.value = '';
+      if (orderNoteInput) orderNoteInput.value = '';
+      if (noteCharCount) noteCharCount.textContent = '0/500';
       totalAmountEl.textContent = formatTRY(0);
       closeCombo();
     };
@@ -1067,10 +1276,11 @@
         const modelId = p.id ?? p.arac_model_id ?? p.model_id;
         const name = p.name ?? p.model_adi ?? '';
         const cachedPrice = priceCache[modelId];
-        const priceLabel = cachedPrice !== undefined ? formatTRY(cachedPrice) : '—';
+        // Always show price - use cached value or show loading indicator
+        const priceLabel = cachedPrice !== undefined ? formatTRY(cachedPrice) : 'Yükleniyor...';
         const activeClass = idx === activeOptionIndex ? 'active' : '';
         return `
-          <div class="combo-option ${activeClass}" data-id="${modelId}">
+          <div class="combo-option ${activeClass}" data-id="${modelId}" style="display: flex; justify-content: space-between; align-items: center;">
             <span class="combo-option-name">${name}</span>
             <span class="combo-option-price">${priceLabel}</span>
           </div>
@@ -1091,7 +1301,18 @@
         productsCache = products || [];
         if (!productsCache.length) {
           showToast('Ürünler yüklenemedi', 'error');
+          return;
         }
+        // Fetch all prices upfront so they're always visible
+        await Promise.all(productsCache.map(async (p) => {
+          const modelId = p.id ?? p.arac_model_id ?? p.model_id;
+          if (modelId && priceCache[modelId] === undefined) {
+            try {
+              await fetchPriceForModel(modelId);
+            } catch (err) {
+              // Silently fail for individual prices
+            }
+        }}));
         renderProductOptions();
       } catch (err) {
         console.error('Ürünler yüklenemedi:', err);
@@ -1172,6 +1393,19 @@
       openAllOrdersBtn.addEventListener('click', window.openAllOrdersModal);
     }
     quantityInput.addEventListener('input', updatePriceAndTotal);
+    
+    // Character counter for order note
+    if (orderNoteInput && noteCharCount) {
+      orderNoteInput.addEventListener('input', (e) => {
+        const length = e.target.value.length;
+        noteCharCount.textContent = `${length}/500`;
+        if (length > 450) {
+          noteCharCount.style.color = '#ef4444';
+        } else {
+          noteCharCount.style.color = 'var(--text-secondary)';
+        }
+      });
+    }
 
     productTrigger.addEventListener('click', () => {
       if (productCombo.classList.contains('open')) {
@@ -1253,7 +1487,8 @@
           },
           body: JSON.stringify({ 
             aracModelId: selectedModelId,
-            quantity 
+            quantity,
+            musteri_notu: orderNoteInput ? orderNoteInput.value.trim() || null : null
           })
         });
         const data = await res.json();
@@ -1322,15 +1557,17 @@
             .replace(/\s+/g,'_');
         }
 
-        // Active statuses - include early-stage states
+        // Active statuses - include early-stage states (exclude canceled)
         const ACTIVE = new Set(['PLANLANDI','BEKLEMEDE','ONAYLANDI','URETIMDE','SEVK_EDILDI','AKTIF']);
+        const CANCELED = 'IPTAL';
         
         // Sort newest first, then filter and slice
         const sorted = [...ordersArr].sort((a, b) => (b.siparis_id || 0) - (a.siparis_id || 0));
         const activeOrders = sorted.filter(order => {
           const rawStatus = (order.durum || order.durumu || order.status || '').toString().trim();
           const norm = normStatus(rawStatus);
-          return ACTIVE.has(norm);
+          // Exclude canceled orders from active list
+          return ACTIVE.has(norm) && norm !== CANCELED;
         }).slice(0, 5);
 
         if (!activeOrders || activeOrders.length === 0) {
@@ -1343,13 +1580,13 @@
         }
 
     const STATUS_LABELS = {
-      "SEVK_EDILDI": "SEVK EDİLDİ",
-      "URETIMDE": "ÜRETİMDE",
-      "BEKLEMEDE": "BEKLEMEDE",
-      "IPTAL": "İPTAL",
-      "ONAYLANDI": "ONAYLANDI",
-      "PLANLANDI": "PLANLANDI",
-      "TAMAMLANDI": "TAMAMLANDI"
+      "SEVK_EDILDI": "Sevk Edildi",
+      "URETIMDE": "Üretimde",
+      "BEKLEMEDE": "Beklemede",
+      "IPTAL": "İptal",
+      "ONAYLANDI": "Onaylandı",
+      "PLANLANDI": "Planlandı",
+      "TAMAMLANDI": "Tamamlandı"
     };
 
     const mapStatus = (raw) => {
@@ -1358,15 +1595,7 @@
       return key.replaceAll('_', ' ').toLocaleUpperCase('tr-TR');
     };
 
-    const getLoggedInCustomerId = () => {
-      const fromLocal =
-        localStorage.getItem('loggedCustomerId') ||
-        localStorage.getItem('customerId') ||
-        localStorage.getItem('musteri_id');
-      const fromWindow = window.currentCustomerId;
-      const id = Number(fromLocal || fromWindow || customerId || 0);
-      return Number.isNaN(id) ? null : id;
-    };
+    // getLoggedInCustomerId is now global, no need to redefine here
 
     const fetchAllOrders = async () => {
       const musteriIdAll = getLoggedInCustomerId();
@@ -1404,6 +1633,17 @@
           const statusClass = (order.durumu || '').toLowerCase();
           const displayStatus = mapStatus(order.durumu || order.status);
 
+          const hasNote = order.musteri_notu && order.musteri_notu.trim().length > 0;
+          const noteId = `note-${order.siparis_id}`;
+          const noteHtml = hasNote ? `
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+              <div style="display: flex; align-items: flex-start; gap: 8px;">
+                <span style="font-size: 0.9rem; color: var(--text-secondary);">📝 Not:</span>
+                <span style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; flex: 1;">${order.musteri_notu}</span>
+              </div>
+            </div>
+          ` : '';
+
           card.innerHTML = `
             <div class="order-header">
               <span class="order-id">Sipariş #${order.siparis_id}</span>
@@ -1414,6 +1654,7 @@
               <div>🎯 Teslim: ${teslimPlan}</div>
               <div>📦 Adet: ${order.toplam_adet}</div>
               <div>💰 Tutar: ${tutar.toLocaleString('tr-TR')} ₺</div>
+              ${noteHtml}
             </div>
           `;
           allOrdersList.appendChild(card);
@@ -1429,18 +1670,48 @@
           const tutar = Number(order.toplam_tutar) || 0;
           const statusClass = (order.durumu || '').toLowerCase();
           const displayStatus = mapStatus(order.durumu || order.status);
+          
+          // Check if order can be canceled (only Planlandı or Üretimde)
+          const rawStatus = (order.durum || order.durumu || order.status || '').toString().trim();
+          const norm = normStatus(rawStatus);
+          const canCancel = norm === 'PLANLANDI' || norm === 'URETIMDE';
+          
+          // Build cancel button HTML if eligible
+          let cancelButtonHtml = '';
+          if (canCancel) {
+            cancelButtonHtml = `
+              <button class="cancel-order-btn" onclick="window.handleCancelOrder(${order.siparis_id}, ${getLoggedInCustomerId()})" 
+                style="position: absolute; bottom: 12px; right: 12px; padding: 6px 12px; background: rgba(239, 68, 68, 0.1); 
+                border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; color: #ef4444; font-size: 0.75rem; 
+                font-weight: 500; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; z-index: 10;">
+                ❌ İptal Et
+              </button>
+            `;
+          }
+
+          const hasNoteActive = order.musteri_notu && order.musteri_notu.trim().length > 0;
+          const noteHtmlActive = hasNoteActive ? `
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+              <div style="display: flex; align-items: flex-start; gap: 8px;">
+                <span style="font-size: 0.9rem; color: var(--text-secondary);">📝 Not:</span>
+                <span style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; flex: 1;">${order.musteri_notu}</span>
+              </div>
+            </div>
+          ` : '';
 
           item.innerHTML = `
             <div class="order-header">
               <span class="order-id">Sipariş #${order.siparis_id}</span>
               <span class="order-status ${statusClass}">${displayStatus || '-'}</span>
             </div>
-            <div class="order-body">
+            <div class="order-body" style="padding-bottom: ${canCancel ? '40px' : '0'};">
               <div>📅 Sipariş: ${siparisTarihi}</div>
               <div>🎯 Teslim: ${teslimPlan}</div>
               <div>📦 Adet: ${order.toplam_adet}</div>
               <div>💰 Tutar: ${tutar.toLocaleString('tr-TR')} ₺</div>
+              ${noteHtmlActive}
             </div>
+            ${cancelButtonHtml}
           `;
           container.appendChild(item);
         });
@@ -1454,10 +1725,326 @@
       }
     }
 
+    // Cancel order functionality
+    let pendingCancelOrderId = null;
+    let pendingCancelMusteriId = null;
+
+    // Make handleCancelOrder global for onclick handlers
+    window.handleCancelOrder = function handleCancelOrder(siparisId, musteriId) {
+      pendingCancelOrderId = siparisId;
+      pendingCancelMusteriId = musteriId;
+      const modal = document.getElementById('cancel-order-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+    };
+
+    function closeCancelModal() {
+      const modal = document.getElementById('cancel-order-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+      pendingCancelOrderId = null;
+      pendingCancelMusteriId = null;
+    }
+
+    async function confirmCancelOrder() {
+      if (!pendingCancelOrderId || !pendingCancelMusteriId) {
+        showToast('Sipariş bilgisi bulunamadı', 'error');
+        return;
+      }
+
+      const confirmBtn = document.getElementById('confirm-cancel-btn');
+      const originalText = confirmBtn.textContent;
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'İptal ediliyor...';
+
+      try {
+        const res = await fetch(`/api/customer/orders/${pendingCancelOrderId}/cancel?musteriId=${pendingCancelMusteriId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Sipariş iptal edilemedi');
+        }
+
+        showToast('Sipariş iptal edildi');
+        closeCancelModal();
+
+        // Reload orders to update the list
+        loadOrders();
+        
+        // Also reload if "Tüm Siparişler" modal is open
+        if (window.renderAllOrders && typeof window.fetchAllOrders === 'function') {
+          try {
+            const allOrders = await window.fetchAllOrders();
+            window.renderAllOrders(allOrders);
+          } catch (e) {
+            console.error('Error reloading all orders:', e);
+          }
+        }
+      } catch (err) {
+        console.error('Cancel order error:', err);
+        showToast(err.message || 'Sipariş iptal edilirken hata oluştu', 'error');
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = originalText;
+      }
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('cancel-order-modal')?.addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeCancelModal();
+      }
+    });
+
     // initial load
+    // Review functionality
+    let currentReviewSiparisId = null;
+    let selectedRating = 0;
+
+    async function loadCompletedOrders() {
+      const container = document.getElementById('completed-orders-list');
+      if (!container) return;
+
+      try {
+        const customerId = getLoggedInCustomerId();
+        if (!customerId) {
+          container.innerHTML = '<p style="color: var(--text-secondary);">Oturum bulunamadı.</p>';
+          return;
+        }
+
+        const res = await fetch(`/api/customer/orders/completed-for-review?musteriId=${customerId}`);
+        const data = await res.json();
+        
+        console.log('[loadCompletedOrders] Raw API response:', data);
+        console.log('[loadCompletedOrders] Response status:', res.status, res.ok);
+        
+        if (!res.ok) {
+          throw new Error(data.error || `HTTP ${res.status}: Tamamlanan siparişler yüklenemedi`);
+        }
+        
+        if (data.success === false) {
+          throw new Error(data.error || 'Tamamlanan siparişler yüklenemedi');
+        }
+
+        // Handle both {success:true, data:[]} and {success:true, orders:[]} for backward compatibility
+        const orders = Array.isArray(data.data) ? data.data : (data.orders || []);
+        
+        console.log('[loadCompletedOrders] Orders array length:', orders.length);
+        if (orders.length > 0) {
+          console.log('[loadCompletedOrders] First order:', {
+            siparis_id: orders[0].siparis_id,
+            durumu: orders[0].durumu,
+            has_puan: orders[0].degerlendirme_puan !== null,
+            has_yorum: orders[0].degerlendirme_yorum !== null
+          });
+        }
+
+        if (orders.length === 0) {
+          container.innerHTML = `
+            <div class="loading-orders">
+              <p style="color: var(--text-secondary);">Tamamlanan sipariş bulunamadı.</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = orders.map(order => {
+          const teslimTarihi = order.teslim_gercek 
+            ? new Date(order.teslim_gercek).toLocaleDateString('tr-TR')
+            : (order.teslim_plan ? new Date(order.teslim_plan).toLocaleDateString('tr-TR') : '-');
+          
+          const hasReview = order.degerlendirme_puan !== null && order.degerlendirme_puan !== undefined;
+          const puan = order.degerlendirme_puan || 0;
+          const yorum = order.degerlendirme_yorum || '';
+
+          const starsHtml = Array.from({ length: 5 }, (_, i) => {
+            const filled = i < puan ? '★' : '☆';
+            const color = i < puan ? '#fbbf24' : 'var(--text-secondary)';
+            return `<span style="color: ${color}; font-size: 1.2rem;">${filled}</span>`;
+          }).join('');
+
+          return `
+            <div class="order-card" style="margin-bottom: 16px;">
+              <div class="order-header">
+                <span class="order-id">Sipariş #${order.siparis_id}</span>
+                ${hasReview ? '<span class="order-status" style="background: rgba(34, 197, 94, 0.2); color: var(--success); padding: 4px 12px; border-radius: 12px; font-size: 0.75rem;">Değerlendirildi</span>' : ''}
+              </div>
+              <div class="order-body">
+                <div>📅 Teslim: ${teslimTarihi}</div>
+                ${hasReview ? `
+                  <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                    <div style="margin-bottom: 8px;">
+                      <span style="font-size: 0.9rem; color: var(--text-secondary);">Puan: </span>
+                      ${starsHtml}
+                    </div>
+                    ${yorum ? `
+                      <div style="margin-top: 8px;">
+                        <span style="font-size: 0.9rem; color: var(--text-secondary);">Yorum: </span>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.5;">${yorum}</p>
+                      </div>
+                    ` : ''}
+                  </div>
+                ` : `
+                  <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                    <button onclick="openReviewModal(${order.siparis_id})" class="primary-btn" style="width: 100%; padding: 10px;">
+                      Değerlendir
+                    </button>
+                  </div>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('[loadCompletedOrders] Error:', err);
+        console.error('[loadCompletedOrders] Error message:', err.message);
+        container.innerHTML = `
+          <div class="loading-orders">
+            <p style="color: #ef4444;">Tamamlanan siparişler yüklenirken hata oluştu: ${err.message || 'Bilinmeyen hata'}</p>
+          </div>
+        `;
+      }
+    }
+
+    function openReviewModal(siparisId) {
+      currentReviewSiparisId = siparisId;
+      selectedRating = 0;
+      document.getElementById('review-siparis-id').value = siparisId;
+      document.getElementById('review-puan').value = '0';
+      document.getElementById('review-yorum').value = '';
+      document.getElementById('review-char-count').textContent = '0/500';
+      
+      // Reset stars
+      document.querySelectorAll('#star-rating .star').forEach(star => {
+        star.textContent = '☆';
+        star.style.color = 'var(--text-secondary)';
+      });
+
+      document.getElementById('review-modal').style.display = 'flex';
+    }
+
+    function closeReviewModal() {
+      document.getElementById('review-modal').style.display = 'none';
+      currentReviewSiparisId = null;
+      selectedRating = 0;
+    }
+
+    // Star rating interaction
+    const starRating = document.getElementById('star-rating');
+    if (starRating) {
+      starRating.addEventListener('click', (e) => {
+        const star = e.target.closest('.star');
+        if (!star) return;
+        
+        const rating = parseInt(star.dataset.rating, 10);
+        selectedRating = rating;
+        document.getElementById('review-puan').value = rating;
+
+        // Update star display
+        document.querySelectorAll('#star-rating .star').forEach((s, i) => {
+          if (i < rating) {
+            s.textContent = '★';
+            s.style.color = '#fbbf24';
+          } else {
+            s.textContent = '☆';
+            s.style.color = 'var(--text-secondary)';
+          }
+        });
+      });
+
+      // Hover effect
+      starRating.addEventListener('mouseover', (e) => {
+        const star = e.target.closest('.star');
+        if (!star) return;
+        const rating = parseInt(star.dataset.rating, 10);
+        document.querySelectorAll('#star-rating .star').forEach((s, i) => {
+          if (i < rating) {
+            s.style.color = '#fbbf24';
+            s.style.transform = 'scale(1.1)';
+          }
+        });
+      });
+
+      starRating.addEventListener('mouseout', () => {
+        document.querySelectorAll('#star-rating .star').forEach((s, i) => {
+          if (i >= selectedRating) {
+            s.style.color = 'var(--text-secondary)';
+          }
+          s.style.transform = 'scale(1)';
+        });
+      });
+    }
+
+    // Review form character counter
+    const reviewYorum = document.getElementById('review-yorum');
+    const reviewCharCount = document.getElementById('review-char-count');
+    if (reviewYorum && reviewCharCount) {
+      reviewYorum.addEventListener('input', (e) => {
+        const length = e.target.value.length;
+        reviewCharCount.textContent = `${length}/500`;
+        if (length > 450) {
+          reviewCharCount.style.color = '#ef4444';
+        } else {
+          reviewCharCount.style.color = 'var(--text-secondary)';
+        }
+      });
+    }
+
+    // Review form submission
+    const reviewForm = document.getElementById('review-form');
+    if (reviewForm) {
+      reviewForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const puan = parseInt(document.getElementById('review-puan').value, 10);
+        const yorum = document.getElementById('review-yorum').value.trim();
+
+        if (puan < 1 || puan > 5) {
+          showToast('Lütfen 1 ile 5 arasında bir puan seçin', 'error');
+          return;
+        }
+
+        try {
+          const customerId = getLoggedInCustomerId();
+          const siparisId = currentReviewSiparisId;
+
+          const res = await fetch(`/api/customer/orders/${siparisId}/review?musteriId=${customerId}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Customer-Id': customerId || ''
+            },
+            body: JSON.stringify({ puan, yorum })
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Değerlendirme kaydedilemedi');
+          }
+
+          showToast('Değerlendirme kaydedildi');
+          closeReviewModal();
+          loadCompletedOrders();
+        } catch (err) {
+          console.error('Review submission error:', err);
+          showToast(err.message || 'Değerlendirme kaydedilemedi', 'error');
+        }
+      });
+    }
+
     loadSummary();
     loadOrders();
+    loadCompletedOrders();
   </script>
 </body>
 </html>
+
 

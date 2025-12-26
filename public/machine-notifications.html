@@ -605,6 +605,54 @@
       cursor: not-allowed;
     }
 
+    /* KPI Cards */
+    #kpi-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .kpi-card {
+      background: rgba(212, 168, 83, 0.1);
+      border: 1px solid rgba(212, 168, 83, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .kpi-card:hover {
+      border-color: var(--accent);
+      background: rgba(212, 168, 83, 0.15);
+    }
+
+    .kpi-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* Recent Reports Cards */
+    .recent-report-card {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .recent-report-card:hover {
+      border-color: var(--accent);
+      background: rgba(15, 23, 42, 0.7);
+    }
+
     @media (max-width: 768px) {
       .header {
         flex-direction: column;
@@ -649,6 +697,10 @@
 
       th, td {
         padding: 10px 12px;
+      }
+
+      #kpi-container {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -697,14 +749,61 @@
       </div>
     </div>
 
-    <!-- Second Row: Full-Width Personnel Chart -->
+    <!-- Second Row: Personnel-Driven List View -->
     <div class="chart-card chart-full-width">
-      <h3>👷 Personel Bazlı Arıza Bildirim Sayısı</h3>
-      <p class="chart-subtitle">Son 3 ay (bildirim sayısı)</p>
-      <div style="position: relative; height: 350px; margin-top: 20px;">
-        <canvas id="personnel-chart"></canvas>
-        <div id="chart-personnel-empty" style="display: none; padding: 40px; text-align: center; color: var(--text-secondary);">
-          Veri yok
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+        <div>
+          <h3>👷 Personel Bazlı Arıza Bildirimleri</h3>
+          <p class="chart-subtitle">Son 3 ay verileri</p>
+        </div>
+        <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+          <div class="filter-group" style="margin: 0;">
+            <label class="filter-label">Zaman Aralığı</label>
+            <select id="time-range-select" class="filter-select" style="min-width: 120px;">
+              <option value="3" selected>3 Ay</option>
+              <option value="1">1 Ay</option>
+            </select>
+          </div>
+          <div class="filter-group" style="margin: 0;">
+            <label class="filter-label">Personel</label>
+            <select id="personnel-select" class="filter-select" style="min-width: 200px;">
+              <option value="ALL">Tümü</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div id="kpi-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px;">
+        <div style="background: rgba(212, 168, 83, 0.1); border: 1px solid rgba(212, 168, 83, 0.3); border-radius: 12px; padding: 16px;">
+          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Toplam Bildirim</div>
+          <div id="kpi-total-reports" style="font-size: 1.8rem; font-weight: 600; color: var(--accent);">--</div>
+        </div>
+        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 16px;">
+          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Farklı Makine Sayısı</div>
+          <div id="kpi-unique-machines" style="font-size: 1.8rem; font-weight: 600; color: #60a5fa;">--</div>
+        </div>
+      </div>
+
+      <!-- Machine Breakdown Table -->
+      <div style="margin-bottom: 25px;">
+        <h4 style="font-size: 1rem; margin-bottom: 15px; color: var(--text-primary);">Makine Dağılımı</h4>
+        <div id="machine-breakdown-container">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Yükleniyor...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Reports List -->
+      <div>
+        <h4 style="font-size: 1rem; margin-bottom: 15px; color: var(--text-primary);">Son Bildirimler (Son 50)</h4>
+        <div id="recent-reports-container">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Yükleniyor...</p>
+          </div>
         </div>
       </div>
     </div>
@@ -788,7 +887,8 @@
      let paginationInfo = null;
      let distributionChart = null;
      let typeChart = null;
-     let personnelChart = null;
+     let currentMonths = 3;
+     let currentPersonnelId = 'ALL'; // Single source of truth - always a string
 
     // Show toast message
     function showToast(message, type = 'success') {
@@ -1142,96 +1242,256 @@
        }
      }
 
-     // Load personnel distribution chart
-     async function loadPersonnelChart() {
-       const canvas = document.getElementById('personnel-chart');
-       const emptyDiv = document.getElementById('chart-personnel-empty');
-       
+     // Load personnel summary (for selector and KPIs)
+     async function loadPersonnelSummary() {
        try {
-         const res = await fetch('/api/admin/machine-faults/personnel-distribution?months=3');
-         if (!res.ok) throw new Error('Chart verisi yüklenemedi');
+         const res = await fetch(`/api/machine-fault/summary?months=${currentMonths}`);
+         if (!res.ok) throw new Error('Özet veriler yüklenemedi');
          
          const result = await res.json();
-         const data = result.data || [];
-         console.log("personnel-distribution data", data);
+         if (!result.success) throw new Error(result.error || 'Veri alınamadı');
          
-         if (data.length === 0) {
-           canvas.style.display = 'none';
-           emptyDiv.style.display = 'block';
-           emptyDiv.textContent = 'Veri yok (son 3 ay filtresi nedeniyle boş olabilir).';
-           return;
+         // Preserve current selection before rebuilding options
+         const personnelSelect = document.getElementById('personnel-select');
+         const preservedValue = currentPersonnelId || 'ALL';
+         
+         // Populate personnel selector
+         personnelSelect.innerHTML = '<option value="ALL">Tümü</option>';
+         
+         if (result.personnel && result.personnel.length > 0) {
+           result.personnel.forEach(person => {
+             const option = document.createElement('option');
+             // Use string value for consistency
+             option.value = String(person.personel_id);
+             option.textContent = `${person.personel_ad_soyad} (${person.total_reports} bildirim)`;
+             personnelSelect.appendChild(option);
+           });
          }
          
-         canvas.style.display = 'block';
-         emptyDiv.style.display = 'none';
-         
-         // Destroy existing chart if it exists
-         if (personnelChart) {
-           personnelChart.destroy();
+         // Restore the preserved selection (convert to string for comparison)
+         const valueToSet = preservedValue === 'ALL' ? 'ALL' : String(preservedValue);
+         // Only set if the option exists
+         if (valueToSet === 'ALL' || Array.from(personnelSelect.options).some(opt => opt.value === valueToSet)) {
+           personnelSelect.value = valueToSet;
+           // Sync state with select value
+           currentPersonnelId = personnelSelect.value;
+         } else {
+           // If preserved value doesn't exist, fall back to ALL
+           personnelSelect.value = 'ALL';
+           currentPersonnelId = 'ALL';
          }
          
-         const ctx = canvas.getContext('2d');
-         personnelChart = new Chart(ctx, {
-           type: 'bar',
-           data: {
-             labels: data.map(item => item.label),
-             datasets: [{
-               label: 'Bildirim Sayısı',
-               data: data.map(item => item.value),
-               backgroundColor: 'rgba(212, 168, 83, 0.6)',
-               borderColor: 'rgba(212, 168, 83, 1)',
-               borderWidth: 1
-             }]
-           },
-           options: {
-             indexAxis: 'y',
-             responsive: true,
-             maintainAspectRatio: false,
-             plugins: {
-               legend: {
-                 display: false
-               },
-               tooltip: {
-                 backgroundColor: 'rgba(21, 29, 48, 0.95)',
-                 titleColor: '#ffffff',
-                 bodyColor: '#d4a853',
-                 borderColor: '#2a3a5c',
-                 borderWidth: 1
-               }
-             },
-             scales: {
-               x: {
-                 beginAtZero: true,
-                 ticks: {
-                   color: '#94a3b8',
-                   stepSize: 1
-                 },
-                 grid: {
-                   color: 'rgba(42, 58, 92, 0.5)'
-                 }
-               },
-               y: {
-                 ticks: {
-                   color: '#94a3b8'
-                 },
-                 grid: {
-                   color: 'rgba(42, 58, 92, 0.5)'
-                 }
-               }
-             }
-           }
-         });
+         // Update KPIs based on selected personnel
+         updateKPIs(result, currentPersonnelId);
+         
+         return result; // Return for chaining
        } catch (err) {
-         console.error('Personnel chart load error:', err);
-         canvas.style.display = 'none';
-         emptyDiv.style.display = 'block';
-         emptyDiv.textContent = 'Veri yüklenirken hata oluştu.';
+         console.error('Personnel summary load error:', err);
+         showToast('Özet veriler yüklenirken hata oluştu', 'error');
+         throw err;
        }
      }
 
+     // Update KPI values
+     function updateKPIs(summaryData, selectedPersonnelId) {
+       const totalReportsEl = document.getElementById('kpi-total-reports');
+       const uniqueMachinesEl = document.getElementById('kpi-unique-machines');
+       
+       // Normalize selectedPersonnelId to string for comparison
+       const selectedId = String(selectedPersonnelId || 'ALL');
+       
+       if (selectedId === 'ALL') {
+         totalReportsEl.textContent = summaryData.overall.total_reports || 0;
+         uniqueMachinesEl.textContent = summaryData.overall.unique_machines || 0;
+       } else {
+         // Convert to number for comparison with personel_id
+         const personIdNum = parseInt(selectedId, 10);
+         const person = summaryData.personnel.find(p => p.personel_id === personIdNum);
+         if (person) {
+           totalReportsEl.textContent = person.total_reports || 0;
+           uniqueMachinesEl.textContent = person.unique_machines || 0;
+         } else {
+           totalReportsEl.textContent = '0';
+           uniqueMachinesEl.textContent = '0';
+         }
+       }
+     }
+
+     // Load machine breakdown and recent reports
+     async function loadBreakdown() {
+       const breakdownContainer = document.getElementById('machine-breakdown-container');
+       const recentContainer = document.getElementById('recent-reports-container');
+       
+       breakdownContainer.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Yükleniyor...</p></div>';
+       recentContainer.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Yükleniyor...</p></div>';
+       
+       try {
+         // Ensure personel_id is properly formatted (string "ALL" or numeric string)
+         const personelIdParam = currentPersonnelId === 'ALL' ? 'ALL' : String(currentPersonnelId);
+         const res = await fetch(`/api/machine-fault/breakdown?months=${currentMonths}&personel_id=${personelIdParam}`);
+         if (!res.ok) throw new Error('Detay veriler yüklenemedi');
+         
+         const result = await res.json();
+         if (!result.success) throw new Error(result.error || 'Veri alınamadı');
+         
+         // Render machine breakdown table
+         renderMachineBreakdown(result.machine_breakdown || []);
+         
+         // Render recent reports list
+         renderRecentReports(result.recent_reports || []);
+         
+       } catch (err) {
+         console.error('Breakdown load error:', err);
+         breakdownContainer.innerHTML = `
+           <div class="empty-state">
+             <div class="empty-state-icon">⚠️</div>
+             <p>Veriler yüklenemedi.</p>
+             <button class="btn-refresh" onclick="loadBreakdown()" style="margin-top: 15px;">Tekrar Dene</button>
+           </div>
+         `;
+         recentContainer.innerHTML = `
+           <div class="empty-state">
+             <div class="empty-state-icon">⚠️</div>
+             <p>Veriler yüklenemedi.</p>
+           </div>
+         `;
+         showToast('Detay veriler yüklenirken hata oluştu', 'error');
+       }
+     }
+
+     // Render machine breakdown table
+     function renderMachineBreakdown(breakdown) {
+       const container = document.getElementById('machine-breakdown-container');
+       
+       if (!breakdown || breakdown.length === 0) {
+         container.innerHTML = `
+           <div class="empty-state" style="padding: 40px;">
+             <div class="empty-state-icon">📊</div>
+             <p>Makine verisi bulunamadı.</p>
+           </div>
+         `;
+         return;
+       }
+       
+       const table = document.createElement('table');
+       table.innerHTML = `
+         <thead>
+           <tr>
+             <th>Makine Adı</th>
+             <th>Bildirim Sayısı</th>
+             <th>Son Bildirim Tarihi</th>
+           </tr>
+         </thead>
+         <tbody>
+           ${breakdown.map(machine => `
+             <tr>
+               <td>${machine.makine_adi || '-'}</td>
+               <td style="text-align: center; font-weight: 600; color: var(--accent);">${machine.report_count || 0}</td>
+               <td>${machine.last_report_at ? formatDate(machine.last_report_at) : '-'}</td>
+             </tr>
+           `).join('')}
+         </tbody>
+       `;
+       
+       container.innerHTML = '';
+       container.appendChild(table);
+     }
+
+     // Render recent reports list
+     function renderRecentReports(reports) {
+       const container = document.getElementById('recent-reports-container');
+       
+       if (!reports || reports.length === 0) {
+         container.innerHTML = `
+           <div class="empty-state" style="padding: 40px;">
+             <div class="empty-state-icon">📋</div>
+             <p>Son bildirim bulunamadı.</p>
+           </div>
+         `;
+         return;
+       }
+       
+       const reportsHTML = reports.map(report => {
+         const statusClass = getStatusClass(report.status);
+         const priorityClass = getPriorityClass(report.priority);
+         const dateStr = formatDate(report.created_at);
+         const reportId = `report-${report.report_id}`;
+         
+         return `
+           <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 12px; transition: all 0.2s ease;">
+             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; flex-wrap: wrap;">
+               <div style="flex: 1; min-width: 200px;">
+                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;">
+                   <span style="font-size: 0.85rem; color: var(--text-secondary);">${dateStr}</span>
+                   <span class="status-badge ${statusClass}">${report.status}</span>
+                   <span class="priority-badge ${priorityClass}">${report.priority}</span>
+                 </div>
+                 <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">${report.title || '-'}</div>
+                 <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                   <span>👤 ${report.personel_ad_soyad || '-'}</span>
+                   <span style="margin: 0 10px;">•</span>
+                   <span>⚙️ ${report.makine_adi || '-'}</span>
+                   <span style="margin: 0 10px;">•</span>
+                   <span>🔧 ${report.fault_type || '-'}</span>
+                 </div>
+                 <div id="${reportId}-description" style="display: none; margin-top: 10px; padding: 12px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; font-size: 0.9rem; color: var(--text-secondary); white-space: pre-wrap; word-wrap: break-word;">
+                   ${report.description || 'Açıklama yok.'}
+                 </div>
+               </div>
+               <div>
+                 <button class="btn-detail" onclick="toggleDescription('${reportId}')" style="margin-right: 8px;">
+                   <span id="${reportId}-toggle">📖 Açıklama</span>
+                 </button>
+                 <button class="btn-detail" onclick="showDetailFromRecent(${report.report_id})">
+                   Detay
+                 </button>
+               </div>
+             </div>
+           </div>
+         `;
+       }).join('');
+       
+       container.innerHTML = reportsHTML;
+     }
+
+     // Toggle description visibility
+     function toggleDescription(reportId) {
+       const descEl = document.getElementById(`${reportId}-description`);
+       const toggleEl = document.getElementById(`${reportId}-toggle`);
+       
+       if (descEl.style.display === 'none') {
+         descEl.style.display = 'block';
+         toggleEl.textContent = '📖 Gizle';
+       } else {
+         descEl.style.display = 'none';
+         toggleEl.textContent = '📖 Açıklama';
+       }
+     }
+
+     // Show detail from recent reports (fetch full report data)
+     function showDetailFromRecent(reportId) {
+       // showDetail already handles fetching if report not found
+       showDetail(reportId);
+     }
+
     // Show detail modal
-    function showDetail(reportId) {
-      const report = allReports.find(r => r.report_id === reportId);
+    async function showDetail(reportId) {
+      let report = allReports.find(r => r.report_id === reportId);
+      
+      // If not found in current page, try to fetch it
+      if (!report) {
+        try {
+          const res = await fetch(`/api/admin/machine-fault-reports?limit=1000`);
+          if (res.ok) {
+            const result = await res.json();
+            const reports = Array.isArray(result) ? result : (result.data || []);
+            report = reports.find(r => r.report_id === reportId);
+          }
+        } catch (err) {
+          console.error('Fetch report error:', err);
+        }
+      }
+      
       if (!report) {
         showToast('Bildirim bulunamadı', 'error');
         return;
@@ -1374,7 +1634,36 @@
        loadReports(1);
        loadDistributionChart();
        loadTypeDistributionChart();
-       loadPersonnelChart();
+       loadPersonnelSummary();
+       loadBreakdown();
+       
+       // Event listeners for filters
+       document.getElementById('time-range-select').addEventListener('change', (e) => {
+         currentMonths = parseInt(e.target.value, 10);
+         loadPersonnelSummary();
+         loadBreakdown();
+       });
+       
+       document.getElementById('personnel-select').addEventListener('change', (e) => {
+         // Update state immediately from select value
+         currentPersonnelId = e.target.value;
+         
+         // Reload summary to get fresh data and update KPIs
+         // Note: loadPersonnelSummary will preserve the selection we just set
+         loadPersonnelSummary().then(result => {
+           if (result && result.success) {
+             // KPIs are already updated in loadPersonnelSummary, but ensure sync
+             updateKPIs(result, currentPersonnelId);
+           }
+         }).catch(err => {
+           console.error('Summary reload error:', err);
+           // Even if summary fails, try to load breakdown with current selection
+           loadBreakdown();
+         });
+         
+         // Load breakdown with new filter (don't wait for summary)
+         loadBreakdown();
+       });
      });
   </script>
 </body>
