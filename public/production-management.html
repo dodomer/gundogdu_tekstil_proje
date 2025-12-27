@@ -284,6 +284,64 @@
       color: var(--success);
     }
 
+    /* Pagination */
+    .pagination-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .pagination-btn {
+      padding: 8px 16px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+      background: var(--bg-card);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .pagination-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .pagination-page-btn {
+      padding: 8px 12px;
+      min-width: 36px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .pagination-page-btn:hover {
+      background: var(--bg-card);
+      border-color: var(--accent);
+    }
+
+    .pagination-page-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg-dark);
+      font-weight: 600;
+    }
+
     /* Loading & Empty States */
     .loading-state, .empty-state {
       text-align: center;
@@ -558,6 +616,17 @@
           </tbody>
         </table>
       </div>
+      <!-- Pagination Controls -->
+      <div class="pagination-wrapper" id="pagination-wrapper" style="display: none; padding: 20px; border-top: 1px solid var(--border-color);">
+        <div style="color: var(--text-secondary); font-size: 0.9rem;">
+          Toplam: <strong style="color: var(--text-primary);" id="pagination-total">0</strong> kayıt
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button id="pagination-prev" class="pagination-btn" disabled>← Önceki</button>
+          <div id="pagination-pages" style="display: flex; gap: 6px; align-items: center;"></div>
+          <button id="pagination-next" class="pagination-btn">Sonraki →</button>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -605,6 +674,15 @@
   <script>
     let allOrders = [];
     let allMaterials = [];
+    
+    // Pagination state
+    const paginationState = {
+      page: 1,
+      limit: 10,
+      totalCount: 0,
+      totalPages: 0,
+      searchTerm: ''
+    };
 
     // Load available materials for dropdown
     async function loadMaterials() {
@@ -626,34 +704,74 @@
       }
     }
 
-    const ORDERS_URL = 'http://localhost:3000/api/hammadde-siparisleri';
+    const ORDERS_URL = '/api/hammadde-siparisleri';
 
-    // Load orders on page load
+    // Load orders with pagination
     async function loadOrders() {
       try {
-        console.log('RAW ORDERS URL:', ORDERS_URL);
-        const response = await fetch(ORDERS_URL);
+        const tbody = document.getElementById('ordersTableBody');
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6">
+              <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Siparişler yükleniyor...</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        
+        // Build query params
+        const params = new URLSearchParams({
+          page: paginationState.page.toString(),
+          limit: paginationState.limit.toString()
+        });
+        
+        if (paginationState.searchTerm) {
+          params.append('search', paginationState.searchTerm);
+        }
+        
+        const url = `${ORDERS_URL}?${params.toString()}`;
+        console.log('Loading orders:', url);
+        
+        const response = await fetch(url);
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || 'Sunucu hatası');
         }
         
-        const data = await response.json();
-        console.log('RAW ORDERS DATA:', Array.isArray(data) ? data.slice(0,3) : data);
-        if (Array.isArray(data) && data.length) {
-          console.log('RAW ORDERS FIRST ROW:', data[0]);
+        const result = await response.json();
+        console.log('Orders response:', result);
+        
+        // Handle both old format (array) and new format (object with data/pagination)
+        let orders = [];
+        let pagination = null;
+        
+        if (Array.isArray(result)) {
+          // Legacy format - no pagination
+          orders = result;
+        } else if (result.success && result.data) {
+          // New paginated format
+          orders = result.data || [];
+          pagination = result.pagination || null;
+        } else {
+          orders = [];
         }
         
-        if (Array.isArray(data)) {
-          allOrders = data;
-          renderTable(data);
-          updateStats(data);
-        } else {
-          allOrders = [];
-          renderTable([]);
-          updateStats([]);
+        allOrders = orders;
+        
+        // Update pagination state if available
+        if (pagination) {
+          paginationState.totalCount = pagination.totalCount || 0;
+          paginationState.totalPages = pagination.totalPages || 0;
         }
+        
+        renderTable(orders);
+        renderPagination();
+        // Note: Stats should be calculated from all orders, not just current page
+        // For now, we'll keep using current page data, but ideally should fetch stats separately
+        updateStats(orders);
       } catch (error) {
         console.error('Error loading orders:', error);
         document.getElementById('ordersTableBody').innerHTML = `
@@ -672,6 +790,95 @@
         document.getElementById('deliveredOrders').textContent = '0';
       }
     }
+    
+    // Render pagination controls
+    function renderPagination() {
+      const wrapper = document.getElementById('pagination-wrapper');
+      const totalEl = document.getElementById('pagination-total');
+      const prevBtn = document.getElementById('pagination-prev');
+      const nextBtn = document.getElementById('pagination-next');
+      const pagesContainer = document.getElementById('pagination-pages');
+      
+      if (!wrapper) return;
+      
+      // Show pagination only if there are multiple pages
+      if (paginationState.totalPages <= 1) {
+        wrapper.style.display = 'none';
+        return;
+      }
+      
+      wrapper.style.display = 'flex';
+      
+      // Update total count
+      if (totalEl) {
+        totalEl.textContent = paginationState.totalCount.toLocaleString('tr-TR');
+      }
+      
+      // Update prev/next buttons
+      if (prevBtn) {
+        prevBtn.disabled = paginationState.page <= 1;
+        prevBtn.onclick = () => {
+          if (paginationState.page > 1) {
+            paginationState.page--;
+            loadOrders();
+          }
+        };
+      }
+      
+      if (nextBtn) {
+        nextBtn.disabled = paginationState.page >= paginationState.totalPages;
+        nextBtn.onclick = () => {
+          if (paginationState.page < paginationState.totalPages) {
+            paginationState.page++;
+            loadOrders();
+          }
+        };
+      }
+      
+      // Render page numbers
+      if (pagesContainer) {
+        let pagesHtml = '';
+        const currentPage = paginationState.page;
+        const totalPages = paginationState.totalPages;
+        
+        // Show max 7 page buttons
+        let startPage = Math.max(1, currentPage - 3);
+        let endPage = Math.min(totalPages, currentPage + 3);
+        
+        if (startPage > 1) {
+          pagesHtml += `<button class="pagination-page-btn" onclick="changePage(1)">1</button>`;
+          if (startPage > 2) {
+            pagesHtml += `<span style="color: var(--text-secondary); padding: 0 4px;">...</span>`;
+          }
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+          pagesHtml += `<button class="pagination-page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+        }
+        
+        if (endPage < totalPages) {
+          if (endPage < totalPages - 1) {
+            pagesHtml += `<span style="color: var(--text-secondary); padding: 0 4px;">...</span>`;
+          }
+          pagesHtml += `<button class="pagination-page-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
+        }
+        
+        pagesContainer.innerHTML = pagesHtml;
+      }
+    }
+    
+    // Change page
+    function changePage(page) {
+      if (page >= 1 && page <= paginationState.totalPages) {
+        paginationState.page = page;
+        loadOrders();
+        // Scroll to top of table
+        document.querySelector('.table-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+    
+    // Make changePage available globally
+    window.changePage = changePage;
 
     // Update stats cards
     function updateStats(orders) {
@@ -728,18 +935,20 @@
     }
 
     // Search functionality
+    // Search input handler with pagination
+    let searchTimeout;
     document.getElementById('searchInput').addEventListener('input', (e) => {
-      const term = e.target.value.toLowerCase().trim();
+      clearTimeout(searchTimeout);
+      const searchTerm = e.target.value.trim();
       
-      if (term === '') {
-        renderTable(allOrders);
-        return;
-      }
-
-      const filtered = allOrders.filter(order => 
-        (order.malzeme_adi || '').toLowerCase().includes(term)
-      );
-      renderTable(filtered);
+      // Reset to page 1 when search changes
+      paginationState.page = 1;
+      paginationState.searchTerm = searchTerm;
+      
+      // Debounce search (wait 500ms after user stops typing)
+      searchTimeout = setTimeout(() => {
+        loadOrders();
+      }, 500);
     });
 
     // Open modal for new order

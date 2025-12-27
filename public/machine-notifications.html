@@ -749,7 +749,34 @@
       </div>
     </div>
 
-    <!-- Second Row: Personnel-Driven List View -->
+    <!-- Second Row: Pairing Analytics Charts -->
+    <div class="charts-row-top" style="margin-top: 25px;">
+      <!-- Left Chart: Top Personel-Machine Pairs -->
+      <div class="chart-card">
+        <h3>👤🔧 Personel–Makine Eşleşmeleri (Top 10)</h3>
+        <p class="chart-subtitle">En çok bildirim yapılan eşleşmeler</p>
+        <div style="position: relative; height: 300px; margin-top: 20px;">
+          <canvas id="pairing-top-chart"></canvas>
+          <div id="pairing-top-empty" style="display: none; padding: 40px; text-align: center; color: var(--text-secondary);">
+            Seçilen aralıkta yeterli veri yok.
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Chart: Lift Pairs -->
+      <div class="chart-card">
+        <h3>⚠️ Anormal Eşleşmeler (Lift Top 10)</h3>
+        <p class="chart-subtitle">Beklenenin üzerinde bildirim yapılan eşleşmeler</p>
+        <div style="position: relative; height: 300px; margin-top: 20px;">
+          <canvas id="pairing-lift-chart"></canvas>
+          <div id="pairing-lift-empty" style="display: none; padding: 40px; text-align: center; color: var(--text-secondary);">
+            Seçilen aralıkta yeterli veri yok.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Third Row: Personnel-Driven List View -->
     <div class="chart-card chart-full-width">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
         <div>
@@ -798,12 +825,15 @@
 
       <!-- Recent Reports List -->
       <div>
-        <h4 style="font-size: 1rem; margin-bottom: 15px; color: var(--text-primary);">Son Bildirimler (Son 50)</h4>
+        <h4 id="recent-reports-header" style="font-size: 1rem; margin-bottom: 15px; color: var(--text-primary);">Son Bildirimler</h4>
         <div id="recent-reports-container">
           <div class="loading-state">
             <div class="spinner"></div>
             <p>Yükleniyor...</p>
           </div>
+        </div>
+        <!-- Pagination for recent reports -->
+        <div id="recent-reports-pagination" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
         </div>
       </div>
     </div>
@@ -887,8 +917,15 @@
      let paginationInfo = null;
      let distributionChart = null;
      let typeChart = null;
+     let pairingTopChart = null;
+     let pairingLiftChart = null;
      let currentMonths = 3;
      let currentPersonnelId = 'ALL'; // Single source of truth - always a string
+     
+     // Recent reports pagination state
+     let recentReportsPage = 1;
+     let recentReportsPageSize = 10;
+     let recentReportsPagination = null;
 
     // Show toast message
     function showToast(message, type = 'success') {
@@ -1159,6 +1196,184 @@
        }
      }
 
+     // Load pairing statistics charts
+     async function loadPairingCharts() {
+       const topCanvas = document.getElementById('pairing-top-chart');
+       const liftCanvas = document.getElementById('pairing-lift-chart');
+       const topEmpty = document.getElementById('pairing-top-empty');
+       const liftEmpty = document.getElementById('pairing-lift-empty');
+       
+       // Convert months to range format
+       const rangeMap = { 1: '1m', 3: '3m', 6: '6m', 12: '12m' };
+       const range = rangeMap[currentMonths] || '3m';
+       
+       try {
+         const res = await fetch(`/api/admin/machine-faults/pairing-stats?range=${range}&limit=10`);
+         if (!res.ok) throw new Error('Eşleşme istatistikleri yüklenemedi');
+         
+         const result = await res.json();
+         if (!result.success) throw new Error(result.error || 'Veri alınamadı');
+         
+         const { topPairs, liftPairs } = result.data;
+         
+         // Render Top Pairs Chart
+         if (!topPairs || topPairs.length === 0) {
+           topCanvas.style.display = 'none';
+           topEmpty.style.display = 'block';
+         } else {
+           topCanvas.style.display = 'block';
+           topEmpty.style.display = 'none';
+           
+           if (pairingTopChart) {
+             pairingTopChart.destroy();
+           }
+           
+           const topCtx = topCanvas.getContext('2d');
+           pairingTopChart = new Chart(topCtx, {
+             type: 'bar',
+             data: {
+               labels: topPairs.map(p => `${p.personel_name} – ${p.makine_name}`),
+               datasets: [{
+                 label: 'Bildirim Sayısı',
+                 data: topPairs.map(p => p.count),
+                 backgroundColor: 'rgba(212, 168, 83, 0.6)',
+                 borderColor: 'rgba(212, 168, 83, 1)',
+                 borderWidth: 1
+               }]
+             },
+             options: {
+               indexAxis: 'y',
+               responsive: true,
+               maintainAspectRatio: false,
+               plugins: {
+                 legend: {
+                   display: false
+                 },
+                 tooltip: {
+                   backgroundColor: 'rgba(21, 29, 48, 0.95)',
+                   titleColor: '#ffffff',
+                   bodyColor: '#d4a853',
+                   borderColor: '#2a3a5c',
+                   borderWidth: 1,
+                   callbacks: {
+                     label: function(context) {
+                       return `Bildirim Sayısı: ${context.parsed.x}`;
+                     }
+                   }
+                 }
+               },
+               scales: {
+                 x: {
+                   beginAtZero: true,
+                   ticks: {
+                     color: '#94a3b8',
+                     stepSize: 1
+                   },
+                   grid: {
+                     color: 'rgba(42, 58, 92, 0.5)'
+                   }
+                 },
+                 y: {
+                   ticks: {
+                     color: '#94a3b8'
+                   },
+                   grid: {
+                     color: 'rgba(42, 58, 92, 0.5)'
+                   }
+                 }
+               }
+             }
+           });
+         }
+         
+         // Render Lift Pairs Chart
+         if (!liftPairs || liftPairs.length === 0) {
+           liftCanvas.style.display = 'none';
+           liftEmpty.style.display = 'block';
+         } else {
+           liftCanvas.style.display = 'block';
+           liftEmpty.style.display = 'none';
+           
+           if (pairingLiftChart) {
+             pairingLiftChart.destroy();
+           }
+           
+           const liftCtx = liftCanvas.getContext('2d');
+           pairingLiftChart = new Chart(liftCtx, {
+             type: 'bar',
+             data: {
+               labels: liftPairs.map(p => `${p.personel_name} – ${p.makine_name}`),
+               datasets: [{
+                 label: 'Lift Değeri',
+                 data: liftPairs.map(p => p.lift),
+                 backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                 borderColor: 'rgba(239, 68, 68, 1)',
+                 borderWidth: 1
+               }]
+             },
+             options: {
+               indexAxis: 'y',
+               responsive: true,
+               maintainAspectRatio: false,
+               plugins: {
+                 legend: {
+                   display: false
+                 },
+                 tooltip: {
+                   backgroundColor: 'rgba(21, 29, 48, 0.95)',
+                   titleColor: '#ffffff',
+                   bodyColor: '#fca5a5',
+                   borderColor: '#2a3a5c',
+                   borderWidth: 1,
+                   callbacks: {
+                     label: function(context) {
+                       const index = context.dataIndex;
+                       const pair = liftPairs[index];
+                       return [
+                         `Lift: ${pair.lift.toFixed(2)}`,
+                         `Bildirim Sayısı: ${pair.count}`,
+                         `Beklenen: ${pair.expected.toFixed(2)}`
+                       ];
+                     }
+                   }
+                 }
+               },
+               scales: {
+                 x: {
+                   beginAtZero: true,
+                   ticks: {
+                     color: '#94a3b8',
+                     callback: function(value) {
+                       return value.toFixed(2);
+                     }
+                   },
+                   grid: {
+                     color: 'rgba(42, 58, 92, 0.5)'
+                   }
+                 },
+                 y: {
+                   ticks: {
+                     color: '#94a3b8'
+                   },
+                   grid: {
+                     color: 'rgba(42, 58, 92, 0.5)'
+                   }
+                 }
+               }
+             }
+           });
+         }
+       } catch (err) {
+         console.error('Pairing charts load error:', err);
+         topCanvas.style.display = 'none';
+         liftCanvas.style.display = 'none';
+         topEmpty.style.display = 'block';
+         liftEmpty.style.display = 'block';
+         topEmpty.textContent = 'Veri yüklenirken hata oluştu.';
+         liftEmpty.textContent = 'Veri yüklenirken hata oluştu.';
+       }
+     }
+
      // Load fault type distribution chart
      async function loadTypeDistributionChart() {
        const canvas = document.getElementById('fault-type-chart');
@@ -1320,10 +1535,8 @@
      // Load machine breakdown and recent reports
      async function loadBreakdown() {
        const breakdownContainer = document.getElementById('machine-breakdown-container');
-       const recentContainer = document.getElementById('recent-reports-container');
        
        breakdownContainer.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Yükleniyor...</p></div>';
-       recentContainer.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Yükleniyor...</p></div>';
        
        try {
          // Ensure personel_id is properly formatted (string "ALL" or numeric string)
@@ -1337,8 +1550,8 @@
          // Render machine breakdown table
          renderMachineBreakdown(result.machine_breakdown || []);
          
-         // Render recent reports list
-         renderRecentReports(result.recent_reports || []);
+         // Load recent reports separately with pagination
+         loadRecentReports();
          
        } catch (err) {
          console.error('Breakdown load error:', err);
@@ -1349,14 +1562,112 @@
              <button class="btn-refresh" onclick="loadBreakdown()" style="margin-top: 15px;">Tekrar Dene</button>
            </div>
          `;
+         showToast('Detay veriler yüklenirken hata oluştu', 'error');
+       }
+     }
+     
+     // Load recent reports with pagination
+     async function loadRecentReports(page = null) {
+       const recentContainer = document.getElementById('recent-reports-container');
+       const paginationContainer = document.getElementById('recent-reports-pagination');
+       
+       if (page !== null) {
+         recentReportsPage = page;
+       }
+       
+       recentContainer.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Yükleniyor...</p></div>';
+       paginationContainer.style.display = 'none';
+       
+       try {
+         const personelIdParam = currentPersonnelId === 'ALL' ? 'ALL' : String(currentPersonnelId);
+         const params = new URLSearchParams({
+           months: currentMonths.toString(),
+           page: recentReportsPage.toString(),
+           limit: recentReportsPageSize.toString()
+         });
+         if (personelIdParam !== 'ALL') {
+           params.append('personel_id', personelIdParam);
+         }
+         
+         const res = await fetch(`/api/machine-fault/recent-reports?${params.toString()}`);
+         if (!res.ok) throw new Error('Son bildirimler yüklenemedi');
+         
+         const result = await res.json();
+         if (!result.success) throw new Error(result.error || 'Veri alınamadı');
+         
+         recentReportsPagination = result.pagination;
+         
+         // Update header
+         updateRecentReportsHeader();
+         
+         // Render reports
+         renderRecentReports(result.data || []);
+         
+         // Render pagination
+         renderRecentReportsPagination();
+         
+         // Scroll to top of container
+         recentContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+         
+       } catch (err) {
+         console.error('Recent reports load error:', err);
          recentContainer.innerHTML = `
            <div class="empty-state">
              <div class="empty-state-icon">⚠️</div>
-             <p>Veriler yüklenemedi.</p>
+             <p>Son bildirimler yüklenemedi.</p>
            </div>
          `;
-         showToast('Detay veriler yüklenirken hata oluştu', 'error');
+         showToast('Son bildirimler yüklenirken hata oluştu', 'error');
        }
+     }
+     
+     // Update recent reports header with pagination info
+     function updateRecentReportsHeader() {
+       const header = document.getElementById('recent-reports-header');
+       if (!recentReportsPagination) {
+         header.textContent = 'Son Bildirimler';
+         return;
+       }
+       
+       const { page, totalPages, total } = recentReportsPagination;
+       if (totalPages > 1) {
+         header.textContent = `Son Bildirimler (Sayfa ${page}/${totalPages})`;
+       } else {
+         header.textContent = `Son Bildirimler (Toplam: ${total})`;
+       }
+     }
+     
+     // Render pagination controls for recent reports
+     function renderRecentReportsPagination() {
+       const container = document.getElementById('recent-reports-pagination');
+       
+       if (!recentReportsPagination || recentReportsPagination.totalPages <= 1) {
+         container.style.display = 'none';
+         return;
+       }
+       
+       container.style.display = 'block';
+       const { page, totalPages } = recentReportsPagination;
+       
+       let html = '<div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">';
+       
+       // Previous button
+       html += `<button class="pagination-btn" ${page === 1 ? 'disabled' : ''} onclick="loadRecentReports(${page - 1})" style="min-width: 80px;">‹ Önceki</button>`;
+       
+       // Page numbers
+       for (let i = 1; i <= totalPages; i++) {
+         if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
+           html += `<button class="pagination-btn ${i === page ? 'active' : ''}" onclick="loadRecentReports(${i})">${i}</button>`;
+         } else if (i === page - 2 || i === page + 2) {
+           html += `<span style="color: var(--text-secondary); padding: 0 4px;">...</span>`;
+         }
+       }
+       
+       // Next button
+       html += `<button class="pagination-btn" ${page === totalPages ? 'disabled' : ''} onclick="loadRecentReports(${page + 1})" style="min-width: 80px;">Sonraki ›</button>`;
+       
+       html += '</div>';
+       container.innerHTML = html;
      }
 
      // Render machine breakdown table
@@ -1478,14 +1789,15 @@
     async function showDetail(reportId) {
       let report = allReports.find(r => r.report_id === reportId);
       
-      // If not found in current page, try to fetch it
+      // If not found in current page, fetch from detail endpoint
       if (!report) {
         try {
-          const res = await fetch(`/api/admin/machine-fault-reports?limit=1000`);
+          const res = await fetch(`/api/admin/machine-fault-reports/${reportId}`);
           if (res.ok) {
             const result = await res.json();
-            const reports = Array.isArray(result) ? result : (result.data || []);
-            report = reports.find(r => r.report_id === reportId);
+            if (result.success && result.data) {
+              report = result.data;
+            }
           }
         } catch (err) {
           console.error('Fetch report error:', err);
@@ -1507,6 +1819,22 @@
       const updatedStr = report.updated_at ? formatDate(report.updated_at) : '-';
       const statusClass = getStatusClass(report.status);
       const priorityClass = getPriorityClass(report.priority);
+      
+      // Build photo HTML if photo_url exists
+      let photoHTML = '';
+      if (report.photo_url) {
+        const photoUrl = report.photo_url.startsWith('/') 
+          ? report.photo_url 
+          : `/${report.photo_url}`;
+        photoHTML = `
+          <div class="detail-group">
+            <div class="detail-label">Fotoğraf</div>
+            <div class="detail-value">
+              <img src="${photoUrl}" alt="Arıza Fotoğrafı" style="max-width: 100%; max-height: 320px; border-radius: 8px; border: 1px solid var(--border-color); object-fit: contain; background: rgba(0, 0, 0, 0.2);" />
+            </div>
+          </div>
+        `;
+      }
 
       modalBody.innerHTML = `
         <div class="detail-group">
@@ -1517,6 +1845,7 @@
           <div class="detail-label">Açıklama</div>
           <div class="detail-value detail-description">${report.description || '-'}</div>
         </div>
+        ${photoHTML}
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
           <div class="detail-group">
             <div class="detail-label">Makine</div>
@@ -1584,7 +1913,7 @@
 
         const data = await res.json();
 
-        if (!res.ok) {
+        if (!res.ok || !data.success) {
           throw new Error(data.error || 'Durum güncellenemedi');
         }
 
@@ -1598,10 +1927,10 @@
         }
         
         // Reload table
-        await loadReports();
+        await loadReports(currentPage);
         
-        // Update modal
-        showDetail(currentReportId);
+        // Update modal - fetch fresh data
+        await showDetail(currentReportId);
         
       } catch (err) {
         console.error('Status update error:', err);
@@ -1634,19 +1963,25 @@
        loadReports(1);
        loadDistributionChart();
        loadTypeDistributionChart();
+       loadPairingCharts();
        loadPersonnelSummary();
        loadBreakdown();
        
        // Event listeners for filters
        document.getElementById('time-range-select').addEventListener('change', (e) => {
          currentMonths = parseInt(e.target.value, 10);
+         recentReportsPage = 1; // Reset to page 1 when time range changes
          loadPersonnelSummary();
          loadBreakdown();
+         loadPairingCharts(); // Reload pairing charts when range changes
        });
        
        document.getElementById('personnel-select').addEventListener('change', (e) => {
          // Update state immediately from select value
          currentPersonnelId = e.target.value;
+         
+         // Reset recent reports to page 1 when filter changes
+         recentReportsPage = 1;
          
          // Reload summary to get fresh data and update KPIs
          // Note: loadPersonnelSummary will preserve the selection we just set
@@ -1664,6 +1999,7 @@
          // Load breakdown with new filter (don't wait for summary)
          loadBreakdown();
        });
+       
      });
   </script>
 </body>

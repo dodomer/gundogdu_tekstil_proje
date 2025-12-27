@@ -12,7 +12,7 @@ const fs = require('fs');
 const pool = require('../config/database');
 
 // Configure multer for file uploads
-const uploadsDir = path.join(__dirname, '../public/uploads/faults');
+const uploadsDir = path.join(__dirname, '../uploads/machine_fault_reports');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -32,10 +32,12 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: function (req, file, cb) {
-    if (file.mimetype.startsWith('image/')) {
+    // Allow only images (jpeg, png, webp)
+    const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Sadece resim dosyaları yüklenebilir'), false);
+      cb(new Error('Sadece resim dosyaları yüklenebilir (JPEG, PNG, WebP)'), false);
     }
   }
 });
@@ -400,6 +402,7 @@ router.get('/machine-fault-reports', async (req, res) => {
         r.priority,
         r.title,
         r.description,
+        r.photo_url,
         r.status,
         r.created_at,
         r.updated_at,
@@ -438,38 +441,25 @@ router.post('/machine-fault-reports', upload.single('photo'), async (req, res) =
       });
     }
 
-    // Insert report
+    // Handle file upload if present
+    let photoUrl = null;
+    if (req.file) {
+      photoUrl = `/uploads/machine_fault_reports/${req.file.filename}`;
+    }
+
+    // Insert report with photo_url
     const [result] = await pool.query(`
       INSERT INTO machine_fault_reports 
-        (personel_id, makine_id, fault_type, priority, title, description, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'Açık', NOW(), NOW())
-    `, [personel_id, makine_id, fault_type, priority, title, description]);
+        (personel_id, makine_id, fault_type, priority, title, description, photo_url, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'Açık', NOW(), NOW())
+    `, [personel_id, makine_id, fault_type, priority, title, description, photoUrl]);
 
     const reportId = result.insertId;
-
-    // Handle file upload if present
-    if (req.file) {
-      try {
-        await pool.query(`
-          INSERT INTO machine_fault_attachments 
-            (report_id, file_name, file_path, mime_type, file_size, created_at)
-          VALUES (?, ?, ?, ?, ?, NOW())
-        `, [
-          reportId,
-          req.file.originalname,
-          `/uploads/faults/${req.file.filename}`,
-          req.file.mimetype,
-          req.file.size
-        ]);
-      } catch (attachError) {
-        console.error('Attachment insert error:', attachError);
-        // Don't fail the whole request if attachment fails
-      }
-    }
 
     res.json({ 
       success: true, 
       report_id: reportId,
+      photo_url: photoUrl,
       message: 'Bildirim başarıyla oluşturuldu' 
     });
   } catch (error) {

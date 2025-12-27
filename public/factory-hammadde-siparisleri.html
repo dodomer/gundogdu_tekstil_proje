@@ -453,12 +453,13 @@
   <script>
     let allOrders = [];
 
-    const ORDERS_URL = 'http://localhost:3000/api/hammadde-siparisleri';
+    const ORDERS_URL = '/api/factory/raw-material-orders';
+    const SUMMARY_URL = '/api/factory/raw-material-orders/summary';
 
     // Load orders on page load
     async function loadOrders() {
       try {
-        console.log('RAW ORDERS URL:', ORDERS_URL);
+        console.log('[Factory] Loading orders from:', ORDERS_URL);
         const response = await fetch(ORDERS_URL);
         
         if (!response.ok) {
@@ -467,19 +468,20 @@
         }
         
         const data = await response.json();
-        console.log('RAW ORDERS DATA:', Array.isArray(data) ? data.slice(0,3) : data);
+        console.log('[Factory] Orders response length:', Array.isArray(data) ? data.length : 'not array');
         if (Array.isArray(data) && data.length) {
-          console.log('RAW ORDERS FIRST ROW:', data[0]);
+          console.log('[Factory] First order:', data[0]);
         }
         
         if (Array.isArray(data)) {
           allOrders = data;
           renderTable(data);
-          updateStats(data);
+          // Load stats separately from summary endpoint
+          loadStats();
         } else {
           allOrders = [];
           renderTable([]);
-          updateStats([]);
+          loadStats();
         }
       } catch (error) {
         console.error('Error loading orders:', error);
@@ -488,24 +490,53 @@
             <td colspan="7">
               <div class="empty-state">
                 <p>⚠️ Siparişler yüklenirken bir hata oluştu.</p>
-                <p style="font-size: 0.8rem; margin-top: 10px;">Lütfen daha sonra tekrar deneyin.</p>
+                <p style="font-size: 0.8rem; margin-top: 10px; color: #ef4444;">${error.message}</p>
               </div>
             </td>
           </tr>
         `;
+        // Reset stats on error
         document.getElementById('totalOrders').textContent = '0';
         document.getElementById('pendingOrders').textContent = '0';
         document.getElementById('inProductionOrders').textContent = '0';
         document.getElementById('deliveredOrders').textContent = '0';
       }
     }
+    
+    // Load summary stats from dedicated endpoint
+    async function loadStats() {
+      try {
+        const response = await fetch(SUMMARY_URL);
+        if (!response.ok) {
+          throw new Error('Stats fetch failed');
+        }
+        
+        const result = await response.json();
+        if (result.success && result.data) {
+          const stats = result.data;
+          document.getElementById('totalOrders').textContent = stats.total || 0;
+          document.getElementById('pendingOrders').textContent = stats.pending || 0;
+          document.getElementById('inProductionOrders').textContent = stats.preparing || 0;
+          document.getElementById('deliveredOrders').textContent = stats.delivered || 0;
+        }
+      } catch (error) {
+        console.error('Error loading stats:', error);
+        // Fallback to calculating from current page data
+        updateStats(allOrders);
+      }
+    }
 
-    // Update stats cards
+    // Update stats cards (fallback - uses current page data only)
     function updateStats(orders) {
+      // Count by status using correct enum values
+      const pending = orders.filter(o => o.durum === 'BEKLEMEDE' || o.durum === 'ONAYLANDI').length;
+      const preparing = orders.filter(o => o.durum === 'HAZIRLANIYOR').length;
+      const delivered = orders.filter(o => o.durum === 'TESLIMEDILDI').length;
+      
       document.getElementById('totalOrders').textContent = orders.length;
-      document.getElementById('pendingOrders').textContent = orders.filter(o => o.durum === 'BEKLEMEDE').length;
-      document.getElementById('inProductionOrders').textContent = orders.filter(o => o.durum === 'ONAYLANDI' || o.durum === 'HAZIRLANIYOR').length;
-      document.getElementById('deliveredOrders').textContent = orders.filter(o => o.durum === 'TESLIMEDILDI').length;
+      document.getElementById('pendingOrders').textContent = pending;
+      document.getElementById('inProductionOrders').textContent = preparing;
+      document.getElementById('deliveredOrders').textContent = delivered;
     }
 
     // Render table
@@ -609,8 +640,10 @@
         const order = allOrders.find(o => (o.siparisId || o.id || o.siparis_id) === orderId);
         if (order) {
           order.durum = normalizedStatus;
-          updateStats(allOrders);
         }
+        
+        // Reload stats from server to get accurate counts
+        loadStats();
 
         // Show brief success feedback
         selectElement.style.boxShadow = '0 0 0 2px rgba(34, 197, 94, 0.5)';

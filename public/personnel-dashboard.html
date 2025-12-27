@@ -259,66 +259,6 @@
       margin: 0;
     }
 
-    .category-chart {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .chart-bar-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .chart-label {
-      min-width: 140px;
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-      text-align: right;
-    }
-
-    .chart-bar-container {
-      flex: 1;
-      position: relative;
-      height: 32px;
-      background: rgba(15, 23, 42, 0.5);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    .chart-bar {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent), var(--accent-light));
-      border-radius: 6px;
-      transition: width 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding-right: 8px;
-      min-width: 0;
-    }
-
-    .chart-bar-value {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #020617;
-      white-space: nowrap;
-    }
-
-    .chart-bar-empty {
-      color: var(--text-muted);
-    }
-
-    .chart-x-axis {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 8px;
-      padding-left: 152px;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
     .chart-loading,
     .chart-empty {
       text-align: center;
@@ -807,18 +747,6 @@
         <p>Personeller hakkında yorum yaz</p>
       </div>
     </section>
-
-    <section class="info-card">
-      <div class="chart-header">
-        <div>
-          <h3>Kategori Bazlı Değerlendirme</h3>
-          <p class="chart-subtitle">Aldığın yıldız puanlarının kategori ortalaması</p>
-        </div>
-      </div>
-      <div id="category-chart-container">
-        <div class="chart-loading">Yükleniyor...</div>
-      </div>
-    </section>
   </main>
 
   <footer class="dashboard-footer">
@@ -1093,99 +1021,8 @@
         
         // Load performance score
         await loadPerformanceScore();
-        
-        // Load category ratings chart
-        await loadCategoryRatingsChart();
       } else {
         remainingEl.textContent = '--';
-      }
-
-      // Load category ratings chart
-      async function loadCategoryRatingsChart() {
-        const chartContainer = document.getElementById('category-chart-container');
-        
-        if (!personnelId || !chartContainer) {
-          if (chartContainer) {
-            chartContainer.innerHTML = '<div class="chart-empty">Personel oturumu bulunamadı.</div>';
-          }
-          return;
-        }
-
-        try {
-          chartContainer.innerHTML = '<div class="chart-loading">Yükleniyor...</div>';
-
-          const res = await fetch(`/api/personel/${personnelId}/kategori-puanlari`);
-          const data = await res.json();
-
-          if (!res.ok || !data) {
-            throw new Error(data?.error || 'Kategori puanları alınamadı');
-          }
-
-          const { categories } = data;
-          
-          // Check if all categories have 0 adet
-          const allEmpty = categories.every(cat => cat.adet === 0);
-          
-          if (allEmpty) {
-            chartContainer.innerHTML = '<div class="chart-empty">Henüz kategori bazlı puan yok.</div>';
-            return;
-          }
-
-          // Build chart HTML
-          let chartHTML = '<div class="category-chart">';
-          
-          categories.forEach(category => {
-            const { kategori, ort_puan, adet } = category;
-            const widthPercent = (ort_puan / 5) * 100;
-            
-            // Generate star display
-            const fullStars = Math.floor(ort_puan);
-            const emptyStars = 5 - fullStars;
-            let starDisplay = '';
-            for (let i = 0; i < fullStars; i++) {
-              starDisplay += '★';
-            }
-            for (let i = 0; i < emptyStars; i++) {
-              starDisplay += '☆';
-            }
-            
-            const valueText = ort_puan > 0 
-              ? `${ort_puan} ${starDisplay}${adet > 0 ? ` (${adet} kişi)` : ''}`
-              : '';
-            
-            chartHTML += `
-              <div class="chart-bar-row">
-                <div class="chart-label">${kategori}</div>
-                <div class="chart-bar-container">
-                  <div class="chart-bar ${ort_puan === 0 ? 'chart-bar-empty' : ''}" style="width: ${widthPercent}%;">
-                    ${ort_puan > 0 ? `<span class="chart-bar-value">${valueText}</span>` : '<span class="chart-bar-value" style="color: var(--text-muted);">—</span>'}
-                  </div>
-                </div>
-              </div>
-            `;
-          });
-          
-          // Add X-axis
-          chartHTML += `
-            <div class="chart-x-axis">
-              <span>0</span>
-              <span>1</span>
-              <span>2</span>
-              <span>3</span>
-              <span>4</span>
-              <span>5</span>
-            </div>
-          `;
-          
-          chartHTML += '</div>';
-          chartContainer.innerHTML = chartHTML;
-          
-        } catch (err) {
-          console.error('Kategori puanları yükleme hatası:', err);
-          if (chartContainer) {
-            chartContainer.innerHTML = '<div class="chart-empty">Kategori puanları yüklenirken hata oluştu.</div>';
-          }
-        }
       }
 
       // Load performance score

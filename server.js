@@ -157,6 +157,9 @@ app.post('/api/customers/register', async (req, res) => {
 // Static files (Frontend)
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Static file serving for uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // ============================================
 // 🧮 HELPER: BUSINESS DAY COUNT (Hafta içi gün sayısı)
 // ============================================
@@ -466,6 +469,7 @@ app.get('/api/admin/machine-fault-reports', async (req, res) => {
         r.priority,
         r.title,
         r.description,
+        r.photo_url,
         r.status,
         r.created_at,
         r.updated_at
@@ -492,6 +496,109 @@ app.get('/api/admin/machine-fault-reports', async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: 'Bildirimler yüklenirken hata oluştu' 
+    });
+  }
+});
+
+// GET /api/admin/machine-fault-reports/:id - Get single fault report detail
+app.get('/api/admin/machine-fault-reports/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reportId = parseInt(id, 10);
+    
+    if (!reportId || isNaN(reportId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Geçersiz bildirim ID'
+      });
+    }
+    
+    const [rows] = await pool.query(`
+      SELECT
+        r.report_id,
+        r.personel_id,
+        p.personel_ad_soyad AS personel_adsoyad,
+        r.makine_id,
+        m.makine_adi,
+        m.makine_turu,
+        r.fault_type,
+        r.priority,
+        r.title,
+        r.description,
+        r.photo_url,
+        r.status,
+        r.created_at,
+        r.updated_at
+      FROM machine_fault_reports r
+      JOIN makine m ON m.makine_id = r.makine_id
+      JOIN personel p ON p.personel_id = r.personel_id
+      WHERE r.report_id = ?
+    `, [reportId]);
+    
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Bildirim bulunamadı'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: rows[0]
+    });
+  } catch (error) {
+    console.error('Admin machine fault report detail error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Bildirim detayı yüklenirken hata oluştu'
+    });
+  }
+});
+
+// PATCH /api/admin/machine-fault-reports/:id - Update fault report status
+app.patch('/api/admin/machine-fault-reports/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const reportId = parseInt(id, 10);
+    
+    if (!reportId || isNaN(reportId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Geçersiz bildirim ID'
+      });
+    }
+    
+    const validStatuses = ['Açık', 'İşlemde', 'Çözüldü', 'İptal'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Geçersiz durum değeri'
+      });
+    }
+    
+    const [result] = await pool.query(`
+      UPDATE machine_fault_reports
+      SET status = ?, updated_at = NOW()
+      WHERE report_id = ?
+    `, [status, reportId]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Bildirim bulunamadı'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Durum başarıyla güncellendi'
+    });
+  } catch (error) {
+    console.error('Admin machine fault report update error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Durum güncellenirken hata oluştu'
     });
   }
 });
@@ -652,6 +759,135 @@ app.patch('/api/admin/machine-fault-reports/:report_id', async (req, res) => {
   } catch (error) {
     console.error('Update machine fault report error:', error);
     res.status(500).json({ error: 'Durum güncellenirken hata oluştu' });
+  }
+});
+
+// Get personnel-machine pairing statistics (top pairs and lift pairs)
+app.get('/api/admin/machine-faults/pairing-stats', async (req, res) => {
+  try {
+    const range = req.query.range || '3m';
+    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    
+    // Build date filter based on range
+    let dateFilter = '';
+    const rangeMap = {
+      '1m': 'INTERVAL 1 MONTH',
+      '3m': 'INTERVAL 3 MONTH',
+      '6m': 'INTERVAL 6 MONTH',
+      '12m': 'INTERVAL 12 MONTH',
+      'all': null
+    };
+    
+    const interval = rangeMap[range] || rangeMap['3m'];
+    if (interval) {
+      dateFilter = `WHERE r.created_at >= DATE_SUB(NOW(), ${interval})`;
+    }
+    
+    // Top Pairs Query
+    const topPairsQuery = `
+      SELECT
+        r.personel_id,
+        r.makine_id,
+        p.personel_ad_soyad AS personel_name,
+        m.makine_adi AS makine_name,
+        COUNT(*) AS count
+      FROM machine_fault_reports r
+      JOIN personel p ON p.personel_id = r.personel_id
+      JOIN makine m ON m.makine_id = r.makine_id
+      ${dateFilter}
+      GROUP BY r.personel_id, r.makine_id, p.personel_ad_soyad, m.makine_adi
+      ORDER BY count DESC
+      LIMIT ?
+    `;
+    
+    const [topPairsRows] = await pool.query(topPairsQuery, [limit]);
+    
+    // Lift Pairs Query using CTE
+    const liftPairsQuery = `
+      WITH filtered AS (
+        SELECT personel_id, makine_id
+        FROM machine_fault_reports r
+        ${dateFilter}
+      ),
+      overall AS (
+        SELECT COUNT(*) AS overall_total FROM filtered
+      ),
+      pt AS (
+        SELECT personel_id, COUNT(*) AS personel_total
+        FROM filtered
+        GROUP BY personel_id
+      ),
+      mt AS (
+        SELECT makine_id, COUNT(*) AS makine_total
+        FROM filtered
+        GROUP BY makine_id
+      ),
+      pairs AS (
+        SELECT personel_id, makine_id, COUNT(*) AS pair_count
+        FROM filtered
+        GROUP BY personel_id, makine_id
+        HAVING pair_count >= 2
+      )
+      SELECT
+        pairs.personel_id,
+        pairs.makine_id,
+        p.personel_ad_soyad AS personel_name,
+        m.makine_adi AS makine_name,
+        pairs.pair_count AS count,
+        CASE 
+          WHEN overall.overall_total > 0 THEN
+            (pt.personel_total * mt.makine_total) / overall.overall_total
+          ELSE 0
+        END AS expected,
+        CASE 
+          WHEN overall.overall_total > 0 AND (pt.personel_total * mt.makine_total) > 0 THEN
+            pairs.pair_count / ((pt.personel_total * mt.makine_total) / overall.overall_total)
+          ELSE 0
+        END AS lift
+      FROM pairs
+      JOIN pt ON pt.personel_id = pairs.personel_id
+      JOIN mt ON mt.makine_id = pairs.makine_id
+      CROSS JOIN overall
+      JOIN personel p ON p.personel_id = pairs.personel_id
+      JOIN makine m ON m.makine_id = pairs.makine_id
+      ORDER BY lift DESC
+      LIMIT ?
+    `;
+    
+    const [liftPairsRows] = await pool.query(liftPairsQuery, [limit]);
+    
+    // Round expected and lift values
+    const topPairs = topPairsRows.map(row => ({
+      personel_id: row.personel_id,
+      makine_id: row.makine_id,
+      personel_name: row.personel_name,
+      makine_name: row.makine_name,
+      count: Number(row.count) || 0
+    }));
+    
+    const liftPairs = liftPairsRows.map(row => ({
+      personel_id: row.personel_id,
+      makine_id: row.makine_id,
+      personel_name: row.personel_name,
+      makine_name: row.makine_name,
+      count: Number(row.count) || 0,
+      expected: Math.round((Number(row.expected) || 0) * 100) / 100,
+      lift: Math.round((Number(row.lift) || 0) * 100) / 100
+    }));
+    
+    res.json({
+      success: true,
+      data: {
+        topPairs,
+        liftPairs
+      }
+    });
+  } catch (error) {
+    console.error('Pairing stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Eşleşme istatistikleri yüklenirken hata oluştu: ' + error.message
+    });
   }
 });
 
@@ -826,6 +1062,101 @@ app.get('/api/machine-fault/breakdown', async (req, res) => {
   }
 });
 
+// Get recent machine fault reports with pagination
+app.get('/api/machine-fault/recent-reports', async (req, res) => {
+  try {
+    const months = parseInt(req.query.months) || 3;
+    const personelIdParam = req.query.personel_id;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const offset = (page - 1) * limit;
+    
+    // Validate months parameter
+    if (months !== 1 && months !== 3) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'months parametresi sadece 1 veya 3 olabilir' 
+      });
+    }
+
+    const isAll = !personelIdParam || personelIdParam === 'ALL';
+    const personelId = isAll ? null : parseInt(personelIdParam, 10);
+
+    if (!isAll && (isNaN(personelId) || personelId <= 0)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Geçersiz personel_id parametresi' 
+      });
+    }
+
+    // Build WHERE clause
+    let whereClause = 'WHERE r.created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)';
+    const queryParams = [months];
+
+    if (!isAll) {
+      whereClause += ' AND r.personel_id = ?';
+      queryParams.push(personelId);
+    }
+
+    // Get total count
+    const [countRows] = await pool.query(`
+      SELECT COUNT(*) AS total
+      FROM machine_fault_reports r
+      ${whereClause}
+    `, queryParams);
+    
+    const total = Number(countRows[0]?.total || 0);
+    const totalPages = Math.ceil(total / limit);
+
+    // Get paginated data
+    const [rows] = await pool.query(`
+      SELECT
+        r.report_id,
+        r.created_at,
+        r.fault_type,
+        r.priority,
+        r.status,
+        r.title,
+        r.description,
+        p.personel_ad_soyad,
+        m.makine_adi
+      FROM machine_fault_reports r
+      JOIN personel p ON p.personel_id = r.personel_id
+      JOIN makine m ON m.makine_id = r.makine_id
+      ${whereClause}
+      ORDER BY r.created_at DESC
+      LIMIT ? OFFSET ?
+    `, [...queryParams, limit, offset]);
+
+    res.json({
+      success: true,
+      data: rows.map(row => ({
+        report_id: row.report_id,
+        created_at: row.created_at,
+        fault_type: row.fault_type,
+        priority: row.priority,
+        status: row.status,
+        title: row.title,
+        description: row.description,
+        personel_ad_soyad: row.personel_ad_soyad,
+        makine_adi: row.makine_adi
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages
+      }
+    });
+  } catch (error) {
+    console.error('Recent reports pagination error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Son bildirimler yüklenirken hata oluştu: ' + error.message 
+    });
+  }
+});
+
 // ============================================
 // ⚙️ PRODUCTION MANAGEMENT API ENDPOINTS
 // ============================================
@@ -846,18 +1177,74 @@ app.get('/api/raw-materials', async (req, res) => {
   }
 });
 
-// Get all raw material orders (used by admin / Gündoğdu panel)
+// Get all raw material orders (used by admin / Gündoğdu panel) with pagination
 // Same data source as factory endpoint - hammadde_siparisleri table
 app.get('/api/raw-material-orders', async (req, res) => {
   try {
-    const rows = await listRawMaterialOrders();
-    res.json(rows || []);
+    // Parse pagination params
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const offset = (page - 1) * limit;
+    const searchTerm = req.query.search ? String(req.query.search).trim() : null;
+    
+    // Build WHERE clause for search
+    const hasSearch = searchTerm && searchTerm.length > 0;
+    const searchCondition = hasSearch
+      ? `h.hammadde_adi LIKE CONCAT('%', ?, '%')`
+      : '1=1';
+    
+    const searchParams = hasSearch ? [searchTerm] : [];
+    
+    // Get total count
+    const [countRows] = await pool.query(`
+      SELECT COUNT(*) AS totalCount
+      FROM hammadde_siparisleri hs
+      JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
+      WHERE ${searchCondition}
+    `, searchParams);
+    
+    const totalCount = Number(countRows[0]?.totalCount || 0);
+    const totalPages = Math.ceil(totalCount / limit);
+    
+    // Get paginated data
+    const [rows] = await pool.query(`
+      SELECT 
+        hs.siparis_id      AS id,
+        hs.hammadde_id     AS hammadde_id,
+        h.hammadde_adi     AS malzeme_adi,
+        h.birim            AS birim,
+        hs.miktar          AS miktar,
+        hs.siparis_tarihi  AS siparis_tarihi,
+        hs.durum           AS durum
+      FROM hammadde_siparisleri hs
+      JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
+      WHERE ${searchCondition}
+      ORDER BY hs.siparis_tarihi DESC, hs.siparis_id DESC
+      LIMIT ? OFFSET ?
+    `, [...searchParams, limit, offset]);
+    
+    console.log('GET hammadde_siparisleri rows:', rows.length, 'page:', page, 'total:', totalCount);
+    
+    res.json({
+      success: true,
+      data: rows || [],
+      pagination: {
+        page: page,
+        limit: limit,
+        totalCount: totalCount,
+        totalPages: totalPages
+      }
+    });
   } catch (error) {
     console.error('Raw material orders error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 
+// Legacy function kept for backward compatibility (if needed elsewhere)
 const listRawMaterialOrders = async () => {
   const [rows] = await pool.query(`
     SELECT 
@@ -1185,18 +1572,79 @@ function addBusinessDays(date, days) {
 // Uses the same hammadde_siparisleri table as the admin panel
 app.get('/api/factory/raw-material-orders', async (req, res) => {
   try {
-    const rows = await listRawMaterialOrders();
-    const processedRows = rows.map(row => {
-      if (row.siparis_tarihi) {
-        const estimatedDate = addBusinessDays(row.siparis_tarihi, 7);
-        return { ...row, tahmini_teslim_tarihi: estimatedDate.toISOString().split('T')[0] };
-      }
-      return { ...row, tahmini_teslim_tarihi: null };
-    });
+    // Query with correct table joins and field mapping
+    const [rows] = await pool.query(`
+      SELECT
+        hs.siparis_id AS id,
+        h.hammadde_adi AS malzeme_adi,
+        hs.miktar AS miktar,
+        h.birim AS birim,
+        hs.siparis_tarihi AS siparis_tarihi,
+        DATE_ADD(hs.siparis_tarihi, INTERVAL 7 DAY) AS tahmini_teslim_tarihi,
+        hs.durum AS durum
+      FROM hammadde_siparisleri hs
+      JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
+      ORDER BY hs.siparis_tarihi DESC, hs.siparis_id DESC
+    `);
+    
+    console.log('[Factory raw-material-orders] Found orders:', rows.length);
+    if (rows.length > 0) {
+      console.log('[Factory raw-material-orders] First order:', {
+        id: rows[0].id,
+        malzeme_adi: rows[0].malzeme_adi,
+        durum: rows[0].durum
+      });
+    }
+    
+    // Format dates for frontend
+    const processedRows = rows.map(row => ({
+      id: row.id,
+      siparis_id: row.id,
+      malzeme_adi: row.malzeme_adi,
+      miktar: row.miktar,
+      birim: row.birim,
+      siparis_tarihi: row.siparis_tarihi,
+      siparisTarihi: formatDateTR(row.siparis_tarihi) || new Date(row.siparis_tarihi).toISOString(),
+      tahmini_teslim_tarihi: row.tahmini_teslim_tarihi,
+      tahminiTeslimTarihi: formatDateTR(row.tahmini_teslim_tarihi) || new Date(row.tahmini_teslim_tarihi).toISOString().split('T')[0],
+      durum: row.durum
+    }));
+    
     res.json(processedRows || []);
   } catch (error) {
     console.error('Factory raw material orders error:', error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+// Get summary stats for factory raw material orders
+app.get('/api/factory/raw-material-orders/summary', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT
+        COUNT(*) AS toplam_siparis,
+        SUM(hs.durum IN ('BEKLEMEDE', 'ONAYLANDI')) AS bekleyen,
+        SUM(hs.durum = 'HAZIRLANIYOR') AS hazirlaniyor,
+        SUM(hs.durum = 'TESLIMEDILDI') AS teslim_edildi
+      FROM hammadde_siparisleri hs
+    `);
+    
+    const stats = rows[0] || {};
+    res.json({
+      success: true,
+      data: {
+        total: Number(stats.toplam_siparis || 0),
+        pending: Number(stats.bekleyen || 0),
+        preparing: Number(stats.hazirlaniyor || 0),
+        delivered: Number(stats.teslim_edildi || 0)
+      }
+    });
+  } catch (error) {
+    console.error('Factory raw material orders summary error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
@@ -1211,10 +1659,50 @@ function formatDateTR(date) {
   return `${dd}.${mm}.${yyyy}`;
 }
 
-// Unified endpoint - lists all hammadde siparisleri (no factory filter)
+// Unified endpoint - lists all hammadde siparisleri (no factory filter) with pagination
 app.get('/api/hammadde-siparisleri', async (req, res) => {
   try {
-    const rows = await listRawMaterialOrders();
+    // Parse pagination params
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const offset = (page - 1) * limit;
+    const searchTerm = req.query.search ? String(req.query.search).trim() : null;
+    
+    // Build WHERE clause for search
+    const hasSearch = searchTerm && searchTerm.length > 0;
+    const searchCondition = hasSearch
+      ? `h.hammadde_adi LIKE CONCAT('%', ?, '%')`
+      : '1=1';
+    
+    const searchParams = hasSearch ? [searchTerm] : [];
+    
+    // Get total count
+    const [countRows] = await pool.query(`
+      SELECT COUNT(*) AS totalCount
+      FROM hammadde_siparisleri hs
+      JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
+      WHERE ${searchCondition}
+    `, searchParams);
+    
+    const totalCount = Number(countRows[0]?.totalCount || 0);
+    const totalPages = Math.ceil(totalCount / limit);
+    
+    // Get paginated data
+    const [rows] = await pool.query(`
+      SELECT 
+        hs.siparis_id      AS id,
+        hs.hammadde_id     AS hammadde_id,
+        h.hammadde_adi     AS malzeme_adi,
+        h.birim            AS birim,
+        hs.miktar          AS miktar,
+        hs.siparis_tarihi  AS siparis_tarihi,
+        hs.durum           AS durum
+      FROM hammadde_siparisleri hs
+      JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
+      WHERE ${searchCondition}
+      ORDER BY hs.siparis_tarihi DESC, hs.siparis_id DESC
+      LIMIT ? OFFSET ?
+    `, [...searchParams, limit, offset]);
 
     const mapped = rows.map(r => {
       const tahmini = r.siparis_tarihi ? addBusinessDays(r.siparis_tarihi, 7) : null;
@@ -1236,10 +1724,23 @@ app.get('/api/hammadde-siparisleri', async (req, res) => {
       };
     });
 
-    res.json(mapped || []);
+    // Return paginated response
+    res.json({
+      success: true,
+      data: mapped || [],
+      pagination: {
+        page: page,
+        limit: limit,
+        totalCount: totalCount,
+        totalPages: totalPages
+      }
+    });
   } catch (error) {
     console.error('Hammadde siparisleri error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 
@@ -1295,18 +1796,25 @@ app.get('/api/customer/orders/completed-for-review', async (req, res) => {
     
     const [rows] = await pool.query(`
       SELECT 
-        siparis_id, 
-        musteri_id,
-        durumu,
-        siparis_tarihi, 
-        teslim_plan, 
-        teslim_gercek, 
-        degerlendirme_puan, 
-        degerlendirme_yorum
-      FROM siparisler
-      WHERE musteri_id = ?
-        AND durumu = 'TAMAMLANDI'
-      ORDER BY siparis_id DESC
+        s.siparis_id, 
+        s.musteri_id,
+        s.durumu,
+        s.siparis_tarihi, 
+        s.teslim_plan, 
+        s.teslim_gercek, 
+        s.degerlendirme_puan, 
+        s.degerlendirme_yorum,
+        am.model_adi
+      FROM siparisler s
+      LEFT JOIN siparis_detay sd ON sd.siparis_id = s.siparis_id
+      LEFT JOIN urunler u ON u.urun_id = sd.urun_id
+      LEFT JOIN arac_modelleri am ON am.arac_model_id = u.arac_model_id
+      WHERE s.musteri_id = ?
+        AND s.durumu = 'TAMAMLANDI'
+      GROUP BY s.siparis_id, s.musteri_id, s.durumu, s.siparis_tarihi, 
+               s.teslim_plan, s.teslim_gercek, s.degerlendirme_puan, 
+               s.degerlendirme_yorum, am.model_adi
+      ORDER BY s.siparis_id DESC
     `, [musteriId]);
     
     console.log('[completed-for-review] Rows found:', rows.length);
@@ -1347,6 +1855,51 @@ app.get('/api/dev/reviews-check', async (req, res) => {
   } catch (error) {
     console.error('[reviews-check] Error:', error);
     return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get random customer review (only positive reviews: 4-5 stars)
+app.get('/api/reviews/random', async (req, res) => {
+  try {
+    // Only return 4-5 star reviews from completed orders
+    const [rows] = await pool.query(`
+      SELECT 
+        s.degerlendirme_puan AS rating,
+        s.degerlendirme_yorum AS comment,
+        COALESCE(m.musteri_bilgisi, 'Müşteri') AS fullname
+      FROM siparisler s
+      LEFT JOIN musteriler m ON m.musteri_id = s.musteri_id
+      WHERE s.degerlendirme_puan IN (4, 5)
+        AND s.degerlendirme_yorum IS NOT NULL
+        AND TRIM(s.degerlendirme_yorum) != ''
+        AND s.durumu = 'TAMAMLANDI'
+      ORDER BY RAND()
+      LIMIT 1
+    `);
+    
+    // Return null if no positive reviews found
+    if (!rows || rows.length === 0) {
+      return res.json({
+        success: true,
+        data: null
+      });
+    }
+    
+    const review = rows[0];
+    res.json({
+      success: true,
+      data: {
+        fullname: review.fullname || 'Müşteri',
+        rating: Number(review.rating) || 0,
+        comment: review.comment || ''
+      }
+    });
+  } catch (error) {
+    console.error('Random review error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Değerlendirme yüklenirken hata oluştu: ' + error.message
+    });
   }
 });
 
@@ -2301,6 +2854,38 @@ app.get('/api/customer/orders/summary', async (req, res) => {
 // Get customer reviews for admin panel
 // This endpoint queries reviews from siparisler table (where degerlendirme_puan is stored)
 // If a separate siparis_degerlendirmeleri table exists, modify the query accordingly
+// GET /api/admin/reviews/summary - Get average rating and review count
+app.get('/api/admin/reviews/summary', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT
+        ROUND(AVG(degerlendirme_puan), 2) AS avgRating,
+        COUNT(degerlendirme_puan) AS reviewCount
+      FROM siparisler
+      WHERE degerlendirme_puan IS NOT NULL
+        AND degerlendirme_puan > 0
+        AND durumu = 'TAMAMLANDI'
+    `);
+    
+    const avgRating = rows[0]?.avgRating ? Number(rows[0].avgRating) : 0;
+    const reviewCount = rows[0]?.reviewCount ? Number(rows[0].reviewCount) : 0;
+    
+    res.json({
+      success: true,
+      data: {
+        avgRating: avgRating,
+        reviewCount: reviewCount
+      }
+    });
+  } catch (error) {
+    console.error('[admin/reviews/summary] Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 app.get('/api/admin/customer-reviews', async (req, res) => {
   try {
     // Query reviews from siparisler table where reviews exist
@@ -2333,6 +2918,68 @@ app.get('/api/admin/customer-reviews', async (req, res) => {
     return res.status(500).json({ 
       success: false, 
       error: 'Değerlendirmeler yüklenirken hata oluştu: ' + error.message 
+    });
+  }
+});
+
+// Get order statistics for dashboard
+// Returns counts from siparisler table only (no joins to avoid inflation)
+app.get('/api/siparisler/stats', async (req, res) => {
+  try {
+    // Use a single SQL query with conditional SUMs
+    // All counts come from the same base dataset (siparisler table)
+    const [rows] = await pool.query(`
+      SELECT
+        COUNT(*) AS toplam,
+        SUM(durumu = 'PLANLANDI') AS planlandi,
+        SUM(durumu = 'URETIMDE') AS uretimde,
+        SUM(durumu = 'TAMAMLANDI') AS tamamlandi,
+        SUM(durumu = 'SEVK_EDILDI') AS sevk_edildi,
+        SUM(durumu = 'IPTAL') AS iptal
+      FROM siparisler
+    `);
+    
+    const result = rows[0];
+    const totalOrders = Number(result.toplam) || 0;
+    const planned = Number(result.planlandi) || 0;
+    const inProduction = Number(result.uretimde) || 0;
+    const completed = Number(result.tamamlandi) || 0;
+    const shipped = Number(result.sevk_edildi) || 0;
+    const cancelled = Number(result.iptal) || 0;
+    
+    // Verify math: total should equal sum of all statuses
+    const sumOfStatuses = planned + inProduction + completed + shipped + cancelled;
+    console.log('[siparisler/stats] Verification:', {
+      totalOrders,
+      planned,
+      inProduction,
+      completed,
+      shipped,
+      cancelled,
+      sumOfStatuses,
+      matches: totalOrders === sumOfStatuses,
+      difference: totalOrders - sumOfStatuses
+    });
+    
+    // If there's a mismatch, log it as a warning
+    if (totalOrders !== sumOfStatuses) {
+      console.warn('[siparisler/stats] WARNING: Total does not match sum of statuses. There may be orders with NULL or unexpected status values.');
+    }
+    
+    res.json({
+      success: true,
+      totalOrders,
+      planned,
+      inProduction,
+      completed,
+      shipped,
+      cancelled
+    });
+  } catch (error) {
+    console.error('Order stats error:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: error.message 
     });
   }
 });

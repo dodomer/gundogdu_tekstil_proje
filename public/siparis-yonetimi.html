@@ -114,6 +114,24 @@
       gap: 15px;
     }
     .table-header h2 { font-size: 1.1rem; font-weight: 600; }
+    
+    /* Rating badge for reviews section */
+    .rating-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(212, 168, 83, 0.15);
+      border: 1px solid rgba(212, 168, 83, 0.3);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .rating-badge .star-icon {
+      font-size: 0.9rem;
+      color: #fbbf24;
+    }
 
     .search-wrapper { position: relative; }
     .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.5; }
@@ -489,6 +507,10 @@
     <div class="table-card" id="reviews-section" style="margin-top: 30px;">
       <div class="table-header">
         <h2>⭐ Müşteri Değerlendirmeleri</h2>
+        <span class="rating-badge" id="reviews-rating-badge" style="display: none;">
+          <span class="star-icon">⭐</span>
+          <span id="reviews-rating-text">Ortalama Puan: - (0 değerlendirme)</span>
+        </span>
       </div>
       <div id="reviews-list" style="padding: 20px;">
         <div class="loading-state">
@@ -633,8 +655,8 @@
           paginationState.totalPages = result.data.totalPages;
           
           renderTable(result.data.rows);
-          updateStats(result.data.rows);
           updatePaginationUI();
+          // Stats are loaded separately via loadStats() to get accurate counts from all orders
           
           // Update rows per page selector to match current limit
           const rowsPerPageSelect = document.getElementById('rows-per-page');
@@ -655,15 +677,36 @@
       }
     }
 
+    // Load stats from dedicated endpoint (all orders, not just current page)
+    async function loadStats() {
+      try {
+        const response = await fetch('/api/siparisler/stats');
+        if (!response.ok) throw new Error('İstatistikler yüklenemedi');
+        
+        const result = await response.json();
+        if (result.success) {
+          document.getElementById('totalOrders').textContent = result.totalOrders || 0;
+          document.getElementById('planlandiOrders').textContent = result.planned || 0;
+          document.getElementById('uretimdeOrders').textContent = result.inProduction || 0;
+          document.getElementById('tamamlandiOrders').textContent = result.completed || 0;
+          document.getElementById('sevkOrders').textContent = result.shipped || 0;
+          document.getElementById('iptalOrders').textContent = result.cancelled || 0;
+        }
+      } catch (error) {
+        console.error('Error loading stats:', error);
+        // Fallback to showing zeros
+        document.getElementById('totalOrders').textContent = '0';
+        document.getElementById('planlandiOrders').textContent = '0';
+        document.getElementById('uretimdeOrders').textContent = '0';
+        document.getElementById('tamamlandiOrders').textContent = '0';
+        document.getElementById('sevkOrders').textContent = '0';
+        document.getElementById('iptalOrders').textContent = '0';
+      }
+    }
+
     function updateStats(orders) {
-      // Note: Stats are calculated from current page only
-      // For accurate stats across all pages, consider a separate /api/siparisler/stats endpoint
-      document.getElementById('totalOrders').textContent = paginationState.total || orders.length;
-      document.getElementById('planlandiOrders').textContent = orders.filter(o => o.durum === 'PLANLANDI').length;
-      document.getElementById('uretimdeOrders').textContent = orders.filter(o => o.durum === 'URETIMDE').length;
-      document.getElementById('tamamlandiOrders').textContent = orders.filter(o => o.durum === 'TAMAMLANDI').length;
-      document.getElementById('sevkOrders').textContent = orders.filter(o => o.durum === 'SEVK_EDILDI').length;
-      document.getElementById('iptalOrders').textContent = orders.filter(o => o.durum === 'IPTAL').length;
+      // This function is kept for backward compatibility but stats are now loaded separately
+      // Stats are loaded via loadStats() which calls the dedicated /api/siparisler/stats endpoint
     }
 
     function renderTable(orders) {
@@ -843,6 +886,7 @@
 
         if (response.ok) {
           closeEditModal();
+          loadStats(); // Reload stats after update
           loadOrders();
         } else {
           const err = await response.json();
@@ -861,6 +905,7 @@
       try {
         const response = await fetch(`/api/siparisler/${id}`, { method: 'DELETE' });
         if (response.ok) {
+          loadStats(); // Reload stats after delete
           loadOrders();
         } else {
           alert('Silme işlemi başarısız oldu.');
@@ -939,6 +984,41 @@
     });
 
     // Load and render reviews from dedicated endpoint
+    // Load reviews summary (average rating badge)
+    async function loadReviewsSummary() {
+      const badgeEl = document.getElementById('reviews-rating-badge');
+      const textEl = document.getElementById('reviews-rating-text');
+      
+      if (!badgeEl || !textEl) return;
+      
+      try {
+        const response = await fetch('/api/admin/reviews/summary');
+        if (!response.ok) throw new Error('Summary fetch failed');
+        
+        const result = await response.json();
+        if (!result.success || !result.data) {
+          throw new Error('Invalid response');
+        }
+        
+        const { avgRating, reviewCount } = result.data;
+        
+        // Show badge only if there are reviews
+        if (reviewCount > 0) {
+          const ratingText = avgRating > 0 
+            ? `Ortalama Puan: ${avgRating.toFixed(1)}/5 (${reviewCount} değerlendirme)`
+            : `Ortalama Puan: - (${reviewCount} değerlendirme)`;
+          textEl.textContent = ratingText;
+          badgeEl.style.display = 'inline-flex';
+        } else {
+          badgeEl.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('[loadReviewsSummary] Error:', error);
+        // Hide badge on error
+        if (badgeEl) badgeEl.style.display = 'none';
+      }
+    }
+    
     async function loadReviews() {
       const reviewsList = document.getElementById('reviews-list');
       if (!reviewsList) return;
@@ -1071,8 +1151,10 @@
     }
 
     // Initialize
+    loadStats(); // Load stats from dedicated endpoint (all orders)
     loadOrders();
     loadReviews(); // Load reviews independently
+    loadReviewsSummary(); // Load reviews summary (average rating badge)
   </script>
 </body>
 </html>

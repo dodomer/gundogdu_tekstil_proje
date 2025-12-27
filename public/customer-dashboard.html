@@ -131,11 +131,77 @@
       padding: 40px;
       margin-bottom: 30px;
       color: white;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeSlideUp 0.6s ease forwards;
+    }
+
+    .stats-grid {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeSlideUp 0.6s ease 0.2s forwards;
     }
 
     .welcome-section h2 {
       font-size: 1.8rem;
       margin-bottom: 10px;
+    }
+
+    .welcome-section p {
+      margin-bottom: 16px;
+    }
+
+    .welcome-highlights {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+      padding: 16px 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(4px);
+      border-radius: 12px;
+      cursor: default;
+    }
+
+    .welcome-highlight-item {
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.98);
+      font-weight: 500;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      cursor: default;
+      user-select: none;
+    }
+
+    .welcome-highlight-separator {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin: 0 2px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      cursor: default;
+      user-select: none;
+    }
+
+    @media (max-width: 768px) {
+      .welcome-highlights {
+        flex-direction: column;
+        gap: 8px;
+        padding: 14px 16px;
+      }
+
+      .welcome-highlight-separator {
+        display: none;
+      }
+
+      .welcome-highlight-item {
+        font-size: 0.85rem;
+        padding: 5px 10px;
+      }
     }
 
     .stats-grid {
@@ -151,6 +217,13 @@
       border-radius: 16px;
       padding: 25px;
       text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      border-color: var(--accent);
     }
 
     .stat-icon {
@@ -167,6 +240,13 @@
     .stat-label {
       font-size: 0.85rem;
       color: var(--text-secondary);
+    }
+
+    @keyframes fadeSlideUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .quick-actions {
@@ -204,6 +284,335 @@
     .action-card p {
       font-size: 0.8rem;
       color: var(--text-secondary);
+    }
+
+    /* Awnings Showcase Section */
+    .awnings-showcase {
+      margin-bottom: 30px;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .awnings-showcase h3 {
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .awnings-slider-container {
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+
+    .awnings-slider-container:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    .awnings-slider {
+      position: relative;
+      width: 100%;
+      height: 550px;
+      overflow: hidden;
+      background: var(--bg-dark);
+    }
+
+    .awnings-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity 0.6s ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-dark);
+    }
+
+    .awnings-slide.active {
+      opacity: 1;
+      z-index: 1;
+    }
+
+    .awnings-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .slider-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(21, 29, 48, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      cursor: pointer;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .slider-nav:hover {
+      background: rgba(212, 168, 83, 0.9);
+      color: var(--bg-dark);
+      border-color: var(--accent);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .slider-nav:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .slider-prev {
+      left: 20px;
+    }
+
+    .slider-next {
+      right: 20px;
+    }
+
+    .slider-dots {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    .slider-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.4);
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .slider-dot.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: scale(1.2);
+    }
+
+    .slider-dot:hover {
+      background: rgba(212, 168, 83, 0.7);
+      border-color: var(--accent);
+    }
+
+    /* Review Overlay */
+    .slider-review-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(6px);
+      padding: 30px 40px;
+      z-index: 5;
+      max-height: 35%;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      display: flex;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+
+    .review-content {
+      width: 100%;
+      color: var(--text-primary);
+    }
+
+    .review-stars {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+    }
+
+    .review-stars .star-filled {
+      color: #fbbf24;
+    }
+
+    .review-stars .star-empty {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .review-comment {
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 8px;
+      font-style: italic;
+    }
+
+    .review-author {
+      font-size: 0.9rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      .awnings-slider {
+        height: 400px;
+      }
+
+      .slider-nav {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+      }
+
+      .slider-prev {
+        left: 10px;
+      }
+
+      .slider-next {
+        right: 10px;
+      }
+
+      .slider-review-overlay {
+        padding: 20px;
+        min-height: 120px;
+      }
+
+      .review-comment {
+        font-size: 0.9rem;
+      }
+    }
+
+    /* FAQ Section */
+    .faq-section {
+      margin-top: 40px;
+      margin-bottom: 30px;
+    }
+
+    .faq-section h3 {
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .faq-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .faq-item:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(212, 168, 83, 0.1);
+    }
+
+    .faq-question {
+      width: 100%;
+      padding: 18px 20px;
+      background: transparent;
+      border: none;
+      text-align: left;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .faq-question:hover {
+      background: rgba(212, 168, 83, 0.05);
+    }
+
+    .faq-question:focus {
+      outline: none;
+      background: rgba(212, 168, 83, 0.08);
+    }
+
+    .faq-question span:first-child {
+      flex: 1;
+    }
+
+    .faq-chevron {
+      font-size: 0.75rem;
+      color: var(--accent);
+      transition: transform 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .faq-item.active .faq-chevron {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+      padding: 0 20px;
+    }
+
+    .faq-item.active .faq-answer {
+      max-height: 500px;
+      padding: 0 20px 18px 20px;
+    }
+
+    .faq-answer p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    @media (max-width: 768px) {
+      .faq-question {
+        padding: 16px 18px;
+        font-size: 0.9rem;
+      }
+
+      .faq-answer {
+        padding: 0 18px;
+      }
+
+      .faq-item.active .faq-answer {
+        padding: 0 18px 16px 18px;
+      }
+
+      .faq-answer p {
+        font-size: 0.85rem;
+      }
     }
 
     /* Orders Table Placeholder */
@@ -772,6 +1181,13 @@
     <section class="welcome-section">
       <h2>👋 Hoş Geldiniz!</h2>
       <p>Müşteri panelinize başarıyla giriş yaptınız. Buradan siparişlerinizi takip edebilir ve hesap bilgilerinizi görüntüleyebilirsiniz.</p>
+      <div class="welcome-highlights">
+        <span class="welcome-highlight-item">📐 Özel Ölçü Üretim</span>
+        <span class="welcome-highlight-separator">•</span>
+        <span class="welcome-highlight-item">⚡ Hızlı Teslimat</span>
+        <span class="welcome-highlight-separator">•</span>
+        <span class="welcome-highlight-item">🛡️ Su Geçirmez & Dayanıklı</span>
+      </div>
     </section>
 
     <section class="stats-grid">
@@ -797,6 +1213,27 @@
       </div>
     </section>
 
+    <!-- Awnings Showcase Section -->
+    <section class="awnings-showcase">
+      <h3>🛠️ Ürettiğimiz Tenteler</h3>
+      <div class="awnings-slider-container">
+        <div class="awnings-slider" id="awnings-slider">
+          <!-- Images will be dynamically inserted -->
+        </div>
+        <button class="slider-nav slider-prev" id="slider-prev" aria-label="Previous image">‹</button>
+        <button class="slider-nav slider-next" id="slider-next" aria-label="Next image">›</button>
+        <div class="slider-dots" id="slider-dots"></div>
+        <!-- Review overlay inside slider -->
+        <div class="slider-review-overlay" id="slider-review-overlay">
+          <div class="review-content">
+            <div class="review-stars" id="review-stars"></div>
+            <p class="review-comment" id="review-comment">Loading review...</p>
+            <p class="review-author" id="review-author"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="orders-section">
       <h3>📋 Aktif Siparişler</h3>
       <div class="order-actions">
@@ -819,6 +1256,72 @@
         <div class="loading-orders">
           <div class="loading-spinner"></div>
           <p>Tamamlanan siparişler yükleniyor...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section">
+      <h3>❓ Sıkça Sorulan Sorular</h3>
+      <div class="faq-container">
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>Ne kadar sürede teslim edilir?</span>
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-answer">
+            <p>Standart tente siparişleriniz genellikle 7-14 iş günü içinde hazırlanır ve teslim edilir. Özel ölçü veya özelleştirme gerektiren siparişlerde bu süre 14-21 iş gününe kadar uzayabilir. Siparişinizin durumunu müşteri panelinizden takip edebilirsiniz.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>Tenteler özelleştirilebilir mi?</span>
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-answer">
+            <p>Evet, tentelerimiz özelleştirilebilir. Özel ölçü, renk ve logo ekleme seçeneklerimiz mevcuttur. Özelleştirme talepleriniz için sipariş verirken notlar bölümüne detayları yazabilir veya bizimle iletişime geçebilirsiniz.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>Hangi araç ölçüleri için uygun?</span>
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-answer">
+            <p>Tentelerimiz küçük otomobillerden büyük SUV'lara kadar geniş bir araç yelpazesi için mevcuttur. Standart ölçülerimiz dışında, aracınızın özel ölçülerine göre de üretim yapabiliriz. Sipariş verirken aracınızın marka ve modelini belirtmeniz yeterlidir.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>Tenteler su geçirmez mi?</span>
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-answer">
+            <p>Evet, tüm tentelerimiz yüksek kaliteli su geçirmez malzemelerden üretilmiştir. UV korumalı ve su geçirmez özellikleri sayesinde aracınızı yağmur, kar ve güneş ışınlarından korur. Malzemelerimiz dayanıklı ve uzun ömürlüdür.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>İade veya değişim yapabilir miyim?</span>
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-answer">
+            <p>Ürününüzü teslim aldıktan sonra 14 gün içinde iade veya değişim talebinde bulunabilirsiniz. Ürün kullanılmamış, orijinal ambalajında ve hasarsız olmalıdır. Özel ölçü veya özelleştirilmiş ürünlerde iade kabul edilmez. Detaylı bilgi için müşteri hizmetlerimizle iletişime geçebilirsiniz.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>Ödeme seçenekleri nelerdir?</span>
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-answer">
+            <p>Kredi kartı, banka kartı ve havale/EFT ile ödeme yapabilirsiniz. Siparişiniz onaylandıktan sonra ödeme işlemi gerçekleştirilir. Güvenli ödeme altyapımız sayesinde tüm işlemleriniz korunmaktadır. Kurumsal müşterilerimiz için fatura ve vade seçenekleri de mevcuttur.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -1504,19 +2007,76 @@
       }
     });
 
+    // Animate number count-up
+    function animateCounter(element, targetValue, duration = 1000) {
+      const startValue = 0;
+      const startTime = performance.now();
+      
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function (ease-out)
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOut);
+        
+        element.textContent = currentValue.toLocaleString('tr-TR');
+        
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        } else {
+          element.textContent = targetValue.toLocaleString('tr-TR');
+        }
+      }
+      
+      requestAnimationFrame(update);
+    }
+
     async function loadSummary() {
       try {
         const res = await fetch(`/api/customer/orders/summary?musteriId=${customerId}`);
         const summary = await res.json();
-        document.getElementById("totalOrdersValue").textContent = summary.toplam_siparis || 0;
-        document.getElementById("activeOrdersValue").textContent = summary.aktif_siparis || 0;
-        document.getElementById("completedOrdersValue").textContent = summary.tamamlanan_siparis || 0;
+        
+        // Animate counters
+        const totalEl = document.getElementById("totalOrdersValue");
+        const activeEl = document.getElementById("activeOrdersValue");
+        const completedEl = document.getElementById("completedOrdersValue");
+        const amountEl = document.getElementById("totalAmountValue");
+        
+        if (totalEl) animateCounter(totalEl, summary.toplam_siparis || 0);
+        if (activeEl) animateCounter(activeEl, summary.aktif_siparis || 0);
+        if (completedEl) animateCounter(completedEl, summary.tamamlanan_siparis || 0);
         
         const tutar = Number(summary.toplam_tutar) || 0;
-        document.getElementById("totalAmountValue").textContent = tutar.toLocaleString('tr-TR', { 
-          minimumFractionDigits: 2, 
-          maximumFractionDigits: 2 
-        }) + " ₺";
+        // Animate amount counter
+        if (amountEl) {
+          const startTime = performance.now();
+          const duration = 1200;
+          const startValue = 0;
+          
+          function updateAmount(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            const currentValue = startValue + (tutar - startValue) * easeOut;
+            
+            amountEl.textContent = currentValue.toLocaleString('tr-TR', { 
+              minimumFractionDigits: 2, 
+              maximumFractionDigits: 2 
+            }) + " ₺";
+            
+            if (progress < 1) {
+              requestAnimationFrame(updateAmount);
+            } else {
+              amountEl.textContent = tutar.toLocaleString('tr-TR', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+              }) + " ₺";
+            }
+          }
+          
+          requestAnimationFrame(updateAmount);
+        }
       } catch (err) {
         console.error('Summary error:', err);
       }
@@ -1871,6 +2431,8 @@
             return `<span style="color: ${color}; font-size: 1.2rem;">${filled}</span>`;
           }).join('');
 
+          const modelAdi = order.model_adi || null;
+          
           return `
             <div class="order-card" style="margin-bottom: 16px;">
               <div class="order-header">
@@ -1878,6 +2440,7 @@
                 ${hasReview ? '<span class="order-status" style="background: rgba(34, 197, 94, 0.2); color: var(--success); padding: 4px 12px; border-radius: 12px; font-size: 0.75rem;">Değerlendirildi</span>' : ''}
               </div>
               <div class="order-body">
+                ${modelAdi ? `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">🚗 Araç Modeli: <span style="color: var(--text-primary);">${modelAdi}</span></div>` : ''}
                 <div>📅 Teslim: ${teslimTarihi}</div>
                 ${hasReview ? `
                   <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
@@ -2043,6 +2606,224 @@
     loadSummary();
     loadOrders();
     loadCompletedOrders();
+    
+    // Awnings Slider Functionality
+    (function() {
+      const awningsImages = [
+        '/images/awnings/tente-1.webp',
+        '/images/awnings/tente-2.webp',
+        '/images/awnings/tente-3.webp',
+        '/images/awnings/tente-4.webp',
+        '/images/awnings/tente-5.webp',
+        '/images/awnings/tente-6.webp',
+        '/images/awnings/tente-7.webp'
+      ];
+      
+      let currentSlide = 0;
+      let autoSlideInterval = null;
+      const autoSlideDelay = 5000; // 5 seconds
+      
+      const sliderContainer = document.getElementById('awnings-slider');
+      const prevBtn = document.getElementById('slider-prev');
+      const nextBtn = document.getElementById('slider-next');
+      const dotsContainer = document.getElementById('slider-dots');
+      const reviewOverlay = document.getElementById('slider-review-overlay');
+      const reviewStars = document.getElementById('review-stars');
+      const reviewComment = document.getElementById('review-comment');
+      const reviewAuthor = document.getElementById('review-author');
+      
+      // Initialize slider
+      function initSlider() {
+        if (!sliderContainer) return;
+        
+        // Create slides
+        awningsImages.forEach((imgSrc, index) => {
+          const slide = document.createElement('div');
+          slide.className = `awnings-slide ${index === 0 ? 'active' : ''}`;
+          const img = document.createElement('img');
+          img.src = imgSrc;
+          img.alt = `Awning installation ${index + 1}`;
+          slide.appendChild(img);
+          sliderContainer.appendChild(slide);
+        });
+        
+        // Create dots
+        awningsImages.forEach((_, index) => {
+          const dot = document.createElement('button');
+          dot.className = `slider-dot ${index === 0 ? 'active' : ''}`;
+          dot.setAttribute('aria-label', `Go to slide ${index + 1}`);
+          dot.addEventListener('click', () => goToSlide(index));
+          dotsContainer.appendChild(dot);
+        });
+        
+        // Load initial review
+        loadRandomReview();
+        
+        // Start auto-slide
+        startAutoSlide();
+      }
+      
+      // Fetch random review
+      async function loadRandomReview() {
+        try {
+          const res = await fetch('/api/reviews/random');
+          const data = await res.json();
+          
+          if (data.success && data.data) {
+            const review = data.data;
+            displayReview(review);
+          } else {
+            displayEmptyReview();
+          }
+        } catch (err) {
+          console.error('Error loading review:', err);
+          displayEmptyReview();
+        }
+      }
+      
+      // Display review
+      function displayReview(review) {
+        const rating = review.rating || 0;
+        const comment = review.comment || '';
+        const fullname = review.fullname || 'Müşteri';
+        
+        // Render stars
+        let starsHTML = '';
+        for (let i = 1; i <= 5; i++) {
+          if (i <= rating) {
+            starsHTML += '<span class="star-filled">★</span>';
+          } else {
+            starsHTML += '<span class="star-empty">☆</span>';
+          }
+        }
+        reviewStars.innerHTML = starsHTML;
+        
+        reviewComment.textContent = comment || 'Henüz olumlu değerlendirme yok.';
+        reviewAuthor.textContent = `— ${fullname}`;
+      }
+      
+      // Display empty review state
+      function displayEmptyReview() {
+        reviewStars.innerHTML = '';
+        reviewComment.textContent = 'Henüz olumlu değerlendirme yok.';
+        reviewAuthor.textContent = '';
+      }
+      
+      // Go to specific slide
+      function goToSlide(index) {
+        if (index < 0 || index >= awningsImages.length) return;
+        
+        const slides = sliderContainer.querySelectorAll('.awnings-slide');
+        const dots = dotsContainer.querySelectorAll('.slider-dot');
+        
+        // Update slides
+        slides.forEach((slide, i) => {
+          slide.classList.toggle('active', i === index);
+        });
+        
+        // Update dots
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('active', i === index);
+        });
+        
+        currentSlide = index;
+        
+        // Load new review when slide changes
+        loadRandomReview();
+        
+        // Reset auto-slide
+        resetAutoSlide();
+      }
+      
+      // Next slide
+      function nextSlide() {
+        const next = (currentSlide + 1) % awningsImages.length;
+        goToSlide(next);
+      }
+      
+      // Previous slide
+      function prevSlide() {
+        const prev = (currentSlide - 1 + awningsImages.length) % awningsImages.length;
+        goToSlide(prev);
+      }
+      
+      // Start auto-slide
+      function startAutoSlide() {
+        if (autoSlideInterval) clearInterval(autoSlideInterval);
+        autoSlideInterval = setInterval(nextSlide, autoSlideDelay);
+      }
+      
+      // Reset auto-slide
+      function resetAutoSlide() {
+        startAutoSlide();
+      }
+      
+      // Pause auto-slide on hover
+      function pauseAutoSlide() {
+        if (autoSlideInterval) {
+          clearInterval(autoSlideInterval);
+          autoSlideInterval = null;
+        }
+      }
+      
+      // Event listeners
+      if (prevBtn) prevBtn.addEventListener('click', () => {
+        prevSlide();
+        pauseAutoSlide();
+        setTimeout(startAutoSlide, 3000); // Resume after 3 seconds
+      });
+      
+      if (nextBtn) nextBtn.addEventListener('click', () => {
+        nextSlide();
+        pauseAutoSlide();
+        setTimeout(startAutoSlide, 3000); // Resume after 3 seconds
+      });
+      
+      // Pause on hover, resume on leave
+      if (sliderContainer) {
+        sliderContainer.addEventListener('mouseenter', pauseAutoSlide);
+        sliderContainer.addEventListener('mouseleave', startAutoSlide);
+      }
+      
+      // Keyboard navigation
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') prevSlide();
+        if (e.key === 'ArrowRight') nextSlide();
+      });
+      
+      // Initialize on page load
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSlider);
+      } else {
+        initSlider();
+      }
+    })();
+
+    // FAQ Accordion Functionality
+    (function() {
+      const faqQuestions = document.querySelectorAll('.faq-question');
+      
+      faqQuestions.forEach(question => {
+        question.addEventListener('click', function() {
+          const faqItem = this.closest('.faq-item');
+          const isActive = faqItem.classList.contains('active');
+          
+          // Close all FAQ items (single-open behavior)
+          document.querySelectorAll('.faq-item').forEach(item => {
+            item.classList.remove('active');
+            item.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+          });
+          
+          // Toggle current item
+          if (!isActive) {
+            faqItem.classList.add('active');
+            this.setAttribute('aria-expanded', 'true');
+          } else {
+            this.setAttribute('aria-expanded', 'false');
+          }
+        });
+      });
+    })();
   </script>
 </body>
 </html>
