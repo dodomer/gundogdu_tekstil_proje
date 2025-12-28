@@ -98,6 +98,72 @@
 
     .back-btn:hover {
       border-color: var(--accent);
+    }
+
+    /* Warning Banner */
+    .warning-banner {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid var(--warning);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .warning-banner.show {
+      display: flex;
+    }
+
+    .warning-banner-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .warning-banner-icon {
+      font-size: 1.5rem;
+    }
+
+    .warning-banner-text {
+      color: var(--warning);
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .warning-banner-btn {
+      padding: 8px 16px;
+      background: var(--warning);
+      border: none;
+      border-radius: 8px;
+      color: var(--bg-dark);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .warning-banner-btn:hover {
+      background: #fbbf24;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+      .warning-banner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .warning-banner-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
       color: var(--accent);
     }
 
@@ -722,6 +788,15 @@
   </header>
 
   <main class="main-content">
+    <!-- Warning Banner for Unresolved Reports -->
+    <div class="warning-banner" id="unresolved-banner">
+      <div class="warning-banner-content">
+        <span class="warning-banner-icon">⚠️</span>
+        <span class="warning-banner-text" id="unresolved-banner-text">Çözülmemiş makine bildirimi var</span>
+      </div>
+      <button class="warning-banner-btn" onclick="scrollToReports()">Bildirime Git</button>
+    </div>
+
     <!-- Top Row: Two Charts Side-by-Side -->
     <div class="charts-row-top">
       <!-- Left Chart: Machine Distribution -->
@@ -1567,12 +1642,14 @@
      }
      
      // Load recent reports with pagination
-     async function loadRecentReports(page = null) {
+     async function loadRecentReports(page = null, shouldScroll = false) {
        const recentContainer = document.getElementById('recent-reports-container');
        const paginationContainer = document.getElementById('recent-reports-pagination');
        
        if (page !== null) {
          recentReportsPage = page;
+         // Only scroll if user explicitly changed page (pagination action)
+         shouldScroll = true;
        }
        
        recentContainer.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Yükleniyor...</p></div>';
@@ -1606,8 +1683,10 @@
          // Render pagination
          renderRecentReportsPagination();
          
-         // Scroll to top of container
-         recentContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+         // Only scroll if explicitly requested (user action like pagination)
+         if (shouldScroll) {
+           recentContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+         }
          
        } catch (err) {
          console.error('Recent reports load error:', err);
@@ -1929,6 +2008,9 @@
         // Reload table
         await loadReports(currentPage);
         
+        // Reload unresolved count banner
+        await loadUnresolvedCount();
+        
         // Update modal - fetch fresh data
         await showDetail(currentReportId);
         
@@ -1958,8 +2040,56 @@
       loadReports(1);
     });
 
+     // Load unresolved count and show banner
+     async function loadUnresolvedCount() {
+       try {
+         const res = await fetch('/api/machine-fault-reports/unresolved-count');
+         const data = await res.json();
+         
+         if (data.success) {
+           const count = data.unresolvedCount || 0;
+           const banner = document.getElementById('unresolved-banner');
+           const bannerText = document.getElementById('unresolved-banner-text');
+           
+           if (count > 0) {
+             bannerText.textContent = `Çözülmemiş makine bildirimi var: ${count}`;
+             banner.classList.add('show');
+           } else {
+             banner.classList.remove('show');
+           }
+         }
+       } catch (error) {
+         console.error('Unresolved count load error:', error);
+       }
+     }
+
+     // Scroll to reports section
+     function scrollToReports() {
+       // Try to find the reports table section
+       const reportsSection = document.getElementById('reports-container') ||
+                              document.querySelector('.table-card') ||
+                              document.querySelector('.table-container') ||
+                              document.querySelector('table');
+       if (reportsSection) {
+         reportsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+       } else {
+         // Fallback: scroll to filters section
+         const filtersSection = document.querySelector('.filters-section');
+         if (filtersSection) {
+           filtersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+         }
+       }
+     }
+
+     // Make scrollToReports available globally
+     window.scrollToReports = scrollToReports;
+
      // Initialize on page load
      document.addEventListener('DOMContentLoaded', () => {
+       // Ensure page starts at top
+       window.scrollTo(0, 0);
+       
+       loadUnresolvedCount();
        loadReports(1);
        loadDistributionChart();
        loadTypeDistributionChart();

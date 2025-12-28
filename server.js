@@ -603,6 +603,22 @@ app.patch('/api/admin/machine-fault-reports/:id', async (req, res) => {
   }
 });
 
+// Get unresolved machine fault reports count
+app.get('/api/machine-fault-reports/unresolved-count', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT COUNT(*) AS unresolvedCount
+      FROM machine_fault_reports
+      WHERE status IN ('Açık', 'İşlemde')
+    `);
+    const unresolvedCount = rows[0]?.unresolvedCount || 0;
+    res.json({ success: true, unresolvedCount: unresolvedCount });
+  } catch (error) {
+    console.error('Unresolved machine fault reports count error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Get machine fault distribution for chart
 app.get('/api/admin/machine-faults/distribution', async (req, res) => {
   try {
