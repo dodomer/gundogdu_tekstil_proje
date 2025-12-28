@@ -301,12 +301,20 @@
       display: flex;
     }
 
+    /* Prevent body scroll when modal is open */
+    body.modal-open {
+      overflow: hidden;
+    }
+
     .modal {
       background: var(--bg-card);
       border-radius: 18px;
       border: 1px solid var(--border-color);
       max-width: 520px;
       width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
       padding: 24px 26px 22px;
       box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
     }
@@ -343,6 +351,37 @@
     }
 
     .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 18px;
+      max-height: 60vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-right: 8px;
+    }
+
+    .modal-body::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .modal-body::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 3px;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
+    }
+
+    /* Original modal-body styles continue below */
+    .modal-body-original {
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -1362,6 +1401,7 @@
       function openModal() {
         if (modal) {
           modal.classList.add('active');
+          document.body.classList.add('modal-open');
           // Load leave requests when modal opens
           loadLeaveRequests();
         }
@@ -1370,6 +1410,7 @@
       function closeModal() {
         if (modal) {
           modal.classList.remove('active');
+          document.body.classList.remove('modal-open');
         }
         if (dateErrorEl) dateErrorEl.style.display = 'none';
         if (reasonErrorEl) reasonErrorEl.style.display = 'none';
