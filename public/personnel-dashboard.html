@@ -517,7 +517,9 @@
     .leave-requests-list {
       max-height: 320px;
       overflow-y: auto;
+      overflow-x: auto;
       padding-right: 4px;
+      -webkit-overflow-scrolling: touch;
     }
 
     .leave-requests-list::-webkit-scrollbar {
@@ -680,13 +682,199 @@
       display: block;
     }
 
+    /* Responsive breakpoints */
+    @media (max-width: 1024px) {
+      /* Tablet: 4 columns -> 2 columns */
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .quick-actions {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
     @media (max-width: 768px) {
+      /* Mobile: 2 columns -> 1 column, adjust spacing */
       .header {
         flex-direction: column;
-        gap: 20px;
+        gap: 15px;
+        padding: 15px 20px;
       }
+
+      .header-right {
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+      }
+
+      .header-title h1 {
+        font-size: clamp(1.1rem, 4vw, 1.3rem);
+      }
+
+      .header-title p {
+        font-size: clamp(0.75rem, 3vw, 0.85rem);
+      }
+
       .main-content {
-        padding: 20px;
+        padding: clamp(15px, 4vw, 40px);
+      }
+
+      .welcome-section {
+        padding: clamp(20px, 5vw, 40px);
+      }
+
+      .welcome-section h2 {
+        font-size: clamp(1.4rem, 5vw, 1.8rem);
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+
+      .stat-card {
+        padding: clamp(18px, 4vw, 25px);
+      }
+
+      .stat-value {
+        font-size: clamp(1.5rem, 6vw, 2rem);
+      }
+
+      .stat-label {
+        font-size: clamp(0.75rem, 3vw, 0.85rem);
+      }
+
+      .quick-actions {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+
+      .action-card {
+        padding: clamp(20px, 4vw, 25px);
+      }
+
+      .action-icon {
+        font-size: clamp(2rem, 8vw, 2.5rem);
+      }
+
+      .action-card h3 {
+        font-size: clamp(0.9rem, 3.5vw, 1rem);
+      }
+
+      .action-card p {
+        font-size: clamp(0.75rem, 3vw, 0.8rem);
+      }
+
+      .info-card {
+        padding: clamp(20px, 4vw, 30px);
+      }
+
+      .info-card h3 {
+        font-size: clamp(1rem, 4vw, 1.1rem);
+      }
+
+      /* Modal responsive */
+      .modal {
+        max-width: 95vw;
+        width: 95vw;
+        padding: clamp(18px, 4vw, 24px) clamp(20px, 4vw, 26px) clamp(18px, 4vw, 22px);
+        margin: 10px;
+      }
+
+      .modal-title {
+        font-size: clamp(1rem, 4vw, 1.2rem);
+      }
+
+      .form-label {
+        font-size: clamp(0.85rem, 3vw, 0.9rem);
+      }
+
+      .input,
+      .textarea {
+        font-size: clamp(0.85rem, 3vw, 0.9rem);
+        padding: clamp(8px, 2vw, 10px) clamp(10px, 2.5vw, 12px);
+      }
+
+      /* Stack buttons on mobile */
+      .modal-footer {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .btn-secondary,
+      .btn-primary {
+        width: 100%;
+        justify-content: center;
+        padding: clamp(10px, 2.5vw, 12px) clamp(16px, 4vw, 18px);
+        font-size: clamp(0.85rem, 3vw, 0.9rem);
+      }
+
+      /* Leave summary chips stack on mobile */
+      .leave-summary {
+        flex-direction: column;
+      }
+
+      .leave-chip {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      /* Rating widget adjustments */
+      .rating-widget {
+        width: 100%;
+        justify-content: center;
+        font-size: clamp(0.75rem, 3vw, 0.85rem);
+      }
+
+      .logout-btn {
+        width: 100%;
+        padding: clamp(10px, 2.5vw, 12px) clamp(16px, 4vw, 20px);
+        font-size: clamp(0.85rem, 3vw, 0.9rem);
+      }
+
+      .leave-requests-list {
+        max-height: 250px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      /* Extra small screens: further adjustments */
+      .header {
+        padding: 12px 15px;
+      }
+
+      .main-content {
+        padding: 12px 15px;
+      }
+
+      .welcome-section {
+        padding: 18px 20px;
+        border-radius: 16px;
+      }
+
+      .logo-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+      }
+    }
+
+    /* Table wrapper for horizontal scrolling (if tables are added later) */
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      width: 100%;
+    }
+
+    .table-wrapper table {
+      min-width: 600px;
+    }
+
+    @media (max-width: 768px) {
+      .table-wrapper {
+        margin: 0 -15px;
+        padding: 0 15px;
       }
     }
   </style>

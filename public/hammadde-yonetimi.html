@@ -423,6 +423,33 @@
       margin-bottom: 10px;
     }
 
+    /* Badge styles */
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-kritik {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .badge-normal {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .table-container {
+      margin-top: 10px;
+    }
+
     /* Second Section Filter */
     .section-filter {
       padding: 16px 24px;
@@ -470,6 +497,11 @@
       .filter-bar { flex-direction: column; }
       .filter-select, .filter-input { min-width: 100%; }
       .stats-row { flex-direction: column; }
+      .chart-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .search-wrapper { width: 100%; }
+      .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table { min-width: 600px; }
+      th, td { padding: 10px 12px; font-size: 0.85rem; }
     }
   </style>
 </head>
@@ -646,6 +678,46 @@
         </div>
       </div>
     </section>
+
+    <!-- Gündoğdu Raw Material Stock Section -->
+    <section class="global-analytics-section">
+      <div class="section-divider">
+        <span>📦 Gündoğdu Hammadde Stoğu</span>
+      </div>
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <h3>📦 Gündoğdu Hammadde Stoğu</h3>
+          <div class="search-wrapper" style="display: flex; align-items: center; gap: 8px;">
+            <span class="search-icon" style="font-size: 0.9rem;">🔍</span>
+            <input type="text" class="filter-input" id="stockSearchInput" placeholder="Hammadde ara..." style="min-width: 200px; padding: 8px 12px; font-size: 0.85rem;">
+          </div>
+        </div>
+        <p class="chart-subtitle" style="margin: -10px 0 15px 0;">Stok verileri Gündoğdu deposuna aittir.</p>
+        <div class="table-container" style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Hammadde</th>
+                <th>Birim</th>
+                <th>Mevcut Stok</th>
+                <th>Min Stok</th>
+                <th>Durum</th>
+              </tr>
+            </thead>
+            <tbody id="stockTableBody">
+              <tr>
+                <td colspan="5">
+                  <div class="empty-state">
+                    <div class="icon">⏳</div>
+                    <p>Stok verileri yükleniyor...</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="dashboard-footer">
@@ -659,6 +731,7 @@
     let recipeData = [];
     let consumptionData = [];
     let criticalData = [];
+    let stockData = [];
 
     // Charts
     let productChart = null;
@@ -677,17 +750,19 @@
     // Initialize
     async function init() {
       try {
-        const [prodRes, matRes, consRes, critRes] = await Promise.all([
+        const [prodRes, matRes, consRes, critRes, stockRes] = await Promise.all([
           fetch('/api/urunler/list'),
           fetch('/api/hammadde/list'),
           fetch('/api/hammadde/consumption?limit=10'),
-          fetch('/api/hammadde/critical?limit=10')
+          fetch('/api/hammadde/critical?limit=10'),
+          fetch('/api/gundogdu/hammadde-stok')
         ]);
 
         products = await prodRes.json();
         materials = await matRes.json();
         consumptionData = await consRes.json();
         criticalData = await critRes.json();
+        stockData = await stockRes.json();
 
         // Populate dropdowns
         const productFilter = document.getElementById('productFilter');
@@ -711,9 +786,65 @@
         renderConsumptionChart();
         renderCriticalChart();
 
+        // Render stock table
+        renderStockTable(stockData);
+
       } catch (e) {
         console.error('Init error:', e);
       }
+    }
+
+    // Render stock table
+    function renderStockTable(data) {
+      const tbody = document.getElementById('stockTableBody');
+      const searchTerm = document.getElementById('stockSearchInput').value.toLowerCase().trim();
+
+      // Filter by search term
+      let filtered = data;
+      if (searchTerm) {
+        filtered = data.filter(item => 
+          (item.hammadde_adi || '').toLowerCase().includes(searchTerm)
+        );
+      }
+
+      if (!filtered || filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                <div class="icon">📭</div>
+                <p>${searchTerm ? 'Arama sonucu bulunamadı' : 'Stok verisi bulunamadı'}</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => {
+        const durumBadge = item.durum === 'KRITIK' 
+          ? '<span class="badge badge-kritik">Kritik</span>'
+          : '<span class="badge badge-normal">Normal</span>';
+        
+        const mevcutMiktar = Number(item.mevcut_miktar || 0).toLocaleString('tr-TR', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2
+        });
+        const minMiktar = Number(item.min_miktar || 0).toLocaleString('tr-TR', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2
+        });
+
+        return `
+          <tr>
+            <td>${item.hammadde_adi || '-'}</td>
+            <td>${item.birim || '-'}</td>
+            <td>${mevcutMiktar}</td>
+            <td>${minMiktar}</td>
+            <td>${durumBadge}</td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function populateUnitFilters() {
@@ -1041,6 +1172,10 @@
 
     document.getElementById('criticalUnitFilter').addEventListener('change', () => {
       renderCriticalChart();
+    });
+
+    document.getElementById('stockSearchInput').addEventListener('input', () => {
+      renderStockTable(stockData);
     });
 
     // Initialize

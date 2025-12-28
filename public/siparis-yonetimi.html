@@ -97,6 +97,79 @@
     .stat-card-iptal { border-color: rgba(239, 68, 68, 0.4); }
     .stat-card-iptal .stat-value { color: var(--danger); }
 
+    /* Warning Banner */
+    .warning-banner {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .warning-banner-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .warning-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .warning-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .warning-text strong {
+      color: var(--warning);
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .warning-text small {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    .warning-close {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .warning-close:hover {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+
     .table-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
@@ -404,6 +477,18 @@
   </header>
 
   <main class="main-content">
+    <!-- Warning Banner for Unfinished Orders -->
+    <div id="unfinished-orders-banner" class="warning-banner" style="display: none;">
+      <div class="warning-banner-content">
+        <span class="warning-icon">⚠️</span>
+        <div class="warning-text">
+          <strong>Tamamlanmamış Siparişler Mevcut</strong>
+          <small>Lütfen üretimde veya planlanan siparişleri kontrol edin.</small>
+        </div>
+        <button class="warning-close" onclick="closeUnfinishedBanner()" aria-label="Kapat">×</button>
+      </div>
+    </div>
+
     <section class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon">📦</div>
@@ -1150,11 +1235,49 @@
       if (totalPages) totalPages.textContent = reviewsState.totalPages;
     }
 
+    // Load unfinished orders count and show warning if needed
+    async function loadUnfinishedOrdersWarning() {
+      const banner = document.getElementById('unfinished-orders-banner');
+      if (!banner) return;
+
+      try {
+        const res = await fetch('/api/siparisler/unfinished-count');
+        if (!res.ok) throw new Error('Veri alınamadı');
+        
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Veri alınamadı');
+
+        const unfinishedCount = Number(data.unfinishedCount || 0);
+        
+        if (unfinishedCount > 0) {
+          banner.style.display = 'block';
+        } else {
+          banner.style.display = 'none';
+        }
+      } catch (err) {
+        console.error('Unfinished orders warning load error:', err);
+        // Hide banner on error
+        banner.style.display = 'none';
+      }
+    }
+
+    // Close warning banner
+    function closeUnfinishedBanner() {
+      const banner = document.getElementById('unfinished-orders-banner');
+      if (banner) {
+        banner.style.display = 'none';
+      }
+    }
+
+    // Make function globally available
+    window.closeUnfinishedBanner = closeUnfinishedBanner;
+
     // Initialize
     loadStats(); // Load stats from dedicated endpoint (all orders)
     loadOrders();
     loadReviews(); // Load reviews independently
     loadReviewsSummary(); // Load reviews summary (average rating badge)
+    loadUnfinishedOrdersWarning(); // Check for unfinished orders and show warning
   </script>
 </body>
 </html>

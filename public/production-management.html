@@ -743,6 +743,7 @@
         
         const result = await response.json();
         console.log('Orders response:', result);
+        console.log('Orders response - success:', result.success, 'data length:', result.data?.length || 0);
         
         // Handle both old format (array) and new format (object with data/pagination)
         let orders = [];
@@ -767,11 +768,17 @@
           paginationState.totalPages = pagination.totalPages || 0;
         }
         
+        // Debug: Log first order details
+        if (orders.length > 0) {
+          console.log('First order in list - siparis_id:', orders[0].id || orders[0].siparis_id, 'durum:', orders[0].durum, 'malzeme_adi:', orders[0].malzeme_adi);
+        } else {
+          console.log('No orders in response');
+        }
+        
         renderTable(orders);
         renderPagination();
-        // Note: Stats should be calculated from all orders, not just current page
-        // For now, we'll keep using current page data, but ideally should fetch stats separately
-        updateStats(orders);
+        // Load summary stats from dedicated endpoint (counts from entire table)
+        loadSummaryStats();
       } catch (error) {
         console.error('Error loading orders:', error);
         document.getElementById('ordersTableBody').innerHTML = `
@@ -784,10 +791,8 @@
             </td>
           </tr>
         `;
-        document.getElementById('totalOrders').textContent = '0';
-        document.getElementById('pendingOrders').textContent = '0';
-        document.getElementById('inProductionOrders').textContent = '0';
-        document.getElementById('deliveredOrders').textContent = '0';
+        // Load summary stats even on error (will show 0 if endpoint fails)
+        loadSummaryStats();
       }
     }
     
@@ -880,12 +885,45 @@
     // Make changePage available globally
     window.changePage = changePage;
 
-    // Update stats cards
+    // Load summary stats from dedicated endpoint (counts from entire table, not just visible page)
+    async function loadSummaryStats() {
+      try {
+        const response = await fetch('/api/hammadde-siparisleri/summary');
+        if (!response.ok) {
+          throw new Error('Summary stats yüklenemedi');
+        }
+        
+        const result = await response.json();
+        if (result.success && result.data) {
+          const stats = result.data;
+          document.getElementById('totalOrders').textContent = stats.total || 0;
+          document.getElementById('pendingOrders').textContent = stats.pending || 0;
+          document.getElementById('inProductionOrders').textContent = stats.inProduction || 0;
+          document.getElementById('deliveredOrders').textContent = stats.delivered || 0;
+          
+          console.log('Summary stats loaded:', stats);
+        } else {
+          // Fallback to 0 if endpoint fails
+          document.getElementById('totalOrders').textContent = '0';
+          document.getElementById('pendingOrders').textContent = '0';
+          document.getElementById('inProductionOrders').textContent = '0';
+          document.getElementById('deliveredOrders').textContent = '0';
+        }
+      } catch (error) {
+        console.error('Error loading summary stats:', error);
+        // Fallback to 0 on error
+        document.getElementById('totalOrders').textContent = '0';
+        document.getElementById('pendingOrders').textContent = '0';
+        document.getElementById('inProductionOrders').textContent = '0';
+        document.getElementById('deliveredOrders').textContent = '0';
+      }
+    }
+    
+    // Legacy function kept for backward compatibility (not used anymore)
     function updateStats(orders) {
-      document.getElementById('totalOrders').textContent = orders.length;
-      document.getElementById('pendingOrders').textContent = orders.filter(o => o.durum === 'BEKLEMEDE').length;
-      document.getElementById('inProductionOrders').textContent = orders.filter(o => o.durum === 'ONAYLANDI' || o.durum === 'HAZIRLANIYOR').length;
-      document.getElementById('deliveredOrders').textContent = orders.filter(o => o.durum === 'TESLIMEDILDI').length;
+      // This function is deprecated - use loadSummaryStats() instead
+      // Keeping it to avoid breaking any code that might call it
+      console.warn('updateStats() is deprecated - use loadSummaryStats() instead');
     }
 
     // Render table
@@ -983,23 +1021,44 @@
           body: JSON.stringify(data)
         });
 
-        if (response.ok) {
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          console.log('POST success -> created order:', result.order);
+          console.log('POST success -> siparis_id:', result.siparis_id || result.order?.id);
+          
+          // Close modal
           closeModal();
-          console.log('POST success -> reloading list');
-          loadOrders();
+          
+          // CRITICAL: Reset filters and pagination to ensure new order is visible
+          paginationState.page = 1;
+          paginationState.searchTerm = '';
+          document.getElementById('searchInput').value = '';
+          
+          // Reload orders - new order should appear on page 1
+          console.log('POST success -> reloading list (page 1, no search filter)');
+          await loadOrders();
+          
+          // Reload summary stats to reflect new order
+          await loadSummaryStats();
+          
+          // Show success message
+          alert('Hammadde siparişi başarıyla oluşturuldu!');
         } else {
-          const err = await response.json();
-          alert('Hata: ' + (err.error || 'İşlem başarısız'));
+          const err = result || {};
+          alert('Hata: ' + (err.message || err.error || 'İşlem başarısız'));
         }
       } catch (error) {
         console.error('Save error:', error);
-        alert('Bir hata oluştu.');
+        alert('Bir hata oluştu: ' + error.message);
       }
     });
 
     // Initialize
     loadMaterials();
     loadOrders();
+    // Also load summary stats on page load
+    loadSummaryStats();
   </script>
 </body>
 </html>

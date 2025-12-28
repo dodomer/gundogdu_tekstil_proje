@@ -218,6 +218,22 @@
       color: var(--text-secondary);
     }
 
+    .action-card small {
+      display: block;
+      font-size: 0.75rem;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    #kritik-hammadde-indicator.critical-text {
+      color: var(--danger);
+      font-weight: 500;
+    }
+
+    #kritik-hammadde-indicator.ok-text {
+      color: var(--success);
+    }
+
     /* Info Card */
     .info-card {
       background: var(--bg-card);
@@ -572,10 +588,11 @@
         <h3>Personel Yönetimi</h3>
         <p>Çalışanları yönet</p>
       </a>
-      <a href="/production-management.html" class="action-card">
+      <a href="/production-management.html" class="action-card" id="hammadde-siparisleri-card">
         <div class="action-icon">⚙️</div>
         <h3>Hammadde Siparişleri</h3>
         <p>Hammadde Siparişleri Takibi</p>
+        <small id="kritik-hammadde-indicator" style="display: none; font-size: 0.75rem; margin-top: 4px;"></small>
       </a>
       <a href="/siparis-yonetimi.html" class="action-card">
         <div class="action-icon">📦</div>
@@ -921,6 +938,7 @@
       loadOrderCompletionDistribution();
       loadCiroKar6Ay();
       loadInflationAndCostImpact();
+      loadKritikHammaddeSayisi();
     });
 
     async function loadKpis() {
@@ -954,6 +972,36 @@
       } catch (err) {
         console.error('KPIs load error:', err);
         setError('Hata');
+      }
+    }
+
+    // Load critical raw material count for Gündoğdu stock
+    async function loadKritikHammaddeSayisi() {
+      const indicator = document.getElementById('kritik-hammadde-indicator');
+      if (!indicator) return;
+
+      try {
+        const res = await fetch('/api/gundogdu/kritik-hammadde-sayisi');
+        if (!res.ok) throw new Error('Veri alınamadı');
+        
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Veri alınamadı');
+
+        const kritikSayisi = Number(data.kritikHammaddeSayisi || 0);
+        const isCritical = kritikSayisi > 0;
+        
+        if (isCritical) {
+          indicator.textContent = `Kritik Hammadde: ${kritikSayisi}`;
+          indicator.className = 'critical-text';
+        } else {
+          indicator.textContent = 'Kritik Hammadde Yok';
+          indicator.className = 'ok-text';
+        }
+        indicator.style.display = 'block';
+      } catch (err) {
+        console.error('Kritik hammadde sayısı yüklenirken hata:', err);
+        // Hide indicator on error
+        indicator.style.display = 'none';
       }
     }
 

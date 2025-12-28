@@ -1207,6 +1207,7 @@ app.get('/api/raw-material-orders', async (req, res) => {
     const totalPages = Math.ceil(totalCount / limit);
     
     // Get paginated data
+    // IMPORTANT: No status filter - show all orders including new BEKLEMEDE orders
     const [rows] = await pool.query(`
       SELECT 
         hs.siparis_id      AS id,
@@ -1214,7 +1215,7 @@ app.get('/api/raw-material-orders', async (req, res) => {
         h.hammadde_adi     AS malzeme_adi,
         h.birim            AS birim,
         hs.miktar          AS miktar,
-        hs.siparis_tarihi  AS siparis_tarihi,
+        DATE_FORMAT(hs.siparis_tarihi, '%Y-%m-%d') AS siparis_tarihi,
         hs.durum           AS durum
       FROM hammadde_siparisleri hs
       JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
@@ -1223,7 +1224,10 @@ app.get('/api/raw-material-orders', async (req, res) => {
       LIMIT ? OFFSET ?
     `, [...searchParams, limit, offset]);
     
-    console.log('GET hammadde_siparisleri rows:', rows.length, 'page:', page, 'total:', totalCount);
+    console.log('GET /api/raw-material-orders: fetched', rows.length, 'rows, page', page, 'of', totalPages, 'total:', totalCount);
+    if (rows.length > 0) {
+      console.log('First row siparis_id:', rows[0].id, 'durum:', rows[0].durum, 'malzeme_adi:', rows[0].malzeme_adi);
+    }
     
     res.json({
       success: true,
@@ -1276,18 +1280,16 @@ const createRawMaterialOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'hammadde_id ve miktar gereklidir' });
     }
 
-    const today = (siparisTarihi || new Date().toISOString().slice(0, 10));
+    // Use CURDATE() for consistent date handling, or provided date
+    const today = siparisTarihi || null;
 
-    const insertSql = `
-      INSERT INTO hammadde_siparisleri 
-        (hammadde_id, miktar, siparis_tarihi, durum)
-      VALUES (?, ?, ?, 'BEKLEMEDE')
-    `;
-    const insertParams = [
-      hammaddeIdFinal,
-      miktarFinal,
-      today
-    ];
+    const insertSql = today
+      ? `INSERT INTO hammadde_siparisleri (hammadde_id, miktar, siparis_tarihi, durum) VALUES (?, ?, ?, 'BEKLEMEDE')`
+      : `INSERT INTO hammadde_siparisleri (hammadde_id, miktar, siparis_tarihi, durum) VALUES (?, ?, CURDATE(), 'BEKLEMEDE')`;
+    
+    const insertParams = today
+      ? [hammaddeIdFinal, miktarFinal, today]
+      : [hammaddeIdFinal, miktarFinal];
 
     console.log('RAW ORDER INSERT params:', insertParams);
 
@@ -1316,11 +1318,15 @@ const createRawMaterialOrder = async (req, res) => {
     `, [insertedId]);
 
     console.log('RAW ORDER inserted row:', createdRows && createdRows[0]);
+    console.log('RAW ORDER created with siparis_id:', insertedId, 'durum: BEKLEMEDE');
 
+    const createdOrder = createdRows && createdRows[0] ? createdRows[0] : null;
+    
     res.status(201).json({ 
       success: true, 
       message: 'Hammadde siparişi oluşturuldu',
-      order: createdRows && createdRows[0] ? createdRows[0] : { id: insertedId }
+      order: createdOrder || { id: insertedId },
+      siparis_id: insertedId
     });
   } catch (error) {
     console.error('Create raw material order error (full):', error);
@@ -1688,6 +1694,7 @@ app.get('/api/hammadde-siparisleri', async (req, res) => {
     const totalPages = Math.ceil(totalCount / limit);
     
     // Get paginated data
+    // IMPORTANT: No status filter - show all orders including new BEKLEMEDE orders
     const [rows] = await pool.query(`
       SELECT 
         hs.siparis_id      AS id,
@@ -1695,7 +1702,7 @@ app.get('/api/hammadde-siparisleri', async (req, res) => {
         h.hammadde_adi     AS malzeme_adi,
         h.birim            AS birim,
         hs.miktar          AS miktar,
-        hs.siparis_tarihi  AS siparis_tarihi,
+        DATE_FORMAT(hs.siparis_tarihi, '%Y-%m-%d') AS siparis_tarihi,
         hs.durum           AS durum
       FROM hammadde_siparisleri hs
       JOIN hammadde h ON h.hammadde_id = hs.hammadde_id
@@ -1703,6 +1710,11 @@ app.get('/api/hammadde-siparisleri', async (req, res) => {
       ORDER BY hs.siparis_tarihi DESC, hs.siparis_id DESC
       LIMIT ? OFFSET ?
     `, [...searchParams, limit, offset]);
+    
+    console.log('GET /api/hammadde-siparisleri: fetched', rows.length, 'rows, page', page, 'of', totalPages, 'total:', totalCount);
+    if (rows.length > 0) {
+      console.log('First row siparis_id:', rows[0].id, 'durum:', rows[0].durum, 'malzeme_adi:', rows[0].malzeme_adi);
+    }
 
     const mapped = rows.map(r => {
       const tahmini = r.siparis_tarihi ? addBusinessDays(r.siparis_tarihi, 7) : null;
@@ -1740,6 +1752,54 @@ app.get('/api/hammadde-siparisleri', async (req, res) => {
     return res.status(500).json({ 
       success: false,
       error: error.message 
+    });
+  }
+});
+
+// Get summary stats for raw material orders (Gündoğdu Admin panel)
+// IMPORTANT: Counts must be from the entire table, not just visible page
+app.get('/api/hammadde-siparisleri/summary', async (req, res) => {
+  try {
+    // Count from hammadde_siparisleri table ONLY (no joins to avoid duplication)
+    const [rows] = await pool.query(`
+      SELECT
+        COUNT(*) AS toplam,
+        SUM(CASE WHEN durum = 'BEKLEMEDE' THEN 1 ELSE 0 END) AS bekleyen,
+        SUM(CASE WHEN durum IN ('ONAYLANDI', 'HAZIRLANIYOR') THEN 1 ELSE 0 END) AS uretimde,
+        SUM(CASE WHEN durum = 'TESLIMEDILDI' THEN 1 ELSE 0 END) AS teslim_edildi
+      FROM hammadde_siparisleri
+    `);
+    
+    const stats = rows[0] || {};
+    const toplam = Number(stats.toplam || 0);
+    const bekleyen = Number(stats.bekleyen || 0);
+    const uretimde = Number(stats.uretimde || 0);
+    const teslim_edildi = Number(stats.teslim_edildi || 0);
+    
+    // Verification: toplam should equal sum of all statuses
+    const sumOfStatuses = bekleyen + uretimde + teslim_edildi;
+    const otherStatuses = toplam - sumOfStatuses;
+    
+    if (otherStatuses > 0) {
+      console.log('[hammadde-siparisleri/summary] WARNING: There are', otherStatuses, 'orders with statuses other than BEKLEMEDE/ONAYLANDI/HAZIRLANIYOR/TESLIMEDILDI');
+    }
+    
+    console.log('[hammadde-siparisleri/summary] Stats:', { toplam, bekleyen, uretimde, teslim_edildi, sumOfStatuses, otherStatuses });
+    
+    res.json({
+      success: true,
+      data: {
+        total: toplam,
+        pending: bekleyen,
+        inProduction: uretimde,
+        delivered: teslim_edildi
+      }
+    });
+  } catch (error) {
+    console.error('Hammadde siparisleri summary error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
@@ -2923,6 +2983,30 @@ app.get('/api/admin/customer-reviews', async (req, res) => {
 });
 
 // Get order statistics for dashboard
+// Get unfinished orders count (for warning notification)
+app.get('/api/siparisler/unfinished-count', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT COUNT(*) AS unfinishedCount
+      FROM siparisler
+      WHERE durumu NOT IN ('TAMAMLANDI', 'SEVK EDILDI', 'IPTAL')
+    `);
+    
+    const unfinishedCount = Number(rows[0]?.unfinishedCount || 0);
+    
+    res.json({
+      success: true,
+      unfinishedCount: unfinishedCount
+    });
+  } catch (error) {
+    console.error('Unfinished orders count error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Returns counts from siparisler table only (no joins to avoid inflation)
 app.get('/api/siparisler/stats', async (req, res) => {
   try {

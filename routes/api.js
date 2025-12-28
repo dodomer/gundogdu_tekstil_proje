@@ -344,6 +344,57 @@ router.get('/hammadde/critical', async (req, res) => {
   }
 });
 
+// Gündoğdu hammadde stok listesi
+router.get('/gundogdu/hammadde-stok', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT
+        h.hammadde_id,
+        h.hammadde_adi,
+        h.birim,
+        COALESCE(gs.mevcut_miktar, 0) AS mevcut_miktar,
+        COALESCE(gs.min_miktar, 0) AS min_miktar,
+        CASE
+          WHEN COALESCE(gs.mevcut_miktar, 0) <= COALESCE(gs.min_miktar, 0) THEN 'KRITIK'
+          ELSE 'NORMAL'
+        END AS durum
+      FROM hammadde h
+      LEFT JOIN gundogdu_hammadde_stok gs ON gs.hammadde_id = h.hammadde_id
+      WHERE h.aktif_mi = 1
+      ORDER BY durum DESC, h.hammadde_adi ASC
+    `);
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Gündoğdu hammadde stok hatası:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get critical raw material count for Gündoğdu stock
+router.get('/gundogdu/kritik-hammadde-sayisi', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT COUNT(*) AS kritik_sayisi
+      FROM gundogdu_hammadde_stok gs
+      JOIN hammadde h ON h.hammadde_id = gs.hammadde_id
+      WHERE h.aktif_mi = 1
+        AND gs.min_miktar > 0
+        AND gs.mevcut_miktar <= gs.min_miktar
+    `);
+    const kritikSayisi = Number(rows[0]?.kritik_sayisi || 0);
+    res.json({ 
+      success: true,
+      kritikHammaddeSayisi: kritikSayisi 
+    });
+  } catch (error) {
+    console.error('Kritik hammadde sayısı hatası:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
 // API Sağlık kontrolü
 router.get('/health', async (req, res) => {
   try {
