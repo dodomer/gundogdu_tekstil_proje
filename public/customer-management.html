@@ -275,6 +275,59 @@
       color: var(--text-secondary);
     }
 
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+      padding: 20px 0;
+    }
+
+    .pagination-btn {
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: rgba(212, 168, 83, 0.1);
+    }
+
+    .pagination-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .pagination-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg-dark);
+      font-weight: 600;
+    }
+
+    .pagination-ellipsis {
+      padding: 8px 4px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .pagination-info {
+      margin: 0 12px;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
     .risk-level {
       display: inline-block;
       margin-left: 8px;
@@ -498,6 +551,9 @@
           </tbody>
         </table>
       </div>
+      <!-- Pagination -->
+      <div class="pagination" id="pagination-container" style="display: none;">
+      </div>
     </section>
   </main>
 
@@ -699,28 +755,44 @@
       }
     }
 
+    // Pagination state
+    let currentPage = 1;
+    let pageSize = 15;
+    let totalPages = 1;
+    let totalCustomers = 0;
+    let searchTerm = '';
+
     // Load customer list
     let allCustomers = [];
-    async function loadCustomerList() {
+    async function loadCustomerList(page = 1, search = '') {
       const tbody = document.getElementById('customers-table-body');
+      currentPage = page;
+      searchTerm = search;
 
       try {
-        const res = await fetch('/api/admin/customers/list?months=3');
+        const url = `/api/admin/customers/list?months=3&page=${currentPage}&limit=${pageSize}${search ? `&search=${encodeURIComponent(search)}` : ''}`;
+        const res = await fetch(url);
         const data = await res.json();
 
         if (!data.success || !data.data || data.data.length === 0) {
           tbody.innerHTML = `
             <tr>
               <td colspan="7" class="empty-state">
-                <p>Henüz müşteri bulunmamaktadır.</p>
+                <p>${search ? 'Arama sonucu bulunamadı.' : 'Henüz müşteri bulunmamaktadır.'}</p>
               </td>
             </tr>
           `;
+          totalPages = 0;
+          totalCustomers = 0;
+          renderPagination();
           return;
         }
 
         allCustomers = data.data;
+        totalPages = data.pagination?.totalPages || 1;
+        totalCustomers = data.pagination?.total || 0;
         renderCustomerTable(allCustomers);
+        renderPagination();
       } catch (err) {
         console.error('Customer list error:', err);
         tbody.innerHTML = `
@@ -730,8 +802,78 @@
             </td>
           </tr>
         `;
+        renderPagination();
       }
     }
+
+    // Render pagination controls
+    function renderPagination() {
+      const container = document.getElementById('pagination-container');
+      if (!container) return;
+
+      if (totalPages <= 1) {
+        container.style.display = 'none';
+        return;
+      }
+
+      container.style.display = 'flex';
+      let html = '';
+
+      // Prev button
+      html += `<button class="pagination-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">← Önceki</button>`;
+
+      // Page numbers
+      if (totalPages <= 7) {
+        // Show all pages if 7 or fewer
+        for (let i = 1; i <= totalPages; i++) {
+          html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+        }
+      } else {
+        // Show first page
+        html += `<button class="pagination-btn ${1 === currentPage ? 'active' : ''}" onclick="goToPage(1)">1</button>`;
+
+        if (currentPage > 3) {
+          html += `<span class="pagination-ellipsis">...</span>`;
+        }
+
+        // Show pages around current page
+        const start = Math.max(2, currentPage - 1);
+        const end = Math.min(totalPages - 1, currentPage + 1);
+
+        for (let i = start; i <= end; i++) {
+          html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+        }
+
+        if (currentPage < totalPages - 2) {
+          html += `<span class="pagination-ellipsis">...</span>`;
+        }
+
+        // Show last page
+        html += `<button class="pagination-btn ${totalPages === currentPage ? 'active' : ''}" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+      }
+
+      // Next button
+      html += `<button class="pagination-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">Sonraki →</button>`;
+
+      // Info
+      html += `<span class="pagination-info">Toplam ${totalCustomers} müşteri</span>`;
+
+      container.innerHTML = html;
+    }
+
+    // Go to page
+    function goToPage(page) {
+      if (page < 1 || page > totalPages) return;
+      loadCustomerList(page, searchTerm);
+      // Scroll to top of table
+      const tableSection = document.querySelector('.table-section');
+      if (tableSection) {
+        tableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // Make goToPage available globally
+    window.goToPage = goToPage;
 
     // Calculate quartiles and assign risk levels
     function calculateRiskLevels(customers) {
@@ -863,16 +1005,9 @@
 
     // Search functionality
     document.getElementById('customer-search').addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase().trim();
-      if (!searchTerm) {
-        renderCustomerTable(allCustomers);
-        return;
-      }
-      
-      const filtered = allCustomers.filter(c => 
-        c.musteri_ad.toLowerCase().includes(searchTerm)
-      );
-      renderCustomerTable(filtered);
+      const search = e.target.value.trim();
+      // Reset to page 1 when search changes
+      loadCustomerList(1, search);
     });
 
     // Tooltip positioning
@@ -945,7 +1080,7 @@
       loadSummary();
       loadAvgDeliveryTime();
       loadTopValue();
-      loadCustomerList();
+      loadCustomerList(1, '');
       positionTooltip();
     });
   </script>

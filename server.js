@@ -2516,13 +2516,36 @@ app.get('/api/admin/customers/summary', async (req, res) => {
   }
 });
 
-// GET /api/admin/customers/list?months=3
+// GET /api/admin/customers/list?months=3&page=1&limit=10&search=...
 app.get('/api/admin/customers/list', async (req, res) => {
   try {
     const months = parseInt(req.query.months) || 3;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
+    const offset = (page - 1) * limit;
+    const searchTerm = (req.query.search || '').trim();
+
     const [dateRows] = await pool.query(`SELECT DATE_SUB(CURDATE(), INTERVAL ? MONTH) AS start_date`, [months]);
     const startDate = dateRows[0].start_date;
 
+    // Build WHERE clause for search
+    let searchCondition = '1=1';
+    const searchParams = [];
+    if (searchTerm) {
+      searchCondition = 'm.musteri_bilgisi LIKE ?';
+      searchParams.push(`%${searchTerm}%`);
+    }
+
+    // Count query for total
+    const [countRows] = await pool.query(`
+      SELECT COUNT(DISTINCT m.musteri_id) as total
+      FROM musteriler m
+      WHERE ${searchCondition}
+    `, searchParams);
+    const total = Number(countRows[0]?.total || 0);
+    const totalPages = Math.ceil(total / limit);
+
+    // Main query with pagination
     const [rows] = await pool.query(`
       SELECT 
         m.musteri_id,
@@ -2536,9 +2559,11 @@ app.get('/api/admin/customers/list', async (req, res) => {
       LEFT JOIN siparisler s ON s.musteri_id = m.musteri_id 
         AND s.siparis_tarihi >= ?
       LEFT JOIN siparis_detay d ON d.siparis_id = s.siparis_id
+      WHERE ${searchCondition}
       GROUP BY m.musteri_id, m.musteri_bilgisi, m.created_at
       ORDER BY total_revenue DESC
-    `, [startDate]);
+      LIMIT ? OFFSET ?
+    `, [startDate, ...searchParams, limit, offset]);
 
     // Get order statistics for all customers in one query (cancellation data only)
     const customerIds = rows.map(r => r.musteri_id);
@@ -2645,7 +2670,13 @@ app.get('/api/admin/customers/list', async (req, res) => {
 
     res.json({
       success: true,
-      data: customers
+      data: customers,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages
+      }
     });
   } catch (error) {
     console.error('Customer list error:', error);
@@ -3636,15 +3667,40 @@ app.get('/api/rewards/employee-rewards', async (req, res) => {
     // Calculate reward for each employee
     const activeRules = rewardRules.filter(r => r.isActive);
     
+    // Sort rules by priority: highest minPercentage first, then non-null maxPercentage first, then lowest maxPercentage, then id DESC
+    const sortedRules = [...activeRules].sort((a, b) => {
+      // First: highest minPercentage (most specific lower bound)
+      if (b.minPercentage !== a.minPercentage) {
+        return b.minPercentage - a.minPercentage;
+      }
+      // Second: non-null maxPercentage first (more specific)
+      if ((a.maxPercentage === null) !== (b.maxPercentage === null)) {
+        return (a.maxPercentage === null ? 1 : 0) - (b.maxPercentage === null ? 1 : 0);
+      }
+      // Third: lowest maxPercentage (most specific upper bound)
+      if (a.maxPercentage !== null && b.maxPercentage !== null) {
+        if (a.maxPercentage !== b.maxPercentage) {
+          return a.maxPercentage - b.maxPercentage;
+        }
+      }
+      // Fourth: highest id (newest rule wins tie)
+      return b.id - a.id;
+    });
+    
     const employeeRewards = employees.map(emp => {
       const efficiency = parseFloat(emp.ort_verimlilik) || 0;
       
-      // Find matching rule
-      const matchingRule = activeRules.find(rule => {
+      // Find matching rule - check all rules and pick the first (most specific) match
+      const matchingRule = sortedRules.find(rule => {
         const minOk = efficiency >= rule.minPercentage;
-        const maxOk = rule.maxPercentage === null || efficiency < rule.maxPercentage;
+        const maxOk = rule.maxPercentage === null || efficiency <= rule.maxPercentage;
         return minOk && maxOk;
       });
+      
+      // Log for debugging (sample employee with 95-100% efficiency)
+      if (efficiency >= 95 && efficiency <= 100) {
+        console.log(`[Rewards API] Employee ${emp.personel_ad_soyad} (${efficiency.toFixed(1)}%): matched rule ID ${matchingRule?.id || 'none'}, description: ${matchingRule?.description || 'none'}`);
+      }
       
       return {
         personel_id: emp.personel_id,
@@ -4168,6 +4224,20 @@ async function insertLeaveRequest(personelId, baslangic_tarihi, bitis_tarihi, se
     throw err;
   }
 
+  // Validate that dates are not in the past
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startDate = new Date(start);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(end);
+  endDate.setHours(0, 0, 0, 0);
+
+  if (startDate < today || endDate < today) {
+    const err = new Error('Geçmiş tarihler için izin talebi oluşturamazsınız.');
+    err.statusCode = 400;
+    throw err;
+  }
+
   const izinGunuServer = countBusinessDays(start, end);
   if (!izinGunuServer || izinGunuServer <= 0) {
     const err = new Error('Sadece hafta içi günleri içeren bir aralık seçiniz');
@@ -4202,8 +4272,9 @@ async function insertLeaveRequest(personelId, baslangic_tarihi, bitis_tarihi, se
     throw err;
   }
 
+  let result;
   try {
-    const [result] = await pool.query(
+    [result] = await pool.query(
       `
         INSERT INTO izin_talepleri
           (personel_id, baslangic_tarihi, bitis_tarihi, izin_gunu, sebep, durum, olusturma_tarihi)

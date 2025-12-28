@@ -1403,6 +1403,7 @@
         flatpickr(dateInput, {
           mode: 'range',
           dateFormat: 'Y-m-d',
+          minDate: 'today',
           disable: [
             function (date) {
               // 0 = Pazar, 6 = Cumartesi
@@ -1478,6 +1479,22 @@
           if (!selectedStart || !selectedEnd) {
             if (dateErrorEl) {
               dateErrorEl.textContent = 'Lütfen geçerli bir tarih aralığı seçiniz.';
+              dateErrorEl.style.display = 'block';
+            }
+            return false;
+          }
+
+          // Validate that dates are not in the past
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const startDate = new Date(selectedStart);
+          startDate.setHours(0, 0, 0, 0);
+          const endDate = new Date(selectedEnd);
+          endDate.setHours(0, 0, 0, 0);
+
+          if (startDate < today || endDate < today) {
+            if (dateErrorEl) {
+              dateErrorEl.textContent = 'Geçmiş tarihler için izin talebi oluşturamazsınız.';
               dateErrorEl.style.display = 'block';
             }
             return false;

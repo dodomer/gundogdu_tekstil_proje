@@ -1679,8 +1679,12 @@
         
         if (response.ok) {
           closeRuleModal();
+          // Refresh rules list
           loadRewardRules();
-          loadEmployeeRewards();
+          // Small delay to ensure backend has processed the new rule, then refresh employee rewards
+          setTimeout(() => {
+            loadEmployeeRewards();
+          }, 100);
         } else {
           alert('Kayıt başarısız.');
         }
