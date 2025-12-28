@@ -344,6 +344,136 @@ router.get('/hammadde/critical', async (req, res) => {
   }
 });
 
+// Production analytics - Get production by vehicle model (with limit)
+router.get('/analytics/production-by-product', async (req, res) => {
+  try {
+    const { month, limit } = req.query;
+    const isAllTime = !month || month === 'all' || month === '';
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+    
+    let query;
+    let params = [];
+    
+    if (isAllTime) {
+      query = `
+        SELECT
+          am.arac_model_id AS model_id,
+          am.model_adi AS model_adi,
+          SUM(sd.adet) AS toplam_adet
+        FROM siparis_detay sd
+        JOIN siparisler s ON s.siparis_id = sd.siparis_id
+        JOIN urunler u ON u.urun_id = sd.urun_id
+        JOIN arac_modelleri am ON am.arac_model_id = u.arac_model_id
+        WHERE s.durumu IN ('TAMAMLANDI', 'SEVK EDILDI')
+        GROUP BY am.arac_model_id, am.model_adi
+        ORDER BY toplam_adet DESC
+        LIMIT ?
+      `;
+      params = [limitNum];
+    } else {
+      query = `
+        SELECT
+          am.arac_model_id AS model_id,
+          am.model_adi AS model_adi,
+          SUM(sd.adet) AS toplam_adet
+        FROM siparis_detay sd
+        JOIN siparisler s ON s.siparis_id = sd.siparis_id
+        JOIN urunler u ON u.urun_id = sd.urun_id
+        JOIN arac_modelleri am ON am.arac_model_id = u.arac_model_id
+        WHERE s.durumu IN ('TAMAMLANDI', 'SEVK EDILDI')
+          AND DATE_FORMAT(s.siparis_tarihi, '%Y-%m') = ?
+        GROUP BY am.arac_model_id, am.model_adi
+        ORDER BY toplam_adet DESC
+        LIMIT ?
+      `;
+      params = [month, limitNum];
+    }
+    
+    const [rows] = await pool.query(query, params);
+    
+    // Map to include etiket for backward compatibility
+    const result = rows.map(row => ({
+      model_id: row.model_id,
+      model_adi: row.model_adi,
+      etiket: row.model_adi, // For backward compatibility
+      toplam_adet: row.toplam_adet
+    }));
+    
+    res.json(result || []);
+  } catch (error) {
+    console.error('Production by model error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Production analytics - Get full list of models (no limit, for selector)
+router.get('/analytics/production-by-product/list', async (req, res) => {
+  try {
+    const { month } = req.query;
+    const isAllTime = !month || month === 'all' || month === '';
+    
+    let query;
+    let params = [];
+    
+    if (isAllTime) {
+      query = `
+        SELECT
+          am.arac_model_id AS model_id,
+          am.model_adi AS model_adi,
+          SUM(sd.adet) AS toplam_adet
+        FROM siparis_detay sd
+        JOIN siparisler s ON s.siparis_id = sd.siparis_id
+        JOIN urunler u ON u.urun_id = sd.urun_id
+        JOIN arac_modelleri am ON am.arac_model_id = u.arac_model_id
+        WHERE s.durumu IN ('TAMAMLANDI', 'SEVK EDILDI')
+        GROUP BY am.arac_model_id, am.model_adi
+        ORDER BY toplam_adet DESC
+      `;
+    } else {
+      query = `
+        SELECT
+          am.arac_model_id AS model_id,
+          am.model_adi AS model_adi,
+          SUM(sd.adet) AS toplam_adet
+        FROM siparis_detay sd
+        JOIN siparisler s ON s.siparis_id = sd.siparis_id
+        JOIN urunler u ON u.urun_id = sd.urun_id
+        JOIN arac_modelleri am ON am.arac_model_id = u.arac_model_id
+        WHERE s.durumu IN ('TAMAMLANDI', 'SEVK EDILDI')
+          AND DATE_FORMAT(s.siparis_tarihi, '%Y-%m') = ?
+        GROUP BY am.arac_model_id, am.model_adi
+        ORDER BY toplam_adet DESC
+      `;
+      params = [month];
+    }
+    
+    const [rows] = await pool.query(query, params);
+    
+    res.json(rows || []);
+  } catch (error) {
+    console.error('Production by model list error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Production analytics - Get available months
+router.get('/analytics/production-months', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT DISTINCT DATE_FORMAT(siparis_tarihi, '%Y-%m') AS ay
+      FROM siparisler
+      WHERE durumu IN ('TAMAMLANDI', 'SEVK EDILDI')
+      ORDER BY ay DESC
+    `);
+    
+    const months = rows.map(row => row.ay).filter(Boolean);
+    res.json(months || []);
+  } catch (error) {
+    console.error('Production months error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Gündoğdu hammadde stok listesi
 router.get('/gundogdu/hammadde-stok', async (req, res) => {
   try {

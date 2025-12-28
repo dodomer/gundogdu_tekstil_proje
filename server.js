@@ -4202,19 +4202,32 @@ async function insertLeaveRequest(personelId, baslangic_tarihi, bitis_tarihi, se
     throw err;
   }
 
-  const [result] = await pool.query(
-    `
-      INSERT INTO izin_talepleri
-        (personel_id, baslangic_tarihi, bitis_tarihi, izin_gunu, sebep, durum, olusturma_tarihi)
-      VALUES (?, ?, ?, ?, ?, 'Beklemede', NOW())
-    `,
-    [personelId, baslangic_tarihi, bitis_tarihi, izinGunuServer, sebepTrimmed]
-  );
+  try {
+    const [result] = await pool.query(
+      `
+        INSERT INTO izin_talepleri
+          (personel_id, baslangic_tarihi, bitis_tarihi, izin_gunu, sebep, durum, olusturma_tarihi)
+        VALUES (?, ?, ?, ?, ?, 'Beklemede', NOW())
+      `,
+      [personelId, baslangic_tarihi, bitis_tarihi, izinGunuServer, sebepTrimmed]
+    );
 
-  if (result.affectedRows !== 1) {
-    const err = new Error('İzin talebi kaydedilemedi');
-    err.statusCode = 500;
-    throw err;
+    if (result.affectedRows !== 1) {
+      const err = new Error('İzin talebi kaydedilemedi');
+      err.statusCode = 500;
+      throw err;
+    }
+  } catch (dbError) {
+    // Check for MySQL SIGNAL error (overlapping leave request trigger)
+    if (dbError.sqlState === '45000' || 
+        dbError.code === 'ER_SIGNAL_EXCEPTION' || 
+        dbError.errno === 1644) {
+      const err = new Error('Bu tarihlerde mevcut bir izin kaydınız var.');
+      err.statusCode = 409;
+      throw err;
+    }
+    // Re-throw other database errors
+    throw dbError;
   }
 
   return {
@@ -4242,6 +4255,7 @@ app.post('/api/personel/:personelId/izin-talebi', async (req, res) => {
     const status = error.statusCode || 500;
     return res.status(status).json({
       success: false,
+      message: error.message || 'İzin talebi oluşturulamadı',
       error: error.message || 'İzin talebi oluşturulamadı',
       detay: error.details || undefined,
     });

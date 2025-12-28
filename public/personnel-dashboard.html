@@ -1552,7 +1552,7 @@
             }
 
             if (!res.ok) {
-              const msg = data?.error || data?.message || `İzin talebi gönderilemedi (${res.status}).`;
+              const msg = data?.message || data?.error || `İzin talebi gönderilemedi (${res.status}).`;
               if (res.status === 404) {
                 const debugMsg = `API endpoint bulunamadı: POST /api/izin-talepleri. ${msg}`;
                 if (leaveMsgEl) {
@@ -1564,6 +1564,7 @@
                   globalErrorEl.style.display = 'block';
                 }
               } else {
+                // Handle 409 Conflict (overlapping leave request) and other errors
                 if (leaveMsgEl) {
                   leaveMsgEl.className = 'error-text';
                   leaveMsgEl.textContent = msg;
@@ -1579,7 +1580,7 @@
             }
 
             if (data?.error || !data?.success) {
-              const msg = data?.error || data?.message || 'İzin talebi gönderilemedi.';
+              const msg = data?.message || data?.error || 'İzin talebi gönderilemedi.';
               if (leaveMsgEl) {
                 leaveMsgEl.className = 'error-text';
                 leaveMsgEl.textContent = msg;
